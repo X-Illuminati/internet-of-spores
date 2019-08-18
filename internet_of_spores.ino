@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include <WEMOS_SHT3X.h>
 #include <LOLIN_HP303B.h>
+#include <GP2YDustSensor.h>
 
 /* Configurations for IOT App Story */
 #define DEBUG_LVL         (2)
@@ -14,9 +15,12 @@
 #define COMPDATE          (__DATE__ __TIME__)
 #define MODEBUTTON        (0)                    // Button pin on the esp for selecting modes. D3 for the Wemos!
 #define SLEEP_TIME_US     (15000000)
-#define SLEEP_OVERHEAD_MS (120) //overhead guess (esp/stopwatch): 100=~.988, 200=1.008, 150=1.001 135=1.00082 130=1.00058 122=1.000078
+//old guesses (before some changes): 100=~.988, 200=1.008, 150=1.001 135=1.00082 130=1.00058 122=1.000078 120=0.999952
+#define SLEEP_OVERHEAD_MS (121) //overhead guess (esp/stopwatch): 121=1.000780?, 120=1.000691, 119=1.001416
 #define PREINIT_MAGIC     (0xAA559876)
-#define NUM_STORAGE_SLOTS (30)
+#define NUM_STORAGE_SLOTS (60)
+#define GP2Y_LED_PIN     (D5) // Sharp Dust/particle sensor Led Pin
+#define GP2Y_VO_PIN      (A0) // Sharp Dust/particle analog out pin used for reading
 
 /* Types and Enums */
 // Macro to calculate the number of words that a
@@ -43,7 +47,7 @@ typedef enum sensor_type_e {
 typedef struct sensor_reading_s {
   sensor_type_t  type      :3;
   uint64_t       timestamp :40;
-  int32_t        reading   :20;
+  int32_t        reading   :21;
 } sensor_reading_t;
 
 // Fields for each of the 32-bit fields in RTC Memory
@@ -67,6 +71,7 @@ enum rtc_mem_fields_e {
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
 SHT3X sht30(0x45);
 LOLIN_HP303B HP303BPressureSensor;
+GP2YDustSensor dustSensor(GP2YDustSensorType::GP2Y1014AU0F, GP2Y_LED_PIN, GP2Y_VO_PIN);
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
 
 /* Functions */
@@ -135,7 +140,7 @@ void dump_readings(void)
     "TEMP (C)",
     "HUMI (%)",
     "PRES (kPa)",
-    "PART (kCt)",
+    "PART (?)",
   };
   char formatted[47];
   formatted[46]=0;
@@ -244,6 +249,9 @@ void read_hp303b(bool measure_temp)
   int16_t ret;
   int32_t pressure;
 
+  // Call begin to initialize HP303BPressureSensor
+  // The default address is 0x77 and does not need to be given.
+  HP303BPressureSensor.begin();
 
   if (measure_temp) {
     int32_t temperature;
@@ -289,9 +297,21 @@ void read_hp303b(bool measure_temp)
   }
 }
 
+void read_gp2y(void)
+{
+  uint16_t val;
+  dustSensor.begin();
+  val=dustSensor.getDustDensity();
+  store_reading(SENSOR_PARTICLE, ((int)val)*1000);
+  Serial.print("Dust density: ");
+  Serial.print(val);
+  Serial.println(" ng/m³");
+}
+
 void setup(void)
 {
-  bool read_ok;
+  bool sht30_ok;
+  int gp2y_ok;
 
   Serial.begin(SERIAL_SPEED);
   delay(2);
@@ -302,26 +322,31 @@ void setup(void)
     memset(rtc_mem, 0, sizeof(rtc_mem));
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
+  pinMode(GP2Y_LED_PIN, INPUT);
+  gp2y_ok = digitalRead(GP2Y_LED_PIN);
+
   Serial.print("["); serial_print_uptime(); Serial.print("] ");
   Serial.print("setup: boot count=");
   Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
   Serial.print(", num readings=");
-  Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
+  Serial.print(rtc_mem[RTC_MEM_NUM_READINGS]);
+  Serial.print(", GP2Y status=");
+  Serial.println(gp2y_ok);
   if (RTC_MEM_MAX > 128)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");
 
   IAS.preSetDeviceName("spores");
   //IAS.begin('P');
 
-  // Call begin to initialize HP303BPressureSensor
-  // The default address is 0x77 and does not need to be given.
-  HP303BPressureSensor.begin();
-
   //read temp/humidity from SHT30
-  read_ok = read_sht30();
+  sht30_ok = read_sht30();
 
   //read temp/humidity from HP303B
-  read_hp303b(!read_ok);
+  read_hp303b(!sht30_ok);
+
+  if (gp2y_ok) {
+    read_gp2y();
+  }
 
   dump_readings();
 
