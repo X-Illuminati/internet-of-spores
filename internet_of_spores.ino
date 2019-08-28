@@ -1,7 +1,8 @@
 #include <ESP8266WiFi.h>
-#include <WEMOS_SHT3X.h>
+#include <Wire.h>
 #include <LOLIN_HP303B.h>
 #include <GP2YDustSensor.h>
+#include "sht30.h"
 
 /* Configurations for IOT App Story */
 #define DEBUG_LVL         (2)
@@ -19,8 +20,9 @@
 #define SLEEP_OVERHEAD_MS (121) //overhead guess (esp/stopwatch): 121=1.000780?, 120=1.000691, 119=1.001416
 #define PREINIT_MAGIC     (0xAA559876)
 #define NUM_STORAGE_SLOTS (60)
-#define GP2Y_LED_PIN     (D5) // Sharp Dust/particle sensor Led Pin
-#define GP2Y_VO_PIN      (A0) // Sharp Dust/particle analog out pin used for reading
+#define GP2Y_LED_PIN      (D5) // Sharp Dust/particle sensor Led Pin
+#define GP2Y_VO_PIN       (A0) // Sharp Dust/particle analog out pin used for reading
+#define SHT30_ADDR        (0x45)
 
 /* Types and Enums */
 // Macro to calculate the number of words that a
@@ -69,7 +71,6 @@ enum rtc_mem_fields_e {
 
 /* Global Data Structures */
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
-SHT3X sht30(0x45);
 LOLIN_HP303B HP303BPressureSensor;
 GP2YDustSensor dustSensor(GP2YDustSensorType::GP2Y1014AU0F, GP2Y_LED_PIN, GP2Y_VO_PIN);
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
@@ -210,23 +211,24 @@ void deep_sleep(uint64_t time_us)
 // helper to read and store values from the SHT30 temperature and humidity sensor
 bool read_sht30(void)
 {
+  sht30_data_t data;
   int ret;
-  ret = sht30.get();
+  ret = sht30_get(SHT30_ADDR, SHT30_RPT_HIGH, &data);
   Serial.println();
   if (ret != 0) {
     Serial.print("Error Reading SHT30 ret=");
     Serial.println(ret);
     return false;
   } else {
-    store_reading(SENSOR_TEMPERATURE, sht30.cTemp*1000.0 + 0.5);
-    store_reading(SENSOR_HUMIDITY, sht30.humidity*1000.0 + 0.5);
+    store_reading(SENSOR_TEMPERATURE, sht30_parse_temp_c(data)*1000.0 + 0.5);
+    store_reading(SENSOR_HUMIDITY, sht30_parse_humidity(data)*1000.0 + 0.5);
     Serial.print("Temperature: ");
-    Serial.print(sht30.cTemp, 3);
+    Serial.print(sht30_parse_temp_c(data), 3);
     Serial.print("°C (");
-    Serial.print(sht30.fTemp, 3);
+    Serial.print(sht30_parse_temp_f(data), 3);
     Serial.println("°F)");
     Serial.print("Humidity: ");
-    Serial.println(sht30.humidity, 3);
+    Serial.println(sht30_parse_humidity(data), 3);
   }
 
   return true;
@@ -313,6 +315,7 @@ void setup(void)
   bool sht30_ok;
   int gp2y_ok;
 
+  Wire.begin();
   Serial.begin(SERIAL_SPEED);
   delay(2);
   Serial.println();
