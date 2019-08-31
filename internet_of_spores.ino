@@ -1,16 +1,9 @@
+#include <IOTAppStory.h>
 #include <ESP8266WiFi.h>
 #include <Wire.h>
 #include <LOLIN_HP303B.h>
 #include <GP2YDustSensor.h>
 #include "sht30.h"
-
-/* Configurations for IOT App Story */
-#define DEBUG_LVL         (2)
-#define SERIAL_SPEED      (115200)
-#define INC_CONFIG        (false)
-#define MAX_WIFI_RETRIES  (2)
-#define USEMDNS           (false)
-#include <IOTAppStory.h>
 
 /* Global Configurations */
 #define COMPDATE          (__DATE__ __TIME__)
@@ -303,7 +296,7 @@ void read_gp2y(void)
 {
   uint16_t val;
   dustSensor.begin();
-  val=dustSensor.getDustDensity();
+  val=dustSensor.getDustDensity(10);
   store_reading(SENSOR_PARTICLE, ((int)val)*1000);
   Serial.print("Dust density: ");
   Serial.print(val);
