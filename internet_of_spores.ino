@@ -2,8 +2,9 @@
 #include <ESP8266WiFi.h>
 #include <Wire.h>
 #include <LOLIN_HP303B.h>
-#include <GP2YDustSensor.h>
 #include "sht30.h"
+#include "adc.h"
+
 
 /* Global Configurations */
 #define COMPDATE          (__DATE__ __TIME__)
@@ -13,9 +14,8 @@
 #define SLEEP_OVERHEAD_MS (121) //overhead guess (esp/stopwatch): 121=1.000780?, 120=1.000691, 119=1.001416
 #define PREINIT_MAGIC     (0xAA559876)
 #define NUM_STORAGE_SLOTS (60)
-#define GP2Y_LED_PIN      (D5) // Sharp Dust/particle sensor Led Pin
-#define GP2Y_VO_PIN       (A0) // Sharp Dust/particle analog out pin used for reading
 #define SHT30_ADDR        (0x45)
+
 
 /* Types and Enums */
 // Macro to calculate the number of words that a
@@ -36,6 +36,7 @@ typedef enum sensor_type_e {
   SENSOR_HUMIDITY,
   SENSOR_PRESSURE,
   SENSOR_PARTICLE,
+  SENSOR_BATTERY_VOLTAGE,
 } sensor_type_t;
 
 // Structure to combine sensor readings with type and timestamp
@@ -62,11 +63,12 @@ enum rtc_mem_fields_e {
   RTC_MEM_MAX
 };
 
+
 /* Global Data Structures */
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
 LOLIN_HP303B HP303BPressureSensor;
-GP2YDustSensor dustSensor(GP2YDustSensorType::GP2Y1014AU0F, GP2Y_LED_PIN, GP2Y_VO_PIN);
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
+
 
 /* Functions */
 void preinit()
@@ -135,6 +137,7 @@ void dump_readings(void)
     "HUMI (%)",
     "PRES (kPa)",
     "PART (?)",
+    "BATT (V)",
   };
   char formatted[47];
   formatted[46]=0;
@@ -171,6 +174,10 @@ void dump_readings(void)
 
       case SENSOR_PARTICLE:
         type=typestrings[4];
+      break;
+
+      case SENSOR_BATTERY_VOLTAGE:
+        type=typestrings[5];
       break;
 
       case SENSOR_UNKNOWN:
@@ -292,21 +299,24 @@ void read_hp303b(bool measure_temp)
   }
 }
 
-void read_gp2y(void)
+void read_vcc(void)
 {
   uint16_t val;
-  dustSensor.begin();
-  val=dustSensor.getDustDensity(10);
-  store_reading(SENSOR_PARTICLE, ((int)val)*1000);
-  Serial.print("Dust density: ");
-  Serial.print(val);
-  Serial.println(" ng/m³");
+  val = ESP.getVcc();
+
+  if (val > 37000)
+    Serial.println("Error reading VCC value");
+  else
+    store_reading(SENSOR_BATTERY_VOLTAGE, val);
+
+  Serial.print("Battery voltage: ");
+  Serial.print(val/1000.0, 3);
+  Serial.println("V");
 }
 
 void setup(void)
 {
   bool sht30_ok;
-  int gp2y_ok;
 
   Wire.begin();
   Serial.begin(SERIAL_SPEED);
@@ -318,16 +328,12 @@ void setup(void)
     memset(rtc_mem, 0, sizeof(rtc_mem));
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
-  pinMode(GP2Y_LED_PIN, INPUT);
-  gp2y_ok = digitalRead(GP2Y_LED_PIN);
-
   Serial.print("["); serial_print_uptime(); Serial.print("] ");
   Serial.print("setup: boot count=");
   Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
   Serial.print(", num readings=");
-  Serial.print(rtc_mem[RTC_MEM_NUM_READINGS]);
-  Serial.print(", GP2Y status=");
-  Serial.println(gp2y_ok);
+  Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
+
   if (RTC_MEM_MAX > 128)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");
 
@@ -340,9 +346,7 @@ void setup(void)
   //read temp/humidity from HP303B
   read_hp303b(!sht30_ok);
 
-  if (gp2y_ok) {
-    read_gp2y();
-  }
+  read_vcc();
 
   dump_readings();
 
