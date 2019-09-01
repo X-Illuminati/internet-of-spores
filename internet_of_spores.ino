@@ -9,9 +9,9 @@
 /* Global Configurations */
 #define COMPDATE          (__DATE__ __TIME__)
 #define MODEBUTTON        (0)                    // Button pin on the esp for selecting modes. D3 for the Wemos!
+#define EXTRA_DEBUG       (0)
 #define SLEEP_TIME_US     (15000000)
-//old guesses (before some changes): 100=~.988, 200=1.008, 150=1.001 135=1.00082 130=1.00058 122=1.000078 120=0.999952
-#define SLEEP_OVERHEAD_MS (121) //overhead guess (esp/stopwatch): 121=1.000780?, 120=1.000691, 119=1.001416
+#define SLEEP_OVERHEAD_MS (120) //guess at the overhead time for entering and exitting sleep
 #define PREINIT_MAGIC     (0xAA559876)
 #define NUM_STORAGE_SLOTS (60)
 #define SHT30_ADDR        (0x45)
@@ -131,6 +131,7 @@ void store_reading(sensor_type_t type, int32_t val)
 // helper to print the stored pressure readings from the rtc mem ring buffer
 void dump_readings(void)
 {
+#if (EXTRA_DEBUG != 0)
   const char typestrings[][11] = {
     "UNKNOWN",
     "TEMP (C)",
@@ -190,6 +191,8 @@ void dump_readings(void)
     snprintf(formatted, 45, "%4u | %13llu | %-10s | %+8.3f", i, reading->timestamp, type, reading->reading/1000.0);
     Serial.println(formatted);
   }
+  Serial.print("["); serial_print_uptime(); Serial.println("] dump complete");
+#endif
 }
 
 // helper for saving rtc memory before entering deep sleep
@@ -222,6 +225,7 @@ bool read_sht30(void)
   } else {
     store_reading(SENSOR_TEMPERATURE, sht30_parse_temp_c(data)*1000.0 + 0.5);
     store_reading(SENSOR_HUMIDITY, sht30_parse_humidity(data)*1000.0 + 0.5);
+#if (EXTRA_DEBUG != 0)
     Serial.print("Temperature: ");
     Serial.print(sht30_parse_temp_c(data), 3);
     Serial.print("°C (");
@@ -229,6 +233,7 @@ bool read_sht30(void)
     Serial.println("°F)");
     Serial.print("Humidity: ");
     Serial.println(sht30_parse_humidity(data), 3);
+#endif
   }
 
   return true;
@@ -273,11 +278,13 @@ void read_hp303b(bool measure_temp)
       Serial.println(ret);
     } else {
       store_reading(SENSOR_TEMPERATURE, temperature*1000);
+#if (EXTRA_DEBUG != 0)
       Serial.print("Temperature: ");
       Serial.print(temperature);
       Serial.print(" °C (");
       Serial.print(((float)temperature * 9/5)+32.0);
       Serial.println(" °F)");
+#endif
     }
   }
 
@@ -291,14 +298,17 @@ void read_hp303b(bool measure_temp)
     Serial.println(ret);
   } else {
     store_reading(SENSOR_PRESSURE, pressure);
+#if (EXTRA_DEBUG != 0)
     Serial.print("Pressure: ");
     Serial.print(pressure/1000.0, 3);
     Serial.print(" kPa (");
     Serial.print((float)pressure/3386.39);
     Serial.println(" in Hg)");
+#endif
   }
 }
 
+// helper to read the ESP VCC voltage level
 void read_vcc(void)
 {
   uint16_t val;
@@ -309,15 +319,29 @@ void read_vcc(void)
   else
     store_reading(SENSOR_BATTERY_VOLTAGE, val);
 
+#if (EXTRA_DEBUG != 0)
   Serial.print("Battery voltage: ");
   Serial.print(val/1000.0, 3);
   Serial.println("V");
+#endif
+}
+
+// Read from all of the attached sensors and store the readings
+void take_readings(void)
+{
+  bool sht30_ok;
+
+  //read temp/humidity from SHT30
+  sht30_ok = read_sht30();
+
+  //read temp/humidity from HP303B
+  read_hp303b(!sht30_ok);
+
+  read_vcc();
 }
 
 void setup(void)
 {
-  bool sht30_ok;
-
   Wire.begin();
   Serial.begin(SERIAL_SPEED);
   delay(2);
@@ -340,17 +364,10 @@ void setup(void)
   IAS.preSetDeviceName("spores");
   //IAS.begin('P');
 
-  //read temp/humidity from SHT30
-  sht30_ok = read_sht30();
-
-  //read temp/humidity from HP303B
-  read_hp303b(!sht30_ok);
-
-  read_vcc();
+  take_readings();
 
   dump_readings();
 
-  Serial.print("["); serial_print_uptime(); Serial.println("]...");
   deep_sleep(SLEEP_TIME_US);
 }
 
