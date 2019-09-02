@@ -16,6 +16,9 @@
 #define NUM_STORAGE_SLOTS       (59)
 #define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
 #define SHT30_ADDR              (0x45)
+#define REPORT_HOST_NAME        ("roberto.local")
+#define REPORT_HOST_PORT        (2880)
+#define REPORT_RESPONSE_TIMEOUT (2000)
 
 
 /* Types and Enums */
@@ -95,13 +98,13 @@ uint64_t uptime(void)
   return uptime_ms;
 }
 
-// helper to print the uptime since the function prototype is tricky
-void serial_print_uptime(void)
+// helper to format a uint64_t as a String object
+String format_u64(uint64_t val)
 {
   char llu[21];
   llu[20]='\0';
-  sprintf(llu, "%llu", uptime());
-  Serial.print(llu);
+  sprintf(llu, "%llu", val);
+  return String(llu);
 }
 
 // helpers to store pressure readings in the rtc mem ring buffer
@@ -129,6 +132,14 @@ void store_reading(sensor_type_t type, int32_t val)
   reading->type = type;
   reading->reading = val;
   reading->timestamp = uptime();
+}
+
+// helper to reset the rtc mem ring buffer
+void clear_readings(void)
+{
+  // determine the next free slot in the RTC memory ring buffer
+  rtc_mem[RTC_MEM_FIRST_READING]=0;
+  rtc_mem[RTC_MEM_NUM_READINGS]=0;
 }
 
 // helper to print the stored pressure readings from the rtc mem ring buffer
@@ -194,8 +205,143 @@ void dump_readings(void)
     snprintf(formatted, 45, "%4u | %13llu | %-10s | %+8.3f", i, reading->timestamp, type, reading->reading/1000.0);
     Serial.println(formatted);
   }
-  Serial.print("["); serial_print_uptime(); Serial.println("] dump complete");
+  Serial.println("[" + format_u64(uptime()) + "] dump complete");
 #endif
+}
+
+// helper to transmit the readings formatted as a json string
+bool transmit_readings(WiFiClient& client)
+{
+  unsigned result;
+  String json;
+
+  //format preamble
+  json  = "{\"version\":1,\"timestamp\":";
+  json += format_u64(uptime());
+  json += ",\"node\":\"spores\",\"measurements\":[";
+
+  //format measurements
+  {
+    const char typestrings[][12] = {
+      "unknown",
+      "temperature",
+      "humidity",
+      "pressure",
+      "particles",
+      "battery",
+    };
+
+    for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
+      sensor_reading_t *reading;
+      const char* type;
+      int slot;
+  
+      // find the slot indexed into the ring buffer
+      slot = rtc_mem[RTC_MEM_FIRST_READING] + i;
+      if (slot >= NUM_STORAGE_SLOTS)
+        slot -= NUM_STORAGE_SLOTS;
+  
+      reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
+  
+      // determine the sensor type
+      switch(reading->type) {
+        case SENSOR_TEMPERATURE:
+          type=typestrings[1];
+        break;
+  
+        case SENSOR_HUMIDITY:
+          type=typestrings[2];
+        break;
+  
+        case SENSOR_PRESSURE:
+          type=typestrings[3];
+        break;
+  
+        case SENSOR_PARTICLE:
+          type=typestrings[4];
+        break;
+  
+        case SENSOR_BATTERY_VOLTAGE:
+          type=typestrings[5];
+        break;
+  
+        case SENSOR_UNKNOWN:
+        default:
+          type=typestrings[0];
+        break;
+      }
+      json += "{\"timestamp\":";
+      json += format_u64(reading->timestamp);
+      json +=",\"type\":\"";
+      json += type;
+      json += "\",\"value\":";
+      json += reading->reading/1000.0;
+      json += "}";
+      if ((i+1) < rtc_mem[RTC_MEM_NUM_READINGS])
+        json += ",";
+    }
+  }
+
+  //terminate the json objects
+  json += "]}";
+
+#if (EXTRA_DEBUG != 0)
+  Serial.println("Transmitting to report server:");
+  Serial.println(json);
+#endif
+
+  //transmit the results and verify the number of bytes written
+  result = client.print(json);
+  return (result == json.length());
+}
+
+// helper to manage uploading the readings to the report server
+void upload_readings(void)
+{
+  WiFiClient client;
+  String response;
+  unsigned long timeout;
+
+  Serial.print("Connecting to report server ");
+  Serial.print(REPORT_HOST_NAME);
+  Serial.print(":");
+  Serial.println(REPORT_HOST_PORT);
+  if (!client.connect(REPORT_HOST_NAME, REPORT_HOST_PORT)) {
+    Serial.println("Connection Failed");
+  } else {
+    // This will send a string to the server
+    Serial.println("Sending data to report server");
+    if (client.connected()) {
+      if (transmit_readings(client)) {
+        // wait for response to be available
+        timeout = millis();
+        while (client.available() == 0) {
+          if (millis() - timeout > REPORT_RESPONSE_TIMEOUT) {
+            Serial.println("Timeout waiting for response!");
+            break;
+          }
+          yield();
+        }
+
+        if (client.available()) {
+          // Read response from the report server
+          response = String("");
+          while (client.available()) {
+            char ch = static_cast<char>(client.read());
+            response += ch;
+          }
+    
+          Serial.print("Response from report server: ");
+          Serial.println(response);
+          if (response == "OK")
+            clear_readings();
+        }
+      }
+    }
+  }
+
+  client.stop();
+  delay(10);
 }
 
 // helper for saving rtc memory before entering deep sleep
@@ -364,7 +510,7 @@ void setup(void)
   }
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
-  Serial.print("["); serial_print_uptime(); Serial.print("] ");
+  Serial.print("[" + format_u64(uptime()) + "] ");
   Serial.print("setup: reset reason=");
   Serial.print(ESP.getResetReason());
   Serial.print(", boot count=");
@@ -391,8 +537,13 @@ void setup(void)
   }
 
   take_readings();
-
   dump_readings();
+
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+    // time to connect and upload our readings
+    IAS.begin('P');
+    upload_readings();
+  }
 
   WiFi.mode(WIFI_OFF);
   deep_sleep(SLEEP_TIME_US);
