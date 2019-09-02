@@ -7,14 +7,15 @@
 
 
 /* Global Configurations */
-#define COMPDATE          (__DATE__ __TIME__)
-#define MODEBUTTON        (0)                    // Button pin on the esp for selecting modes. D3 for the Wemos!
-#define EXTRA_DEBUG       (0)
-#define SLEEP_TIME_US     (15000000)
-#define SLEEP_OVERHEAD_MS (120) //guess at the overhead time for entering and exitting sleep
-#define PREINIT_MAGIC     (0xAA559876)
-#define NUM_STORAGE_SLOTS (60)
-#define SHT30_ADDR        (0x45)
+#define COMPDATE                (__DATE__ __TIME__)
+#define MODEBUTTON              (0) /* unused */
+#define EXTRA_DEBUG             (0)
+#define SLEEP_TIME_US           (15000000)
+#define SLEEP_OVERHEAD_MS       (120) /* guess at the overhead time for entering and exitting sleep */
+#define PREINIT_MAGIC           (0xAA559876)
+#define NUM_STORAGE_SLOTS       (59)
+#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
+#define SHT30_ADDR              (0x45)
 
 
 /* Types and Enums */
@@ -48,12 +49,14 @@ typedef struct sensor_reading_s {
 
 // Fields for each of the 32-bit fields in RTC Memory
 enum rtc_mem_fields_e {
-  RTC_MEM_CHECK = 0,
-  RTC_MEM_BOOT_COUNT,
-  RTC_MEM_FLAGS_TIME, //64-bit field
+  RTC_MEM_CHECK = 0,     // Magic/Header CRC
+  RTC_MEM_BOOT_COUNT,    // Number of accumulated wakeups since last power loss
+  RTC_MEM_FLAGS_TIME,    // Timestamp for start of boot, this is 64-bits so it needs 2 fields
   RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
-  RTC_MEM_NUM_READINGS,
-  RTC_MEM_FIRST_READING,
+  RTC_MEM_IOTAPPSTORY,   // Memory used by IOTAppStory internally
+  RTC_MEM_IOTAPPSTORY_END = RTC_MEM_IOTAPPSTORY + NUM_WORDS(rtcMemDef) - 1,
+  RTC_MEM_NUM_READINGS,  // Number of occupied slots
+  RTC_MEM_FIRST_READING, // Slot that has the oldest reading
 
   //array of sensor readings
   RTC_MEM_DATA,
@@ -340,6 +343,13 @@ void take_readings(void)
   read_vcc();
 }
 
+// helper to clear/reinitialize rtc memory
+void invalidate_rtc(void)
+{
+  memset(rtc_mem, 0, sizeof(rtc_mem));
+  ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
+}
+
 void setup(void)
 {
   Wire.begin();
@@ -348,12 +358,16 @@ void setup(void)
   Serial.println();
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
-  if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != PREINIT_MAGIC)
-    memset(rtc_mem, 0, sizeof(rtc_mem));
+  if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != PREINIT_MAGIC) {
+    Serial.println("Preinit magic doesn't compute, reinitializing");
+    invalidate_rtc();
+  }
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
   Serial.print("["); serial_print_uptime(); Serial.print("] ");
-  Serial.print("setup: boot count=");
+  Serial.print("setup: reset reason=");
+  Serial.print(ESP.getResetReason());
+  Serial.print(", boot count=");
   Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
   Serial.print(", num readings=");
   Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
@@ -362,17 +376,31 @@ void setup(void)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");
 
   IAS.preSetDeviceName("spores");
-  //IAS.begin('P');
+  IAS.preSetAutoUpdate(false);
+  IAS.setCallHome(false);
+
+  if (ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST)
+  {
+    // We can detect a "double press" of the reset button as a regular Ext Reset
+    // This is because we spend most of our time asleep and a single press will
+    // generally appear as a deep-sleep wakeup.
+    // Use this to enter the IOT AppStory Config mode
+    invalidate_rtc(); //invalidate existing RTC memory, IAS will overwrite it...
+    IAS.begin('P');
+    IAS.runConfigServer();
+  }
 
   take_readings();
 
   dump_readings();
 
+  WiFi.mode(WIFI_OFF);
   deep_sleep(SLEEP_TIME_US);
 }
 
 void loop(void)
 {
   //should never get here
+  WiFi.mode(WIFI_OFF);
   deep_sleep(SLEEP_TIME_US);
 }
