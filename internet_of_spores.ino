@@ -2,8 +2,9 @@
 #ifdef IOTAPPSTORY
 #include <IOTAppStory.h>
 #else
-#include <WiFiClient.h>
+#include <DNSServer.h>
 #include <ESP8266WebServer.h>
+#include <WiFiManager.h>
 #endif
 #include <Wire.h>
 #include <LOLIN_HP303B.h>
@@ -30,6 +31,7 @@
 #define REPORT_HOST_PORT        (2880)
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define NODE_BASE_NAME          ("spores-")
+#define CONFIG_SERVER_MAX_TIME  (600 /*seconds*/)
 
 /* Types and Enums */
 // Macro to calculate the number of words that a
@@ -85,22 +87,11 @@ enum rtc_mem_fields_e {
 /* Global Data Structures */
 #ifdef IOTAPPSTORY
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
-#else
-ESP8266WebServer config_server(80);
 #endif
 LOLIN_HP303B HP303BPressureSensor;
 String nodename = NODE_BASE_NAME;
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
 unsigned long server_shutdown_timeout;
-
-void handleRoot() {
-  config_server.send(200, "text/html", "<h1>You are connected</h1>");
-}
-
-void handleReboot() {
-  config_server.send(200, "text/html", "<h1>Rebooting</h1>");
-  server_shutdown_timeout = millis() + 200;
-}
 
 /* Functions */
 void preinit()
@@ -531,29 +522,28 @@ void enter_config_mode(void)
     IAS.begin('P');
     IAS.runConfigServer();
 #else
+    WiFiManager wifi_manager;
+    WiFiManagerParameter custom_report_host("report_host", "report server hostname/IP", "", 40, "><label for=\"report_host\">Custom Report Server</label");
+    WiFiManagerParameter custom_report_port("report_port", "report server port number", "2880", 40, "><label for=\"report_port\">Custom Report Server Port Number</label");
+    WiFiManagerParameter clock_drift_adj("clock_drift", "clock drift (ms)", String(SLEEP_OVERHEAD_MS).c_str(), 6, "><label for=\"clock_drift\">Clock Drift Compensation</label");
+    WiFiManagerParameter temp_adj("temp_adj", "temperature calibration (°C)", "0.0", 10, "><label for=\"temp_adj\">Temperatue Offset Calibration</label");
+    WiFiManagerParameter humidity_adj("humidity_adj", "humidity calibration (%)", "0.0", 10, "><label for=\"humidity_adj\">Humidity Offset Calibration</label");
+    WiFiManagerParameter pressure_adj("pressure_adj", "pressure calibration (kPa)", "0.0", 10, "><label for=\"pressure_adj\">Pressure Offset Calibration</label");
+
+    wifi_manager.addParameter(&custom_report_host);
+    wifi_manager.addParameter(&custom_report_port);
+    wifi_manager.addParameter(&clock_drift_adj);
+    wifi_manager.addParameter(&temp_adj);
+    wifi_manager.addParameter(&humidity_adj);
+    wifi_manager.addParameter(&pressure_adj);
+    wifi_manager.setConfigPortalTimeout(CONFIG_SERVER_MAX_TIME);
+
     Serial.println("Starting config server");
-    WiFi.softAP(nodename);
-    IPAddress myIP = WiFi.softAPIP();
     Serial.print("Connect to AP ");
-    Serial.print(nodename);
-    Serial.print(" and open ");
-    Serial.print(myIP);
-    Serial.println(" in a web browser");
-    config_server.on("/", handleRoot);
-    config_server.on("/reboot", handleReboot);
-    config_server.begin();
-    server_shutdown_timeout = millis() + 600000;
-    {
-      int counter=0;
-      pinMode(LED_BUILTIN, OUTPUT);
-      while(millis() < server_shutdown_timeout) {
-        if ((counter++ & 0xffff) == 0)
-          digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
-        config_server.handleClient();
-      }
-      pinMode(LED_BUILTIN, INPUT);
+    Serial.println(nodename);
+    if (wifi_manager.startConfigPortal(nodename.c_str())) {
+      // TODO save config settings
     }
-    config_server.stop();
 #endif
 }
 
@@ -565,10 +555,10 @@ wl_status_t connect_wifi(void)
 #ifdef IOTAPPSTORY
   IAS.begin('P');
 #else
-  Serial.println("Connecting to Hot for pixel");
-  WiFi.mode(WIFI_STA);
-  WiFi.reconnect();
-  WiFi.waitForConnectResult();
+  Serial.println("Connecting to AP");
+  WiFiManager wifi_manager;
+  wifi_manager.setConfigPortalTimeout(1);
+  wifi_manager.autoConnect();
 #endif
 
   retval = WiFi.status();
