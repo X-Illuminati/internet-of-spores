@@ -1,3 +1,6 @@
+#include "project_config.h"
+
+#include <Wire.h>
 #include <ESP8266WiFi.h>
 #ifdef IOTAPPSTORY
 #include <IOTAppStory.h>
@@ -6,82 +9,11 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>
 #endif
-#include <Wire.h>
 #include <LOLIN_HP303B.h>
+
+#include "rtc_mem.h"
+#include "sensors.h"
 #include "sht30.h"
-#include "adc.h"
-
-
-/* Global Configurations */
-#ifdef IOTAPPSTORY
-#define COMPDATE                (__DATE__ __TIME__)
-#define MODEBUTTON              (0) /* unused */
-#else
-#define SERIAL_SPEED            (115200)
-#endif
-#define EXTRA_DEBUG             (0)
-#define SLEEP_TIME_US           (15000000)
-#define SLEEP_OVERHEAD_MS       (120) /* guess at the overhead time for entering and exitting sleep */
-#define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
-#define PREINIT_MAGIC           (0xAA559876 ^ BUILD_UNIQUE_ID)
-#define NUM_STORAGE_SLOTS       (59)
-#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
-#define SHT30_ADDR              (0x45)
-#define REPORT_HOST_NAME        ("boxy")
-#define REPORT_HOST_PORT        (2880)
-#define REPORT_RESPONSE_TIMEOUT (2000)
-#define NODE_BASE_NAME          ("spores-")
-#define CONFIG_SERVER_MAX_TIME  (600 /*seconds*/)
-
-/* Types and Enums */
-// Macro to calculate the number of words that a
-// data structure will take up in RTC memory
-#define NUM_WORDS(x) (sizeof(x)/sizeof(uint32_t))
-
-// Structure to combine uptime with device flags
-typedef struct flags_time_s {
-  uint64_t flags    :8;
-  uint64_t reserved :16;
-  uint64_t millis   :40; //uptime in ms tracked over suspend cycles
-} flags_time_t;
-
-// Labels for the different types of sensor readings
-typedef enum sensor_type_e {
-  SENSOR_UNKNOWN,
-  SENSOR_TEMPERATURE,
-  SENSOR_HUMIDITY,
-  SENSOR_PRESSURE,
-  SENSOR_PARTICLE,
-  SENSOR_BATTERY_VOLTAGE,
-} sensor_type_t;
-
-// Structure to combine sensor readings with type and timestamp
-typedef struct sensor_reading_s {
-  sensor_type_t  type      :3;
-  uint64_t       timestamp :40;
-  int32_t        reading   :21;
-} sensor_reading_t;
-
-// Fields for each of the 32-bit fields in RTC Memory
-enum rtc_mem_fields_e {
-  RTC_MEM_CHECK = 0,       // Magic/Header CRC
-  RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss
-  RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields
-  RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
-#ifdef IOTAPPSTORY
-  RTC_MEM_IOTAPPSTORY = 4, // Memory used by IOTAppStory internally
-  RTC_MEM_IOTAPPSTORY_END = RTC_MEM_IOTAPPSTORY + NUM_WORDS(rtcMemDef) - 1,
-#endif
-  RTC_MEM_NUM_READINGS,    // Number of occupied slots
-  RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
-
-  //array of sensor readings
-  RTC_MEM_DATA,
-  RTC_MEM_DATA_END = RTC_MEM_DATA + NUM_STORAGE_SLOTS*NUM_WORDS(sensor_reading_t) - 1,
-
-  //keep last
-  RTC_MEM_MAX
-};
 
 
 /* Global Data Structures */

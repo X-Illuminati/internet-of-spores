@@ -1,1 +1,0 @@
-ADC_MODE(ADC_VCC)
