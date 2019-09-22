@@ -21,7 +21,8 @@
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
 #define SLEEP_OVERHEAD_MS       (120) /* guess at the overhead time for entering and exitting sleep */
-#define PREINIT_MAGIC           (0xAA559876)
+#define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
+#define PREINIT_MAGIC           (0xAA559876 ^ BUILD_UNIQUE_ID)
 #define NUM_STORAGE_SLOTS       (59)
 #define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
 #define SHT30_ADDR              (0x45)
@@ -589,19 +590,17 @@ wl_status_t connect_wifi(void)
   return retval;
 }
 
-void setup(void)
+// helper to read rtc user memory and print some details to serial
+// increments the boot count and returns true if the RTC memory was OK
+bool load_rtc_memory(void)
 {
-  pinMode(LED_BUILTIN, INPUT);
-
-  Wire.begin();
-  Serial.begin(SERIAL_SPEED);
-  delay(2);
-  Serial.println();
+  bool retval = true;
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
   if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != PREINIT_MAGIC) {
     Serial.println("Preinit magic doesn't compute, reinitializing");
     invalidate_rtc();
+    retval = false;
   }
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
@@ -610,13 +609,35 @@ void setup(void)
   Serial.print(ESP.getResetReason());
   Serial.print(", boot count=");
   Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
+#if (EXTRA_DEBUG != 0)
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  Serial.print(", flags=0x");
+  Serial.print((uint8_t)flags->flags, HEX);
+#endif
+
   Serial.print(", num readings=");
   Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
 
   if (RTC_MEM_MAX > 128)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");
 
+  return retval;
+}
+
+void setup(void)
+{
+  bool rtc_config_valid = false;
+
+  pinMode(LED_BUILTIN, INPUT);
+
+  Wire.begin();
+  Serial.begin(SERIAL_SPEED);
+  delay(2);
+  Serial.println();
+
   nodename += String(ESP.getChipId());
+
+  rtc_config_valid = load_rtc_memory();
 
 #ifdef IOTAPPSTORY
   IAS.preSetDeviceName(nodename);
@@ -624,12 +645,13 @@ void setup(void)
   IAS.setCallHome(false);
 #endif
 
-  if (ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST)
-  {
-    // We can detect a "double press" of the reset button as a regular Ext Reset
-    // This is because we spend most of our time asleep and a single press will
-    // generally appear as a deep-sleep wakeup.
-    // Use this to enter the IOT AppStory Config mode
+  // We can detect a "double press" of the reset button as a regular Ext Reset
+  // This is because we spend most of our time asleep and a single press will
+  // generally appear as a deep-sleep wakeup.
+  // We will use this to enter the WiFi config mode.
+  // However, we must ignore it on the first boot after reprogramming or inserting
+  // the battery -- so only pay attention if the RTC memory checksum is OK.
+  if ((ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST) && rtc_config_valid) {
     enter_config_mode();
   } else {
     take_readings();
