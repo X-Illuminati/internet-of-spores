@@ -16,10 +16,10 @@
 #define NUM_STORAGE_SLOTS       (59)
 #define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
 #define SHT30_ADDR              (0x45)
-#define REPORT_HOST_NAME        ("roberto.local")
+#define REPORT_HOST_NAME        ("boxy")
 #define REPORT_HOST_PORT        (2880)
 #define REPORT_RESPONSE_TIMEOUT (2000)
-
+#define NODE_BASE_NAME          ("spores-")
 
 /* Types and Enums */
 // Macro to calculate the number of words that a
@@ -73,6 +73,7 @@ enum rtc_mem_fields_e {
 /* Global Data Structures */
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
 LOLIN_HP303B HP303BPressureSensor;
+String nodename = NODE_BASE_NAME;
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
 
 
@@ -218,7 +219,8 @@ bool transmit_readings(WiFiClient& client)
   //format preamble
   json  = "{\"version\":1,\"timestamp\":";
   json += format_u64(uptime());
-  json += ",\"node\":\"spores\",\"measurements\":[";
+  json += ",\"node\":\""+nodename+"\",";
+  json += "\"measurements\":[";
 
   //format measurements
   {
@@ -521,7 +523,9 @@ void setup(void)
   if (RTC_MEM_MAX > 128)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");
 
-  IAS.preSetDeviceName("spores");
+  nodename += String(ESP.getChipId());
+
+  IAS.preSetDeviceName(nodename);
   IAS.preSetAutoUpdate(false);
   IAS.setCallHome(false);
 
