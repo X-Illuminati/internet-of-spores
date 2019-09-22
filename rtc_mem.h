@@ -2,9 +2,11 @@
 #define _RTC_MEM_H_
 
 #include "project_config.h"
+
 #ifdef IOTAPPSTORY
 #include <IOTAppStory.h>
 #endif
+
 #include "sensors.h"
 
 
@@ -58,6 +60,7 @@ bool load_rtc_memory(void);
 void invalidate_rtc(void);
 
 uint64_t uptime(void);
+void deep_sleep(uint64_t time_us);
 
 void store_reading(sensor_type_t type, int32_t val);
 void clear_readings(void);

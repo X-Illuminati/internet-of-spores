@@ -1,11 +1,6 @@
 #ifndef _PROJECT_CONFIG_H_
 #define _PROJECT_CONFIG_H_
 
-#include <Esp.h>
-
-/* Set ADC mode to read VCC voltage level (battery) */
-ADC_MODE(ADC_VCC)
-
 /* Global Configurations */
 #ifdef IOTAPPSTORY
 #define COMPDATE                (__DATE__ __TIME__)
