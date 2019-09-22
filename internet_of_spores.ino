@@ -1,5 +1,10 @@
-#include <IOTAppStory.h>
 #include <ESP8266WiFi.h>
+#ifdef IOTAPPSTORY
+#include <IOTAppStory.h>
+#else
+#include <WiFiClient.h>
+#include <ESP8266WebServer.h>
+#endif
 #include <Wire.h>
 #include <LOLIN_HP303B.h>
 #include "sht30.h"
@@ -7,8 +12,12 @@
 
 
 /* Global Configurations */
+#ifdef IOTAPPSTORY
 #define COMPDATE                (__DATE__ __TIME__)
 #define MODEBUTTON              (0) /* unused */
+#else
+#define SERIAL_SPEED            (115200)
+#endif
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
 #define SLEEP_OVERHEAD_MS       (120) /* guess at the overhead time for entering and exitting sleep */
@@ -52,14 +61,16 @@ typedef struct sensor_reading_s {
 
 // Fields for each of the 32-bit fields in RTC Memory
 enum rtc_mem_fields_e {
-  RTC_MEM_CHECK = 0,     // Magic/Header CRC
-  RTC_MEM_BOOT_COUNT,    // Number of accumulated wakeups since last power loss
-  RTC_MEM_FLAGS_TIME,    // Timestamp for start of boot, this is 64-bits so it needs 2 fields
+  RTC_MEM_CHECK = 0,       // Magic/Header CRC
+  RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss
+  RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields
   RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
-  RTC_MEM_IOTAPPSTORY,   // Memory used by IOTAppStory internally
+#ifdef IOTAPPSTORY
+  RTC_MEM_IOTAPPSTORY = 4, // Memory used by IOTAppStory internally
   RTC_MEM_IOTAPPSTORY_END = RTC_MEM_IOTAPPSTORY + NUM_WORDS(rtcMemDef) - 1,
-  RTC_MEM_NUM_READINGS,  // Number of occupied slots
-  RTC_MEM_FIRST_READING, // Slot that has the oldest reading
+#endif
+  RTC_MEM_NUM_READINGS,    // Number of occupied slots
+  RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
 
   //array of sensor readings
   RTC_MEM_DATA,
@@ -71,11 +82,24 @@ enum rtc_mem_fields_e {
 
 
 /* Global Data Structures */
+#ifdef IOTAPPSTORY
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
+#else
+ESP8266WebServer config_server(80);
+#endif
 LOLIN_HP303B HP303BPressureSensor;
 String nodename = NODE_BASE_NAME;
 uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
+unsigned long server_shutdown_timeout;
 
+void handleRoot() {
+  config_server.send(200, "text/html", "<h1>You are connected</h1>");
+}
+
+void handleReboot() {
+  config_server.send(200, "text/html", "<h1>Rebooting</h1>");
+  server_shutdown_timeout = millis() + 200;
+}
 
 /* Functions */
 void preinit()
@@ -498,8 +522,77 @@ void invalidate_rtc(void)
   ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
 }
 
+// helper to run the WiFi configuration mode
+void enter_config_mode(void)
+{
+#ifdef IOTAPPSTORY
+    invalidate_rtc(); //invalidate existing RTC memory, IAS will overwrite it...
+    IAS.begin('P');
+    IAS.runConfigServer();
+#else
+    Serial.println("Starting config server");
+    WiFi.softAP(nodename);
+    IPAddress myIP = WiFi.softAPIP();
+    Serial.print("Connect to AP ");
+    Serial.print(nodename);
+    Serial.print(" and open ");
+    Serial.print(myIP);
+    Serial.println(" in a web browser");
+    config_server.on("/", handleRoot);
+    config_server.on("/reboot", handleReboot);
+    config_server.begin();
+    server_shutdown_timeout = millis() + 600000;
+    {
+      int counter=0;
+      pinMode(LED_BUILTIN, OUTPUT);
+      while(millis() < server_shutdown_timeout) {
+        if ((counter++ & 0xffff) == 0)
+          digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+        config_server.handleClient();
+      }
+      pinMode(LED_BUILTIN, INPUT);
+    }
+    config_server.stop();
+#endif
+}
+
+// helper to connect to the WiFi and return the status
+wl_status_t connect_wifi(void)
+{
+  wl_status_t retval;
+
+#ifdef IOTAPPSTORY
+  IAS.begin('P');
+#else
+  Serial.println("Connecting to Hot for pixel");
+  WiFi.mode(WIFI_STA);
+  WiFi.reconnect();
+  WiFi.waitForConnectResult();
+#endif
+
+  retval = WiFi.status();
+#if (EXTRA_DEBUG != 0)
+  Serial.print("WiFi status ");
+  switch(retval) {
+    case WL_NO_SHIELD: Serial.println("WL_NO_SHIELD"); break;
+    case WL_IDLE_STATUS: Serial.println("WL_IDLE_STATUS"); break;
+    case WL_NO_SSID_AVAIL: Serial.println("WL_NO_SSID_AVAIL"); break;
+    case WL_SCAN_COMPLETED: Serial.println("WL_SCAN_COMPLETED"); break;
+    case WL_CONNECTED: Serial.println("WL_CONNECTED"); break;
+    case WL_CONNECT_FAILED: Serial.println("WL_CONNECT_FAILED"); break;
+    case WL_CONNECTION_LOST: Serial.println("WL_CONNECTION_LOST"); break;
+    case WL_DISCONNECTED: Serial.println("WL_DISCONNECTED"); break;
+    default: Serial.println(retval); break;
+  }
+#endif
+
+  return retval;
+}
+
 void setup(void)
 {
+  pinMode(LED_BUILTIN, INPUT);
+
   Wire.begin();
   Serial.begin(SERIAL_SPEED);
   delay(2);
@@ -525,9 +618,11 @@ void setup(void)
 
   nodename += String(ESP.getChipId());
 
+#ifdef IOTAPPSTORY
   IAS.preSetDeviceName(nodename);
   IAS.preSetAutoUpdate(false);
   IAS.setCallHome(false);
+#endif
 
   if (ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST)
   {
@@ -535,18 +630,16 @@ void setup(void)
     // This is because we spend most of our time asleep and a single press will
     // generally appear as a deep-sleep wakeup.
     // Use this to enter the IOT AppStory Config mode
-    invalidate_rtc(); //invalidate existing RTC memory, IAS will overwrite it...
-    IAS.begin('P');
-    IAS.runConfigServer();
-  }
+    enter_config_mode();
+  } else {
+    take_readings();
+    dump_readings();
 
-  take_readings();
-  dump_readings();
-
-  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
-    // time to connect and upload our readings
-    IAS.begin('P');
-    upload_readings();
+    if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+      // time to connect and upload our readings
+      if (WL_CONNECTED == connect_wifi())
+        upload_readings();
+    }
   }
 
   WiFi.mode(WIFI_OFF);
