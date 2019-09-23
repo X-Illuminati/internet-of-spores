@@ -5,8 +5,10 @@
 #ifdef IOTAPPSTORY
 #define COMPDATE                (__DATE__ __TIME__)
 #define MODEBUTTON              (0) /* unused */
+#define CONFIG_SERVER_MAX_TIME  (600 /* total seconds */)
 #else
 #define SERIAL_SPEED            (115200)
+#define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
 #endif
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
@@ -20,6 +22,5 @@
 #define REPORT_HOST_PORT        (2880)
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define NODE_BASE_NAME          ("spores-")
-#define CONFIG_SERVER_MAX_TIME  (600 /*seconds*/)
 
 #endif /* _PROJECT_CONFIG_H_ */
