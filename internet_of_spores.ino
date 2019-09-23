@@ -47,7 +47,6 @@ void setup(void)
   Serial.println();
 
   sensors_init();
-  connectivity_init();
   rtc_config_valid = load_rtc_memory();
 
   // We can detect a "double press" of the reset button as a regular Ext Reset
@@ -57,6 +56,7 @@ void setup(void)
   // However, we must ignore it on the first boot after reprogramming or inserting
   // the battery -- so only pay attention if the RTC memory checksum is OK.
   if ((ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST) && rtc_config_valid) {
+    connectivity_init();
     enter_config_mode();
   } else {
     take_readings();
@@ -64,6 +64,7 @@ void setup(void)
 
     if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
       // time to connect and upload our readings
+      connectivity_init();
       if (connect_wifi())
         upload_readings();
     }

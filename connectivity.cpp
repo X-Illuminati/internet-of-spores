@@ -10,16 +10,31 @@
 #endif
 
 #include "connectivity.h"
+#include "persistent.h"
 #include "rtc_mem.h"
 
 
 /* Global Data Structures */
 #ifdef IOTAPPSTORY
 IOTAppStory IAS(COMPDATE, MODEBUTTON);
+#else
+String config_hint_node_name;
+String config_hint_report_host_name;
+String config_hint_report_host_port;
+String config_hint_clock_calib;
+String config_hint_temp_calib;
+String config_hint_humidity_calib;
+String config_hint_pressure_calib;
+const char* config_label_node_name        = "><label for=\"" PERSISTENT_NODE_NAME "\">Friendly Name for this Sensor</label";
+const char* config_label_report_host_name = "><label for=\"" PERSISTENT_REPORT_HOST_NAME "\">Custom Report Server</label";
+const char* config_label_report_host_port = "><label for=\"" PERSISTENT_REPORT_HOST_PORT "\">Custom Report Server Port Number</label";
+const char* config_label_clock_calib      = "><label for=\"" PERSISTENT_CLOCK_CALIB "\">Clock Drift Compensation</label";
+const char* config_label_temp_calib       = "><label for=\"" PERSISTENT_TEMP_CALIB "\">Temperatue Offset Calibration</label";
+const char* config_label_humidity_calib   = "><label for=\"" PERSISTENT_HUMIDITY_CALIB "\">Humidity Offset Calibration</label";
+const char* config_label_pressure_calib   = "><label for=\"" PERSISTENT_PRESSURE_CALIB "\">Pressure Offset Calibration</label";
 #endif
-String nodename = NODE_BASE_NAME;
+String nodename;
 unsigned long server_shutdown_timeout;
-
 
 /* Function Prototypes */
 static String format_u64(uint64_t val);
@@ -49,7 +64,11 @@ void connectivity_preinit(void)
 // initializer called from setup()
 void connectivity_init(void)
 {
-  nodename += String(ESP.getChipId());
+  nodename = persistent_read(PERSISTENT_NODE_NAME);
+  if (nodename == NULL) {
+    nodename = String(DEFAULT_NODE_BASE_NAME);
+    nodename += String(ESP.getChipId());
+  }
 
 #ifdef IOTAPPSTORY
   IAS.preSetDeviceName(nodename);
@@ -97,22 +116,35 @@ bool connect_wifi(void)
   return (wifi_status == WL_CONNECTED);
 }
 
+#ifdef IOTAPPSTORY
 // run the WiFi configuration mode
 void enter_config_mode(void)
 {
-#ifdef IOTAPPSTORY
   invalidate_rtc(); //invalidate existing RTC memory, IAS will overwrite it...
   IAS.begin('P');
   IAS.runConfigServer();
+}
 #else
+// run the WiFi configuration mode
+void enter_config_mode(void)
+{
   WiFiManager wifi_manager;
-  WiFiManagerParameter custom_node_name("node_name", "friendly name", nodename.c_str(), 31, "><label for=\"node_name\">Friendly Name for this Sensor</label");
-  WiFiManagerParameter custom_report_host("report_host", "report server hostname/IP", "", 40, "><label for=\"report_host\">Custom Report Server</label");
-  WiFiManagerParameter custom_report_port("report_port", "report server port number", "2880", 40, "><label for=\"report_port\">Custom Report Server Port Number</label");
-  WiFiManagerParameter clock_drift_adj("clock_drift", "clock drift (ms)", String(SLEEP_OVERHEAD_MS).c_str(), 6, "><label for=\"clock_drift\">Clock Drift Compensation</label");
-  WiFiManagerParameter temp_adj("temp_adj", "temperature calibration (°C)", "0.0", 10, "><label for=\"temp_adj\">Temperatue Offset Calibration</label");
-  WiFiManagerParameter humidity_adj("humidity_adj", "humidity calibration (%)", "0.0", 10, "><label for=\"humidity_adj\">Humidity Offset Calibration</label");
-  WiFiManagerParameter pressure_adj("pressure_adj", "pressure calibration (kPa)", "0.0", 10, "><label for=\"pressure_adj\">Pressure Offset Calibration</label");
+
+  config_hint_node_name        = persistent_read(PERSISTENT_NODE_NAME,        nodename);
+  config_hint_report_host_name = persistent_read(PERSISTENT_REPORT_HOST_NAME, "report server hostname/IP");
+  config_hint_report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, "report server port number");
+  config_hint_clock_calib      = persistent_read(PERSISTENT_CLOCK_CALIB,      "clock drift (ms)");
+  config_hint_temp_calib       = persistent_read(PERSISTENT_TEMP_CALIB,       "temperature calibration (°C)");
+  config_hint_humidity_calib   = persistent_read(PERSISTENT_HUMIDITY_CALIB,   "humidity calibration (%)");
+  config_hint_pressure_calib   = persistent_read(PERSISTENT_PRESSURE_CALIB,   "pressure calibration (kPa)");
+
+  WiFiManagerParameter custom_node_name(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
+  WiFiManagerParameter custom_report_host(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
+  WiFiManagerParameter custom_report_port(PERSISTENT_REPORT_HOST_PORT, config_hint_report_host_port.c_str(), NULL,  6, config_label_report_host_port);
+  WiFiManagerParameter clock_drift_adj(   PERSISTENT_CLOCK_CALIB,      config_hint_clock_calib.c_str(),      NULL,  6, config_label_clock_calib);
+  WiFiManagerParameter temp_adj(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL, 10, config_label_temp_calib);
+  WiFiManagerParameter humidity_adj(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL, 10, config_label_humidity_calib);
+  WiFiManagerParameter pressure_adj(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL, 10, config_label_pressure_calib);
 
   wifi_manager.addParameter(&custom_node_name);
   wifi_manager.addParameter(&custom_report_host);
@@ -127,23 +159,46 @@ void enter_config_mode(void)
   Serial.print("Connect to AP ");
   Serial.println(nodename);
   if (wifi_manager.startConfigPortal(nodename.c_str())) {
-    // TODO save config settings
+    const char* value;
+    value = custom_node_name.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_NODE_NAME, value);
+    value = custom_report_host.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_REPORT_HOST_NAME, value);
+    value = custom_report_port.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_REPORT_HOST_PORT, value);
+    value = clock_drift_adj.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_CLOCK_CALIB, value);
+    value = temp_adj.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_TEMP_CALIB, value);
+    value = humidity_adj.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_HUMIDITY_CALIB, value);
+    value = pressure_adj.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_PRESSURE_CALIB, value);
   }
-#endif
 }
+#endif /* IOTAPPSTORY */
 
 // manage the uploading of the readings to the report server
 void upload_readings(void)
 {
   WiFiClient client;
+  String report_host_name = persistent_read(PERSISTENT_REPORT_HOST_NAME, String(DEFAULT_REPORT_HOST_NAME));
+  uint16_t report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, (int)DEFAULT_REPORT_HOST_PORT);
   String response;
   unsigned long timeout;
 
   Serial.print("Connecting to report server ");
-  Serial.print(REPORT_HOST_NAME);
+  Serial.print(report_host_name);
   Serial.print(":");
-  Serial.println(REPORT_HOST_PORT);
-  if (!client.connect(REPORT_HOST_NAME, REPORT_HOST_PORT)) {
+  Serial.println(report_host_port);
+  if (!client.connect(report_host_name, report_host_port)) {
     Serial.println("Connection Failed");
   } else {
     // This will send a string to the server
