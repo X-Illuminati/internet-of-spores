@@ -106,6 +106,7 @@ void enter_config_mode(void)
   IAS.runConfigServer();
 #else
   WiFiManager wifi_manager;
+  WiFiManagerParameter custom_node_name("node_name", "friendly name", nodename.c_str(), 31, "><label for=\"node_name\">Friendly Name for this Sensor</label");
   WiFiManagerParameter custom_report_host("report_host", "report server hostname/IP", "", 40, "><label for=\"report_host\">Custom Report Server</label");
   WiFiManagerParameter custom_report_port("report_port", "report server port number", "2880", 40, "><label for=\"report_port\">Custom Report Server Port Number</label");
   WiFiManagerParameter clock_drift_adj("clock_drift", "clock drift (ms)", String(SLEEP_OVERHEAD_MS).c_str(), 6, "><label for=\"clock_drift\">Clock Drift Compensation</label");
@@ -113,6 +114,7 @@ void enter_config_mode(void)
   WiFiManagerParameter humidity_adj("humidity_adj", "humidity calibration (%)", "0.0", 10, "><label for=\"humidity_adj\">Humidity Offset Calibration</label");
   WiFiManagerParameter pressure_adj("pressure_adj", "pressure calibration (kPa)", "0.0", 10, "><label for=\"pressure_adj\">Pressure Offset Calibration</label");
 
+  wifi_manager.addParameter(&custom_node_name);
   wifi_manager.addParameter(&custom_report_host);
   wifi_manager.addParameter(&custom_report_port);
   wifi_manager.addParameter(&clock_drift_adj);
