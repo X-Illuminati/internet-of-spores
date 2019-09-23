@@ -9,6 +9,9 @@
 #include "sensors.h"
 
 
+/* Global Data Structures */
+const uint32_t preinit_magic = PREINIT_MAGIC;
+
 /* Functions */
 void preinit(void)
 {

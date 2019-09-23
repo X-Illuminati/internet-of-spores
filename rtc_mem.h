@@ -53,7 +53,7 @@ enum rtc_mem_fields_e {
 
 /* Global Data Structures */
 extern uint32_t rtc_mem[RTC_MEM_MAX]; //array for accessing RTC Memory
-
+extern const uint32_t preinit_magic; //keep this in the .ino so it gets recompiled on every build
 
 /* Function Prototypes */
 bool load_rtc_memory(void);

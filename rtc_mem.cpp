@@ -18,7 +18,7 @@ bool load_rtc_memory(void)
   bool retval = true;
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
-  if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != PREINIT_MAGIC) {
+  if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != preinit_magic) {
     Serial.println("Preinit magic doesn't compute, reinitializing");
     invalidate_rtc();
     retval = false;
@@ -73,7 +73,7 @@ void deep_sleep(uint64_t time_us)
   timestruct->millis += millis() + time_us/1000 + SLEEP_OVERHEAD_MS;
 
   // update the header checksum
-  rtc_mem[RTC_MEM_CHECK] = PREINIT_MAGIC - rtc_mem[RTC_MEM_BOOT_COUNT];
+  rtc_mem[RTC_MEM_CHECK] = preinit_magic - rtc_mem[RTC_MEM_BOOT_COUNT];
 
   // store the array to RTC memory and enter suspend
   ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
