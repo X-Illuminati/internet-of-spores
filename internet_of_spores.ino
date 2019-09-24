@@ -1,6 +1,7 @@
 #include "project_config.h"
 
 #include <Arduino.h>
+#include <core_esp8266_waveform.h>
 #include <Esp.h>
 #include <user_interface.h>
 
@@ -56,8 +57,12 @@ void setup(void)
   // However, we must ignore it on the first boot after reprogramming or inserting
   // the battery -- so only pay attention if the RTC memory checksum is OK.
   if ((ESP.getResetInfoPtr()->reason == REASON_EXT_SYS_RST) && rtc_config_valid) {
+    pinMode(LED_BUILTIN, OUTPUT);
+    startWaveform(LED_BUILTIN, 350000, 50000, 0);
     connectivity_init();
     enter_config_mode();
+    stopWaveform(LED_BUILTIN);
+    pinMode(LED_BUILTIN, INPUT);
   } else {
     take_readings();
     dump_readings();
