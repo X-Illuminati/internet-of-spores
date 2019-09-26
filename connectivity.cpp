@@ -340,6 +340,10 @@ bool update_firmware(WiFiClient& client)
     if (!Update.setMD5(md5sum.c_str())) {
       Serial.println("error: unable to set md5sum");
     } else {
+      // At this point we are committed - at the end of this block
+      // we will reset the processor.
+      invalidate_rtc();
+
       Update.onProgress(
         [](size_t count, size_t total)
         {
@@ -359,5 +363,6 @@ bool update_firmware(WiFiClient& client)
     }
   }
 
+  //this function only returns false
   return status;
 }
