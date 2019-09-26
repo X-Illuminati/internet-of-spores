@@ -6,7 +6,6 @@
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
-#define SLEEP_OVERHEAD_MS       (DEFAULT_SLEEP_CLOCK_ADJ) /* guess at the overhead time for entering and exitting sleep */
 #define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
 #define PREINIT_MAGIC           (0xAA559876 ^ BUILD_UNIQUE_ID)
 #define NUM_STORAGE_SLOTS       (59)

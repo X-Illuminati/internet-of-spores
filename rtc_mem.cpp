@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Esp.h>
 
+#include "persistent.h"
 #include "rtc_mem.h"
 
 
@@ -48,8 +49,17 @@ bool load_rtc_memory(void)
 // clear/reinitialize rtc memory
 void invalidate_rtc(void)
 {
+  flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint16_t clock_cal;
+
   memset(rtc_mem, 0, sizeof(rtc_mem));
   ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
+
+  clock_cal = persistent_read(PERSISTENT_CLOCK_CALIB, DEFAULT_SLEEP_CLOCK_ADJ);
+  if (clock_cal > 0)
+    timestruct->clock_cal = clock_cal;
+  else
+    timestruct->clock_cal = DEFAULT_SLEEP_CLOCK_ADJ;
 }
 
 // return the uptime in ms (added to the RTC stored time)
@@ -70,7 +80,7 @@ void deep_sleep(uint64_t time_us)
   flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
 
   // update the stored millis including some overhead for the write, suspend, and wake
-  timestruct->millis += millis() + time_us/1000 + SLEEP_OVERHEAD_MS;
+  timestruct->millis += millis() + time_us/1000 + timestruct->clock_cal;
 
   // update the header checksum
   rtc_mem[RTC_MEM_CHECK] = preinit_magic - rtc_mem[RTC_MEM_BOOT_COUNT];

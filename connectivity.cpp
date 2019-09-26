@@ -146,8 +146,18 @@ void enter_config_mode(void)
     if (value && value[0])
       persistent_write(PERSISTENT_REPORT_HOST_PORT, value);
     value = clock_drift_adj.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_CLOCK_CALIB, value);
+    if (value && value[0]) {
+      flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+      String strValue = value;
+      int clock_cal = strValue.toInt();
+      if (clock_cal > 0) {
+        persistent_write(PERSISTENT_CLOCK_CALIB, strValue);
+        timestruct->clock_cal = clock_cal;
+      } else {
+        timestruct->clock_cal = DEFAULT_SLEEP_CLOCK_ADJ;
+        persistent_write(PERSISTENT_CLOCK_CALIB, String(DEFAULT_SLEEP_CLOCK_ADJ));
+      }
+    }
     value = temp_adj.getValue();
     if (value && value[0])
       persistent_write(PERSISTENT_TEMP_CALIB, value);

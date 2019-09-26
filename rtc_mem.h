@@ -12,9 +12,9 @@
 
 // Structure to combine uptime with device flags
 typedef struct flags_time_s {
-  uint64_t flags    :8;
-  uint64_t reserved :16;
-  uint64_t millis   :40; //uptime in ms tracked over suspend cycles
+  uint64_t flags     :8;
+  uint64_t clock_cal :16; //calibration for clock drift during suspend in ms
+  uint64_t millis    :40; //uptime in ms tracked over suspend cycles
 } flags_time_t;
 
 // Structure to combine sensor readings with type and timestamp
