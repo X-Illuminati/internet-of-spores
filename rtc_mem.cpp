@@ -19,7 +19,7 @@ bool load_rtc_memory(void)
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
   if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != preinit_magic) {
-    Serial.println("Preinit magic doesn't compute, reinitializing");
+    Serial.println(String("Preinit magic doesn't compute, reinitializing (0x") + String(preinit_magic, HEX) + ")");
     invalidate_rtc();
     retval = false;
   }

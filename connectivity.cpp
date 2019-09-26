@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Esp.h>
 #include <ESP8266WiFi.h>
+#include <Updater.h>
 #ifdef IOTAPPSTORY
 #include <IOTAppStory.h>
 #else
@@ -38,7 +39,9 @@ unsigned long server_shutdown_timeout;
 
 /* Function Prototypes */
 static String format_u64(uint64_t val);
+static String json_header(void);
 static bool transmit_readings(WiFiClient& client);
+static bool update_firmware(WiFiClient& client);
 
 
 /* Functions */
@@ -217,16 +220,19 @@ void upload_readings(void)
 
         if (client.available()) {
           // Read response from the report server
-          response = String("");
-          while (client.available()) {
-            char ch = static_cast<char>(client.read());
-            response += ch;
-          }
+          response = client.readStringUntil(0);
 
           Serial.print("Response from report server: ");
           Serial.println(response);
-          if (response == "OK")
+          if (response.startsWith("OK")) {
             clear_readings();
+            response.replace("OK,","");
+          }
+          if (response.startsWith("update")) {
+            Serial.println("accepted firmware update command");
+            if (!update_firmware(client))
+              Serial.println("error: update failed");
+          }
         }
       }
     }
@@ -242,10 +248,7 @@ static bool transmit_readings(WiFiClient& client)
   unsigned result;
   String json;
 
-  //format preamble
-  json  = "{\"version\":1,\"timestamp\":";
-  json += format_u64(uptime());
-  json += ",\"node\":\""+nodename+"\",";
+  json = json_header();
   json += "\"measurements\":[";
 
   //format measurements
@@ -321,4 +324,68 @@ static bool transmit_readings(WiFiClient& client)
   //transmit the results and verify the number of bytes written
   result = client.print(json);
   return (result == json.length());
+}
+
+// helper to generate a json-formatted header that can have
+// commands or data appended to it
+static String json_header(void)
+{
+  String json;
+
+  //format header
+  json = "{\"version\":1,";
+  json += "\"timestamp\":"+format_u64(uptime())+",";
+  json += "\"node\":\""+nodename+"\",";
+  json += "\"firmware\":\""+String(preinit_magic, HEX)+"\",";
+
+  return json;
+}
+
+// helper to fetch a firmware update from the server and apply it
+bool update_firmware(WiFiClient& client)
+{
+  String json = json_header();
+  unsigned len;
+  bool status = false;
+
+  json += "\"command\":\"update\",";
+  json += "\"arg\":\"internet_of_spores\"}";
+
+  len = client.print(json);
+  if (len != json.length())
+    Serial.println("warning: update command not fully transmitted");
+
+  String filesize = client.readStringUntil('\n');
+  String md5sum = client.readStringUntil('\n');
+  len = filesize.toInt();
+  if (len == 0)
+    Serial.println("Recieved 0 byte len response - check server logs");
+
+  if (len > 0) {
+    Serial.println("Receiving firmware update...");
+    Serial.print("File Size = ");  Serial.println(filesize);
+    Serial.print("MD5 = ");  Serial.println(md5sum);
+    if (!Update.setMD5(md5sum.c_str())) {
+      Serial.println("error: unable to set md5sum");
+    } else {
+      Update.onProgress(
+        [](size_t count, size_t total)
+        {
+          Serial.printf("progress: %06zd / %06zd\n", count, total);
+        }
+      );
+      status = ESP.updateSketch(client, len, false, false);
+      Serial.print("Update result: "); Serial.println(status?"OK":"failed");
+
+      // I think we need to reset regardless of the status because
+      // the update process may store a bootloader command in the
+      // first 128 bytes of RTC user memory. However, it isn't clear
+      // that it actually does this...
+      client.stop();
+      delay(10);
+      ESP.reset();
+    }
+  }
+
+  return status;
 }
