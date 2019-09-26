@@ -2,11 +2,6 @@
 #define _RTC_MEM_H_
 
 #include "project_config.h"
-
-#ifdef IOTAPPSTORY
-#include <IOTAppStory.h>
-#endif
-
 #include "sensors.h"
 
 
@@ -35,10 +30,6 @@ enum rtc_mem_fields_e {
   RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss
   RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields
   RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
-#ifdef IOTAPPSTORY
-  RTC_MEM_IOTAPPSTORY = 4, // Memory used by IOTAppStory internally
-  RTC_MEM_IOTAPPSTORY_END = RTC_MEM_IOTAPPSTORY + NUM_WORDS(rtcMemDef) - 1,
-#endif
   RTC_MEM_NUM_READINGS,    // Number of occupied slots
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
 

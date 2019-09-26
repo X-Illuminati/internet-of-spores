@@ -4,11 +4,7 @@
 #include <Esp.h>
 #include <ESP8266WiFi.h>
 #include <Updater.h>
-#ifdef IOTAPPSTORY
-#include <IOTAppStory.h>
-#else
 #include <WiFiManager.h>
-#endif
 
 #include "connectivity.h"
 #include "persistent.h"
@@ -16,9 +12,6 @@
 
 
 /* Global Data Structures */
-#ifdef IOTAPPSTORY
-IOTAppStory IAS(COMPDATE, MODEBUTTON);
-#else
 String config_hint_node_name;
 String config_hint_report_host_name;
 String config_hint_report_host_port;
@@ -33,7 +26,6 @@ const char* config_label_clock_calib      = "><label for=\"" PERSISTENT_CLOCK_CA
 const char* config_label_temp_calib       = "><label for=\"" PERSISTENT_TEMP_CALIB "\">Temperatue Offset Calibration</label";
 const char* config_label_humidity_calib   = "><label for=\"" PERSISTENT_HUMIDITY_CALIB "\">Humidity Offset Calibration</label";
 const char* config_label_pressure_calib   = "><label for=\"" PERSISTENT_PRESSURE_CALIB "\">Pressure Offset Calibration</label";
-#endif
 String nodename;
 unsigned long server_shutdown_timeout;
 
@@ -72,12 +64,6 @@ void connectivity_init(void)
     nodename = String(DEFAULT_NODE_BASE_NAME);
     nodename += String(ESP.getChipId());
   }
-
-#ifdef IOTAPPSTORY
-  IAS.preSetDeviceName(nodename);
-  IAS.preSetAutoUpdate(false);
-  IAS.setCallHome(false);
-#endif
 }
 
 // shutdown wifi
@@ -91,14 +77,10 @@ bool connect_wifi(void)
 {
   wl_status_t wifi_status;
 
-#ifdef IOTAPPSTORY
-  IAS.begin('P');
-#else
   Serial.println("Connecting to AP");
   WiFiManager wifi_manager;
   wifi_manager.setConfigPortalTimeout(1);
   wifi_manager.autoConnect();
-#endif
 
   wifi_status = WiFi.status();
 #if (EXTRA_DEBUG != 0)
@@ -119,15 +101,6 @@ bool connect_wifi(void)
   return (wifi_status == WL_CONNECTED);
 }
 
-#ifdef IOTAPPSTORY
-// run the WiFi configuration mode
-void enter_config_mode(void)
-{
-  invalidate_rtc(); //invalidate existing RTC memory, IAS will overwrite it...
-  IAS.begin('P');
-  IAS.runConfigServer();
-}
-#else
 // run the WiFi configuration mode
 void enter_config_mode(void)
 {
@@ -186,7 +159,6 @@ void enter_config_mode(void)
       persistent_write(PERSISTENT_PRESSURE_CALIB, value);
   }
 }
-#endif /* IOTAPPSTORY */
 
 // manage the uploading of the readings to the report server
 void upload_readings(void)

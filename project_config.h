@@ -2,14 +2,8 @@
 #define _PROJECT_CONFIG_H_
 
 /* Global Configurations */
-#ifdef IOTAPPSTORY
-#define COMPDATE                (__DATE__ __TIME__)
-#define MODEBUTTON              (0) /* unused */
-#define CONFIG_SERVER_MAX_TIME  (600 /* total seconds */)
-#else
 #define SERIAL_SPEED            (115200)
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
-#endif
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
 #define SLEEP_OVERHEAD_MS       (DEFAULT_SLEEP_CLOCK_ADJ) /* guess at the overhead time for entering and exitting sleep */
