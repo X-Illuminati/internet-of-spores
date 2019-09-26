@@ -36,12 +36,12 @@ bool read_sht30(void)
     store_reading(SENSOR_TEMPERATURE, sht30_parse_temp_c(data)*1000.0 + 0.5);
     store_reading(SENSOR_HUMIDITY, sht30_parse_humidity(data)*1000.0 + 0.5);
 #if (EXTRA_DEBUG != 0)
-    Serial.print("Temperature: ");
+    Serial.print("Raw Temperature: ");
     Serial.print(sht30_parse_temp_c(data), 3);
     Serial.print("°C (");
     Serial.print(sht30_parse_temp_f(data), 3);
     Serial.println("°F)");
-    Serial.print("Humidity: ");
+    Serial.print("Raw Humidity: ");
     Serial.println(sht30_parse_humidity(data), 3);
 #endif
   }
@@ -89,7 +89,7 @@ void read_hp303b(bool measure_temp)
     } else {
       store_reading(SENSOR_TEMPERATURE, temperature*1000);
 #if (EXTRA_DEBUG != 0)
-      Serial.print("Temperature: ");
+      Serial.print("Raw Temperature: ");
       Serial.print(temperature);
       Serial.print(" °C (");
       Serial.print(((float)temperature * 9/5)+32.0);
@@ -109,7 +109,7 @@ void read_hp303b(bool measure_temp)
   } else {
     store_reading(SENSOR_PRESSURE, pressure);
 #if (EXTRA_DEBUG != 0)
-    Serial.print("Pressure: ");
+    Serial.print("Raw Pressure: ");
     Serial.print(pressure/1000.0, 3);
     Serial.print(" kPa (");
     Serial.print((float)pressure/3386.39);

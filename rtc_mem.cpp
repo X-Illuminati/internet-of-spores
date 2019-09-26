@@ -140,7 +140,7 @@ void dump_readings(void)
   char formatted[47];
   formatted[46]=0;
 
-  Serial.println("slot |     timestamp | type       |    value");
+  Serial.println("slot |     timestamp | type       | rawvalue");
   Serial.println("-----+---------------+------------+---------");
 
 

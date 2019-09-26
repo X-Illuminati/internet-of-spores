@@ -26,8 +26,8 @@
 #define DEFAULT_REPORT_HOST_NAME    "192.168.0.1"
 #define DEFAULT_REPORT_HOST_PORT    (2880)
 #define DEFAULT_SLEEP_CLOCK_ADJ     (120)
-#define DEFAULT_TEMP_CALIB          (0.0)
-#define DEFAULT_HUMIDITY_CALIB      (0.0)
-#define DEFAULT_PRESSURE_CALIB      (0.0)
+#define DEFAULT_TEMP_CALIB          (0.0f)
+#define DEFAULT_HUMIDITY_CALIB      (0.0f)
+#define DEFAULT_PRESSURE_CALIB      (0.0f)
 
 #endif /* _PROJECT_CONFIG_H_ */

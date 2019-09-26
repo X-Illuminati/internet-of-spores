@@ -243,11 +243,15 @@ static bool transmit_readings(WiFiClient& client)
       "particles",
       "battery",
     };
+    float temp_cal = persistent_read(PERSISTENT_TEMP_CALIB, DEFAULT_TEMP_CALIB);
+    float humidity_cal = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
+    float pressure_cal = persistent_read(PERSISTENT_PRESSURE_CALIB, DEFAULT_PRESSURE_CALIB);
 
     for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
       sensor_reading_t *reading;
       const char* type;
       int slot;
+      float calibrated_reading;
 
       // find the slot indexed into the ring buffer
       slot = rtc_mem[RTC_MEM_FIRST_READING] + i;
@@ -255,19 +259,23 @@ static bool transmit_readings(WiFiClient& client)
         slot -= NUM_STORAGE_SLOTS;
 
       reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
+      calibrated_reading = reading->reading/1000.0;
 
       // determine the sensor type
       switch(reading->type) {
         case SENSOR_TEMPERATURE:
           type=typestrings[1];
+          calibrated_reading += temp_cal;
         break;
 
         case SENSOR_HUMIDITY:
           type=typestrings[2];
+          calibrated_reading += humidity_cal;
         break;
 
         case SENSOR_PRESSURE:
           type=typestrings[3];
+          calibrated_reading += pressure_cal;
         break;
 
         case SENSOR_PARTICLE:
@@ -288,7 +296,7 @@ static bool transmit_readings(WiFiClient& client)
       json +=",\"type\":\"";
       json += type;
       json += "\",\"value\":";
-      json += reading->reading/1000.0;
+      json += calibrated_reading;
       json += "}";
       if ((i+1) < rtc_mem[RTC_MEM_NUM_READINGS])
         json += ",";
