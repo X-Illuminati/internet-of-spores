@@ -116,11 +116,11 @@ void enter_config_mode(void)
 
   WiFiManagerParameter custom_node_name(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
   WiFiManagerParameter custom_report_host(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
-  WiFiManagerParameter custom_report_port(PERSISTENT_REPORT_HOST_PORT, config_hint_report_host_port.c_str(), NULL,  6, config_label_report_host_port);
-  WiFiManagerParameter clock_drift_adj(   PERSISTENT_CLOCK_CALIB,      config_hint_clock_calib.c_str(),      NULL,  6, config_label_clock_calib);
-  WiFiManagerParameter temp_adj(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL, 10, config_label_temp_calib);
-  WiFiManagerParameter humidity_adj(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL, 10, config_label_humidity_calib);
-  WiFiManagerParameter pressure_adj(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL, 10, config_label_pressure_calib);
+  WiFiManagerParameter custom_report_port(PERSISTENT_REPORT_HOST_PORT, config_hint_report_host_port.c_str(), NULL,  5, config_label_report_host_port);
+  WiFiManagerParameter clock_drift_adj(   PERSISTENT_CLOCK_CALIB,      config_hint_clock_calib.c_str(),      NULL,  5, config_label_clock_calib);
+  WiFiManagerParameter temp_adj(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL,  6, config_label_temp_calib);
+  WiFiManagerParameter humidity_adj(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL,  6, config_label_humidity_calib);
+  WiFiManagerParameter pressure_adj(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL,  8, config_label_pressure_calib);
 
   wifi_manager.addParameter(&custom_node_name);
   wifi_manager.addParameter(&custom_report_host);
