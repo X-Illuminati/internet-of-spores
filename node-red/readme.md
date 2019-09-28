@@ -11,4 +11,4 @@ will also work.
 
 * [node-red-contrib-readdir v1.0.1](https://flows.nodered.org/node/node-red-contrib-readdir)
 * [node-red-contrib-md5 v1.0.4](https://flows.nodered.org/node/node-red-contrib-md5)
-
+* [node-red-contrib-influxdb v0.3.1](https://flows.nodered.org/node/node-red-contrib-influxdb)
