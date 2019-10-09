@@ -6,6 +6,22 @@ MAX_ERRORS=10000
 declare -g ERROR_COUNT=0
 RELOAD_TIME=10
 
+declare -g -i SIGINT_TRAP_TIMER=0
+sigint_trap()
+{
+	if [ $(($(date +%s) - $SIGINT_TRAP_TIMER)) -lt $TIMEOUT ]; then
+		kill $BASHPID
+	else
+		SIGINT_TRAP_TIMER=$(date +%s)
+	fi
+}
+
+sigint_monitor()
+{
+	echo
+	echo "ERROR_COUNT=$ERROR_COUNT"
+}
+
 script_main ()
 {
 	[ $# -ge 1 ] && TIMEOUT=$1
@@ -14,6 +30,7 @@ script_main ()
 
 	# give up after MAX_ERRORS errors which clearly indicates journalctl isn't coming back
 	while [ $ERROR_COUNT -lt $MAX_ERRORS ]; do
+		trap sigint_trap SIGINT
 		# get the PID for the service
 		eval $(systemctl --user show node-red.service -p MainPID)
 		if [ $MainPID -eq 0 ]; then
@@ -36,6 +53,8 @@ monitor ()
 	local -i status
 	local -i counter
 	local -i timestamp
+
+	trap sigint_monitor SIGINT
 
 	IFS="@"
 	counter=0
