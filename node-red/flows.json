@@ -1,1 +1,770 @@
-[{"id":"fb425031.4cd18","type":"tab","label":"Sensor Test","disabled":false,"info":""},{"id":"8e97fd4.b42f18","type":"tab","label":"update firmware","disabled":false,"info":""},{"id":"7b8a611f.628c2","type":"tab","label":"handle sensor readings","disabled":false,"info":""},{"id":"84d338b0.987b","type":"subflow","name":"Subflow 1","info":"","in":[],"out":[]},{"id":"70d4d9b.8d043a8","type":"subflow","name":"Subflow 2","info":"","in":[{"x":50,"y":30,"wires":[]}],"out":[{"x":215,"y":30,"wires":[]},{"x":270,"y":30,"wires":[]}],"status":{"x":140,"y":120,"wires":[{"id":"70d4d9b.8d043a8","port":0}]}},{"id":"1eee8b34.6a70bd","type":"influxdb","z":"","hostname":"127.0.0.1","port":"8086","protocol":"http","database":"home","name":"Home","usetls":false,"tls":""},{"id":"fa189a34.f2435","type":"tcp in","z":"fb425031.4cd18","name":"","server":"server","host":"","port":"2880","datamode":"stream","datatype":"utf8","newline":"","topic":"","base64":false,"x":100,"y":100,"wires":[["c1f9de2c.2b2158","952c23eb.d6d298"]]},{"id":"7e4f34ea.f9f65c","type":"json","z":"fb425031.4cd18","name":"","property":"payload","action":"","pretty":false,"x":330,"y":180,"wires":[["5bf6abe.5402dd4","6362a80a.76498"]]},{"id":"5bf6abe.5402dd4","type":"debug","z":"fb425031.4cd18","name":"debug json","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"payload","targetType":"msg","x":470,"y":140,"wires":[]},{"id":"c1f9de2c.2b2158","type":"debug","z":"fb425031.4cd18","name":"debug tcp","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"payload","targetType":"msg","x":240,"y":60,"wires":[]},{"id":"952c23eb.d6d298","type":"join","z":"fb425031.4cd18","name":"","mode":"custom","build":"string","property":"payload","propertyType":"msg","key":"topic","joiner":"","joinerType":"str","accumulate":false,"timeout":"0.2","count":"","reduceRight":false,"reduceExp":"","reduceInit":"","reduceInitType":"","reduceFixup":"","x":290,"y":100,"wires":[["7e4f34ea.f9f65c","251da0fd.a4dde8"]]},{"id":"251da0fd.a4dde8","type":"debug","z":"fb425031.4cd18","name":"debug join","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"payload","targetType":"msg","x":430,"y":60,"wires":[]},{"id":"cdc4e939.2808b8","type":"switch","z":"fb425031.4cd18","name":"","property":"payload.command","propertyType":"msg","rules":[{"t":"eq","v":"update","vt":"str"},{"t":"else"}],"checkall":"false","repair":false,"outputs":2,"x":470,"y":340,"wires":[["fca8a92b.2eccc"],["96ec5b54.f3e4"]]},{"id":"c054a5c6.afd4c8","type":"function","z":"8e97fd4.b42f18","name":"parse update","func":"var filename = msg.payload.arg;\n\nmsg.filename = \"__invalid__\";\n\nfor (var i = 0; i < msg.firmware_dir.length; i++)\n{\n    if (msg.firmware_dir[i].toLowerCase().search(filename.toLowerCase()) >= 0)\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) == -1)\n            msg.filename = msg.firmware_dir[i];\n}\n\nreturn msg;","outputs":1,"noerr":0,"x":380,"y":140,"wires":[["83c3589e.3291e","150c8c6b.10168c"]]},{"id":"83c3589e.3291e","type":"file in","z":"8e97fd4.b42f18","name":"","filename":"","format":"","chunk":false,"sendError":false,"encoding":"none","x":450,"y":220,"wires":[["b7ec7007.a70f48"]]},{"id":"fca8a92b.2eccc","type":"link out","z":"fb425031.4cd18","name":"handle update","links":["41799362.815f0c"],"x":575,"y":320,"wires":[]},{"id":"41799362.815f0c","type":"link in","z":"8e97fd4.b42f18","name":"handle update","links":["fca8a92b.2eccc"],"x":175,"y":60,"wires":[["7dcb104b.e3f668"]]},{"id":"960d055.d13aa78","type":"link in","z":"7b8a611f.628c2","name":"handle sensor readings","links":["96ec5b54.f3e4"],"x":175,"y":120,"wires":[["e7a25533.761ed"]]},{"id":"cb023030.4fbfb8","type":"tcp out","z":"7b8a611f.628c2","host":"","port":"","beserver":"reply","base64":false,"end":false,"name":"tcp response","x":1130,"y":440,"wires":[]},{"id":"e7a25533.761ed","type":"function","z":"7b8a611f.628c2","name":"parse readings","func":"var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\ndebug.protocol = msg.version;\ndebug.node = msg.node;\ndebug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp;\ndebug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];","outputs":2,"noerr":0,"x":320,"y":120,"wires":[["b3c373aa.6fa49","b63d9287.1d2f18","2e278535.50a472"],["95ef3dcc.3f7598"]]},{"id":"b3c373aa.6fa49","type":"debug","z":"7b8a611f.628c2","name":"debug parser","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"payload","targetType":"msg","x":540,"y":80,"wires":[]},{"id":"96ec5b54.f3e4","type":"link out","z":"fb425031.4cd18","name":"handle sensor readings","links":["960d055.d13aa78"],"x":575,"y":360,"wires":[]},{"id":"1fa38d60.24dbd3","type":"function","z":"8e97fd4.b42f18","name":"transmit update","func":"var details = { payload : {} };\nvar response = \"\";\n\ndetails.payload.filename = msg.filename;\n//details.payload.content = msg.payload;\ndetails.payload.size = msg.payload.length;\ndetails.payload.md5 = msg.md5;\n\nresponse += msg.payload.length;\nresponse += \"\\n\";\nresponse += msg.md5;\nresponse += \"\\n\";\n\nvar msg_buf = Buffer.concat([Buffer.from(response), msg.payload], msg.payload.length + response.length);\nmsg.payload = msg_buf;\n\nreturn [details, msg];","outputs":2,"noerr":0,"x":640,"y":300,"wires":[["be88faa1.255b78"],["368cd58a.f195da"]]},{"id":"be88faa1.255b78","type":"debug","z":"8e97fd4.b42f18","name":"firmware details","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"payload","targetType":"msg","x":820,"y":260,"wires":[]},{"id":"b7ec7007.a70f48","type":"md5","z":"8e97fd4.b42f18","name":"","fieldToHash":"payload","fieldTypeToHash":"msg","hashField":"md5","hashFieldType":"msg","x":570,"y":220,"wires":[["1fa38d60.24dbd3"]]},{"id":"368cd58a.f195da","type":"tcp out","z":"8e97fd4.b42f18","host":"","port":"","beserver":"reply","base64":false,"end":false,"name":"tcp response","x":730,"y":380,"wires":[]},{"id":"885960e3.60aad8","type":"function","z":"7b8a611f.628c2","name":"check update","func":"var update_needed = true;\n\nif (msg.firmware_dir.length === 0)\n    update_needed = false;\nelse\n    for (var i = 0; i < msg.firmware_dir.length; i++)\n    {\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) >= 0)\n            update_needed = false;\n    }\n\nif (update_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"update\";\n}\n\nreturn msg;","outputs":1,"noerr":0,"x":820,"y":340,"wires":[["518dfa0d.04c784","4e892c6a.4e9454"]]},{"id":"95ef3dcc.3f7598","type":"readdir","z":"7b8a611f.628c2","name":"firmware dir","dir":"firmware","as":"single","recursive":false,"outproperty":"firmware_dir","x":710,"y":240,"wires":[["885960e3.60aad8","d11d326.c7027d"]]},{"id":"d11d326.c7027d","type":"debug","z":"7b8a611f.628c2","name":"","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"firmware_dir","targetType":"msg","x":890,"y":200,"wires":[]},{"id":"7dcb104b.e3f668","type":"readdir","z":"8e97fd4.b42f18","name":"firmware_dir","dir":"firmware/","as":"single","recursive":false,"outproperty":"firmware_dir","x":310,"y":60,"wires":[["c054a5c6.afd4c8","29a13cd7.a828fc"]]},{"id":"6362a80a.76498","type":"function","z":"fb425031.4cd18","name":"parse header","func":"msg.version = msg.payload.version;\nmsg.timestamp = msg.payload.timestamp;\nmsg.node = msg.payload.node;\nmsg.firmware = msg.payload.firmware;\nreturn msg;","outputs":1,"noerr":0,"x":405,"y":254.99999237060547,"wires":[["cdc4e939.2808b8"]]},{"id":"29a13cd7.a828fc","type":"debug","z":"8e97fd4.b42f18","name":"","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"firmware_dir","targetType":"msg","x":510,"y":40,"wires":[]},{"id":"150c8c6b.10168c","type":"debug","z":"8e97fd4.b42f18","name":"","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"filename","targetType":"msg","x":560,"y":100,"wires":[]},{"id":"518dfa0d.04c784","type":"debug","z":"7b8a611f.628c2","name":"","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"false","x":990,"y":300,"wires":[]},{"id":"c0a6bc08.be80d8","type":"catch","z":"8e97fd4.b42f18","name":"error handler","scope":null,"uncaught":true,"x":270,"y":440,"wires":[["595d6d48.ca1fe4","76ce862a.024788"]]},{"id":"595d6d48.ca1fe4","type":"debug","z":"8e97fd4.b42f18","name":"","active":false,"tosidebar":true,"console":false,"tostatus":false,"complete":"msg.error","targetType":"jsonata","x":430,"y":420,"wires":[]},{"id":"76ce862a.024788","type":"function","z":"8e97fd4.b42f18","name":"abort upload","func":"msg.payload = \"0\\n\";\nreturn msg;","outputs":1,"noerr":0,"x":440,"y":480,"wires":[["3f689327.0c5bec"]]},{"id":"3e68e96f.5221f6","type":"catch","z":"8e97fd4.b42f18","name":"ignore tcp errors","scope":["1fa38d60.24dbd3"],"uncaught":false,"x":280,"y":340,"wires":[[]]},{"id":"4e892c6a.4e9454","type":"function","z":"7b8a611f.628c2","name":"null-terminate","func":"msg.payload += '\\0';\nreturn msg;","outputs":1,"noerr":0,"x":940,"y":440,"wires":[["cb023030.4fbfb8"]]},{"id":"3f689327.0c5bec","type":"function","z":"8e97fd4.b42f18","name":"null-terminate","func":"msg.payload += '\\0';\nreturn msg;","outputs":1,"noerr":0,"x":540,"y":560,"wires":[["368cd58a.f195da"]]},{"id":"2e278535.50a472","type":"influxdb batch","z":"7b8a611f.628c2","influxdb":"1eee8b34.6a70bd","precision":"","retentionPolicy":"","name":"","x":1150,"y":120,"wires":[]},{"id":"7976474.fc7cd38","type":"status","z":"7b8a611f.628c2","name":"influx status","scope":["2e278535.50a472"],"x":310,"y":380,"wires":[["cbbde192.1cbe2"]]},{"id":"cbbde192.1cbe2","type":"debug","z":"7b8a611f.628c2","name":"debug influx status","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","x":490,"y":420,"wires":[]},{"id":"9e86e030.0fb7a8","type":"catch","z":"7b8a611f.628c2","name":"ignore tcp errors","scope":["cb023030.4fbfb8"],"uncaught":false,"x":320,"y":220,"wires":[[]]},{"id":"1b84663e.67139a","type":"catch","z":"7b8a611f.628c2","name":"error handler","scope":null,"uncaught":true,"x":310,"y":300,"wires":[["b4645501.267598","4c8eec4c.6f6e7c"]]},{"id":"b4645501.267598","type":"debug","z":"7b8a611f.628c2","name":"debug error obj","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"true","targetType":"full","x":480,"y":260,"wires":[]},{"id":"b63d9287.1d2f18","type":"debug","z":"7b8a611f.628c2","name":"log calls","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"debug","targetType":"msg","x":480,"y":40,"wires":[]},{"id":"4c8eec4c.6f6e7c","type":"function","z":"7b8a611f.628c2","name":"process error","func":"// for now, just avoid responding \"OK\"\nmsg.payload = \"\";\nreturn msg;","outputs":1,"noerr":0,"x":480,"y":340,"wires":[["95ef3dcc.3f7598"]]}]
+[
+  {
+    "id": "fb425031.4cd18",
+    "type": "tab",
+    "label": "Sensor Test",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "8e97fd4.b42f18",
+    "type": "tab",
+    "label": "update firmware",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "7b8a611f.628c2",
+    "type": "tab",
+    "label": "handle sensor readings",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "84d338b0.987b",
+    "type": "subflow",
+    "name": "Subflow 1",
+    "info": "",
+    "in": [],
+    "out": []
+  },
+  {
+    "id": "70d4d9b.8d043a8",
+    "type": "subflow",
+    "name": "Subflow 2",
+    "info": "",
+    "in": [
+      {
+        "x": 50,
+        "y": 30,
+        "wires": []
+      }
+    ],
+    "out": [
+      {
+        "x": 215,
+        "y": 30,
+        "wires": []
+      },
+      {
+        "x": 270,
+        "y": 30,
+        "wires": []
+      }
+    ],
+    "status": {
+      "x": 140,
+      "y": 120,
+      "wires": [
+        {
+          "id": "70d4d9b.8d043a8",
+          "port": 0
+        }
+      ]
+    }
+  },
+  {
+    "id": "1eee8b34.6a70bd",
+    "type": "influxdb",
+    "z": "",
+    "hostname": "127.0.0.1",
+    "port": "8086",
+    "protocol": "http",
+    "database": "home",
+    "name": "Home",
+    "usetls": false,
+    "tls": ""
+  },
+  {
+    "id": "fa189a34.f2435",
+    "type": "tcp in",
+    "z": "fb425031.4cd18",
+    "name": "",
+    "server": "server",
+    "host": "",
+    "port": "2880",
+    "datamode": "stream",
+    "datatype": "utf8",
+    "newline": "",
+    "topic": "",
+    "base64": false,
+    "x": 100,
+    "y": 100,
+    "wires": [
+      [
+        "c1f9de2c.2b2158",
+        "952c23eb.d6d298"
+      ]
+    ]
+  },
+  {
+    "id": "7e4f34ea.f9f65c",
+    "type": "json",
+    "z": "fb425031.4cd18",
+    "name": "",
+    "property": "payload",
+    "action": "",
+    "pretty": false,
+    "x": 330,
+    "y": 180,
+    "wires": [
+      [
+        "5bf6abe.5402dd4",
+        "6362a80a.76498"
+      ]
+    ]
+  },
+  {
+    "id": "5bf6abe.5402dd4",
+    "type": "debug",
+    "z": "fb425031.4cd18",
+    "name": "debug json",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 470,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "c1f9de2c.2b2158",
+    "type": "debug",
+    "z": "fb425031.4cd18",
+    "name": "debug tcp",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 240,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "952c23eb.d6d298",
+    "type": "join",
+    "z": "fb425031.4cd18",
+    "name": "",
+    "mode": "custom",
+    "build": "string",
+    "property": "payload",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "",
+    "joinerType": "str",
+    "accumulate": false,
+    "timeout": "0.2",
+    "count": "",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "",
+    "reduceFixup": "",
+    "x": 290,
+    "y": 100,
+    "wires": [
+      [
+        "7e4f34ea.f9f65c",
+        "251da0fd.a4dde8"
+      ]
+    ]
+  },
+  {
+    "id": "251da0fd.a4dde8",
+    "type": "debug",
+    "z": "fb425031.4cd18",
+    "name": "debug join",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 430,
+    "y": 60,
+    "wires": []
+  },
+  {
+    "id": "cdc4e939.2808b8",
+    "type": "switch",
+    "z": "fb425031.4cd18",
+    "name": "",
+    "property": "payload.command",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "update",
+        "vt": "str"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "x": 470,
+    "y": 340,
+    "wires": [
+      [
+        "fca8a92b.2eccc"
+      ],
+      [
+        "96ec5b54.f3e4"
+      ]
+    ]
+  },
+  {
+    "id": "c054a5c6.afd4c8",
+    "type": "function",
+    "z": "8e97fd4.b42f18",
+    "name": "parse update",
+    "func": "var filename = msg.payload.arg;\n\nmsg.filename = \"__invalid__\";\n\nfor (var i = 0; i < msg.firmware_dir.length; i++)\n{\n    if (msg.firmware_dir[i].toLowerCase().search(filename.toLowerCase()) >= 0)\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) == -1)\n            msg.filename = msg.firmware_dir[i];\n}\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 380,
+    "y": 140,
+    "wires": [
+      [
+        "83c3589e.3291e",
+        "150c8c6b.10168c"
+      ]
+    ]
+  },
+  {
+    "id": "83c3589e.3291e",
+    "type": "file in",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "filename": "",
+    "format": "",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "x": 450,
+    "y": 220,
+    "wires": [
+      [
+        "b7ec7007.a70f48"
+      ]
+    ]
+  },
+  {
+    "id": "fca8a92b.2eccc",
+    "type": "link out",
+    "z": "fb425031.4cd18",
+    "name": "handle update",
+    "links": [
+      "41799362.815f0c"
+    ],
+    "x": 575,
+    "y": 320,
+    "wires": []
+  },
+  {
+    "id": "41799362.815f0c",
+    "type": "link in",
+    "z": "8e97fd4.b42f18",
+    "name": "handle update",
+    "links": [
+      "fca8a92b.2eccc"
+    ],
+    "x": 175,
+    "y": 60,
+    "wires": [
+      [
+        "7dcb104b.e3f668"
+      ]
+    ]
+  },
+  {
+    "id": "960d055.d13aa78",
+    "type": "link in",
+    "z": "7b8a611f.628c2",
+    "name": "handle sensor readings",
+    "links": [
+      "96ec5b54.f3e4"
+    ],
+    "x": 175,
+    "y": 120,
+    "wires": [
+      [
+        "e7a25533.761ed"
+      ]
+    ]
+  },
+  {
+    "id": "cb023030.4fbfb8",
+    "type": "tcp out",
+    "z": "7b8a611f.628c2",
+    "host": "",
+    "port": "",
+    "beserver": "reply",
+    "base64": false,
+    "end": false,
+    "name": "tcp response",
+    "x": 1130,
+    "y": 440,
+    "wires": []
+  },
+  {
+    "id": "e7a25533.761ed",
+    "type": "function",
+    "z": "7b8a611f.628c2",
+    "name": "parse readings",
+    "func": "var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\ndebug.protocol = msg.version;\ndebug.node = msg.node;\ndebug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp;\ndebug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 320,
+    "y": 120,
+    "wires": [
+      [
+        "b3c373aa.6fa49",
+        "b63d9287.1d2f18",
+        "2e278535.50a472"
+      ],
+      [
+        "95ef3dcc.3f7598"
+      ]
+    ]
+  },
+  {
+    "id": "b3c373aa.6fa49",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "debug parser",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 540,
+    "y": 80,
+    "wires": []
+  },
+  {
+    "id": "96ec5b54.f3e4",
+    "type": "link out",
+    "z": "fb425031.4cd18",
+    "name": "handle sensor readings",
+    "links": [
+      "960d055.d13aa78"
+    ],
+    "x": 575,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "1fa38d60.24dbd3",
+    "type": "function",
+    "z": "8e97fd4.b42f18",
+    "name": "transmit update",
+    "func": "var details = { payload : {} };\nvar response = \"\";\n\ndetails.payload.filename = msg.filename;\n//details.payload.content = msg.payload;\ndetails.payload.size = msg.payload.length;\ndetails.payload.md5 = msg.md5;\n\nresponse += msg.payload.length;\nresponse += \"\\n\";\nresponse += msg.md5;\nresponse += \"\\n\";\n\nvar msg_buf = Buffer.concat([Buffer.from(response), msg.payload], msg.payload.length + response.length);\nmsg.payload = msg_buf;\n\nreturn [details, msg];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 640,
+    "y": 300,
+    "wires": [
+      [
+        "be88faa1.255b78"
+      ],
+      [
+        "368cd58a.f195da"
+      ]
+    ]
+  },
+  {
+    "id": "be88faa1.255b78",
+    "type": "debug",
+    "z": "8e97fd4.b42f18",
+    "name": "firmware details",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 820,
+    "y": 260,
+    "wires": []
+  },
+  {
+    "id": "b7ec7007.a70f48",
+    "type": "md5",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "fieldToHash": "payload",
+    "fieldTypeToHash": "msg",
+    "hashField": "md5",
+    "hashFieldType": "msg",
+    "x": 570,
+    "y": 220,
+    "wires": [
+      [
+        "1fa38d60.24dbd3"
+      ]
+    ]
+  },
+  {
+    "id": "368cd58a.f195da",
+    "type": "tcp out",
+    "z": "8e97fd4.b42f18",
+    "host": "",
+    "port": "",
+    "beserver": "reply",
+    "base64": false,
+    "end": false,
+    "name": "tcp response",
+    "x": 730,
+    "y": 380,
+    "wires": []
+  },
+  {
+    "id": "885960e3.60aad8",
+    "type": "function",
+    "z": "7b8a611f.628c2",
+    "name": "check update",
+    "func": "var update_needed = true;\n\nif (msg.firmware_dir.length === 0)\n    update_needed = false;\nelse\n    for (var i = 0; i < msg.firmware_dir.length; i++)\n    {\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) >= 0)\n            update_needed = false;\n    }\n\nif (update_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"update\";\n}\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 820,
+    "y": 340,
+    "wires": [
+      [
+        "518dfa0d.04c784",
+        "4e892c6a.4e9454"
+      ]
+    ]
+  },
+  {
+    "id": "95ef3dcc.3f7598",
+    "type": "readdir",
+    "z": "7b8a611f.628c2",
+    "name": "firmware dir",
+    "dir": "firmware",
+    "as": "single",
+    "recursive": false,
+    "outproperty": "firmware_dir",
+    "x": 710,
+    "y": 240,
+    "wires": [
+      [
+        "885960e3.60aad8",
+        "d11d326.c7027d"
+      ]
+    ]
+  },
+  {
+    "id": "d11d326.c7027d",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "firmware_dir",
+    "targetType": "msg",
+    "x": 890,
+    "y": 200,
+    "wires": []
+  },
+  {
+    "id": "7dcb104b.e3f668",
+    "type": "readdir",
+    "z": "8e97fd4.b42f18",
+    "name": "firmware_dir",
+    "dir": "firmware/",
+    "as": "single",
+    "recursive": false,
+    "outproperty": "firmware_dir",
+    "x": 310,
+    "y": 60,
+    "wires": [
+      [
+        "c054a5c6.afd4c8",
+        "29a13cd7.a828fc"
+      ]
+    ]
+  },
+  {
+    "id": "6362a80a.76498",
+    "type": "function",
+    "z": "fb425031.4cd18",
+    "name": "parse header",
+    "func": "msg.version = msg.payload.version;\nmsg.timestamp = msg.payload.timestamp;\nmsg.node = msg.payload.node;\nmsg.firmware = msg.payload.firmware;\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 405,
+    "y": 254.99999237060547,
+    "wires": [
+      [
+        "cdc4e939.2808b8"
+      ]
+    ]
+  },
+  {
+    "id": "29a13cd7.a828fc",
+    "type": "debug",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "firmware_dir",
+    "targetType": "msg",
+    "x": 510,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "150c8c6b.10168c",
+    "type": "debug",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "filename",
+    "targetType": "msg",
+    "x": 560,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "518dfa0d.04c784",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "false",
+    "x": 990,
+    "y": 300,
+    "wires": []
+  },
+  {
+    "id": "c0a6bc08.be80d8",
+    "type": "catch",
+    "z": "8e97fd4.b42f18",
+    "name": "error handler",
+    "scope": null,
+    "uncaught": true,
+    "x": 270,
+    "y": 440,
+    "wires": [
+      [
+        "595d6d48.ca1fe4",
+        "76ce862a.024788"
+      ]
+    ]
+  },
+  {
+    "id": "595d6d48.ca1fe4",
+    "type": "debug",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "msg.error",
+    "targetType": "jsonata",
+    "x": 430,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "76ce862a.024788",
+    "type": "function",
+    "z": "8e97fd4.b42f18",
+    "name": "abort upload",
+    "func": "msg.payload = \"0\\n\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 440,
+    "y": 480,
+    "wires": [
+      [
+        "3f689327.0c5bec"
+      ]
+    ]
+  },
+  {
+    "id": "3e68e96f.5221f6",
+    "type": "catch",
+    "z": "8e97fd4.b42f18",
+    "name": "ignore tcp errors",
+    "scope": [
+      "1fa38d60.24dbd3"
+    ],
+    "uncaught": false,
+    "x": 280,
+    "y": 340,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "4e892c6a.4e9454",
+    "type": "function",
+    "z": "7b8a611f.628c2",
+    "name": "null-terminate",
+    "func": "msg.payload += '\\0';\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 940,
+    "y": 440,
+    "wires": [
+      [
+        "cb023030.4fbfb8"
+      ]
+    ]
+  },
+  {
+    "id": "3f689327.0c5bec",
+    "type": "function",
+    "z": "8e97fd4.b42f18",
+    "name": "null-terminate",
+    "func": "msg.payload += '\\0';\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 540,
+    "y": 560,
+    "wires": [
+      [
+        "368cd58a.f195da"
+      ]
+    ]
+  },
+  {
+    "id": "2e278535.50a472",
+    "type": "influxdb batch",
+    "z": "7b8a611f.628c2",
+    "influxdb": "1eee8b34.6a70bd",
+    "precision": "",
+    "retentionPolicy": "",
+    "name": "",
+    "x": 1150,
+    "y": 120,
+    "wires": []
+  },
+  {
+    "id": "7976474.fc7cd38",
+    "type": "status",
+    "z": "7b8a611f.628c2",
+    "name": "influx status",
+    "scope": [
+      "2e278535.50a472"
+    ],
+    "x": 310,
+    "y": 380,
+    "wires": [
+      [
+        "cbbde192.1cbe2"
+      ]
+    ]
+  },
+  {
+    "id": "cbbde192.1cbe2",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "debug influx status",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 490,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "9e86e030.0fb7a8",
+    "type": "catch",
+    "z": "7b8a611f.628c2",
+    "name": "ignore tcp errors",
+    "scope": [
+      "cb023030.4fbfb8"
+    ],
+    "uncaught": false,
+    "x": 320,
+    "y": 220,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "1b84663e.67139a",
+    "type": "catch",
+    "z": "7b8a611f.628c2",
+    "name": "error handler",
+    "scope": null,
+    "uncaught": true,
+    "x": 310,
+    "y": 300,
+    "wires": [
+      [
+        "b4645501.267598",
+        "4c8eec4c.6f6e7c"
+      ]
+    ]
+  },
+  {
+    "id": "b4645501.267598",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "debug error obj",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 480,
+    "y": 260,
+    "wires": []
+  },
+  {
+    "id": "b63d9287.1d2f18",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "log calls",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "debug",
+    "targetType": "msg",
+    "x": 480,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "4c8eec4c.6f6e7c",
+    "type": "function",
+    "z": "7b8a611f.628c2",
+    "name": "process error",
+    "func": "// for now, just avoid responding \"OK\"\nmsg.payload = \"\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 480,
+    "y": 340,
+    "wires": [
+      [
+        "95ef3dcc.3f7598"
+      ]
+    ]
+  }
+]
