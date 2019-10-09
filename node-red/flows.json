@@ -2,7 +2,7 @@
   {
     "id": "fb425031.4cd18",
     "type": "tab",
-    "label": "Sensor Test",
+    "label": "Internet of Spores",
     "disabled": false,
     "info": ""
   },
@@ -17,6 +17,13 @@
     "id": "7b8a611f.628c2",
     "type": "tab",
     "label": "handle sensor readings",
+    "disabled": false,
+    "info": ""
+  },
+  {
+    "id": "47bd7ad2.8437dc",
+    "type": "tab",
+    "label": "State of Health",
     "disabled": false,
     "info": ""
   },
@@ -93,7 +100,7 @@
     "wires": [
       [
         "c1f9de2c.2b2158",
-        "952c23eb.d6d298"
+        "9080d47a.79cae8"
       ]
     ]
   },
@@ -105,8 +112,8 @@
     "property": "payload",
     "action": "",
     "pretty": false,
-    "x": 330,
-    "y": 180,
+    "x": 290,
+    "y": 340,
     "wires": [
       [
         "5bf6abe.5402dd4",
@@ -125,8 +132,8 @@
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "x": 470,
-    "y": 140,
+    "x": 430,
+    "y": 300,
     "wires": []
   },
   {
@@ -157,15 +164,15 @@
     "joiner": "",
     "joinerType": "str",
     "accumulate": false,
-    "timeout": "0.2",
+    "timeout": "1",
     "count": "",
     "reduceRight": false,
     "reduceExp": "",
     "reduceInit": "",
     "reduceInitType": "",
     "reduceFixup": "",
-    "x": 290,
-    "y": 100,
+    "x": 250,
+    "y": 260,
     "wires": [
       [
         "7e4f34ea.f9f65c",
@@ -184,8 +191,8 @@
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "x": 430,
-    "y": 60,
+    "x": 390,
+    "y": 220,
     "wires": []
   },
   {
@@ -208,8 +215,8 @@
     "checkall": "false",
     "repair": false,
     "outputs": 2,
-    "x": 470,
-    "y": 340,
+    "x": 430,
+    "y": 500,
     "wires": [
       [
         "fca8a92b.2eccc"
@@ -262,8 +269,8 @@
     "links": [
       "41799362.815f0c"
     ],
-    "x": 575,
-    "y": 320,
+    "x": 535,
+    "y": 480,
     "wires": []
   },
   {
@@ -317,7 +324,7 @@
     "type": "function",
     "z": "7b8a611f.628c2",
     "name": "parse readings",
-    "func": "var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\ndebug.protocol = msg.version;\ndebug.node = msg.node;\ndebug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp;\ndebug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];",
+    "func": "var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\n//debug.protocol = msg.version;\ndebug.node = msg.node;\n//debug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp;\n//debug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];",
     "outputs": 2,
     "noerr": 0,
     "x": 320,
@@ -356,8 +363,8 @@
     "links": [
       "960d055.d13aa78"
     ],
-    "x": 575,
-    "y": 360,
+    "x": 535,
+    "y": 520,
     "wires": []
   },
   {
@@ -501,8 +508,8 @@
     "func": "msg.version = msg.payload.version;\nmsg.timestamp = msg.payload.timestamp;\nmsg.node = msg.payload.node;\nmsg.firmware = msg.payload.firmware;\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 405,
-    "y": 254.99999237060547,
+    "x": 365,
+    "y": 414.99999237060547,
     "wires": [
       [
         "cdc4e939.2808b8"
@@ -766,5 +773,164 @@
         "95ef3dcc.3f7598"
       ]
     ]
+  },
+  {
+    "id": "b42bca26.f7454",
+    "type": "catch",
+    "z": "fb425031.4cd18",
+    "name": "error handler",
+    "scope": null,
+    "uncaught": true,
+    "x": 90,
+    "y": 600,
+    "wires": [
+      [
+        "81d8158e.d0a06",
+        "4ba3c3e9.0d7fdc"
+      ]
+    ]
+  },
+  {
+    "id": "81d8158e.d0a06",
+    "type": "debug",
+    "z": "fb425031.4cd18",
+    "name": "debug error obj",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 260,
+    "y": 560,
+    "wires": []
+  },
+  {
+    "id": "b92604e6.b108d",
+    "type": "tcp out",
+    "z": "fb425031.4cd18",
+    "host": "",
+    "port": "",
+    "beserver": "reply",
+    "base64": false,
+    "end": false,
+    "name": "tcp response",
+    "x": 470,
+    "y": 680,
+    "wires": []
+  },
+  {
+    "id": "4ba3c3e9.0d7fdc",
+    "type": "function",
+    "z": "fb425031.4cd18",
+    "name": "process error",
+    "func": "msg.payload = \"error\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 160,
+    "y": 680,
+    "wires": [
+      [
+        "b92604e6.b108d"
+      ]
+    ]
+  },
+  {
+    "id": "5ecaac47.3255bc",
+    "type": "catch",
+    "z": "fb425031.4cd18",
+    "name": "ignore tcp errors",
+    "scope": [
+      "b92604e6.b108d"
+    ],
+    "uncaught": false,
+    "x": 100,
+    "y": 500,
+    "wires": [
+      []
+    ]
+  },
+  {
+    "id": "9080d47a.79cae8",
+    "type": "function",
+    "z": "fb425031.4cd18",
+    "name": "detect framing",
+    "func": "if (msg.payload.slice(-3) === \"}]}\")\n    msg.complete = 1;\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 190,
+    "y": 180,
+    "wires": [
+      [
+        "952c23eb.d6d298",
+        "9092fc6c.4b6198"
+      ]
+    ]
+  },
+  {
+    "id": "9092fc6c.4b6198",
+    "type": "debug",
+    "z": "fb425031.4cd18",
+    "name": "debug framing",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "true",
+    "targetType": "full",
+    "x": 360,
+    "y": 140,
+    "wires": []
+  },
+  {
+    "id": "f9ef5ade.35f968",
+    "type": "inject",
+    "z": "47bd7ad2.8437dc",
+    "name": "",
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "repeat": "30",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "3",
+    "x": 130,
+    "y": 60,
+    "wires": [
+      [
+        "b646c5f7.f5407"
+      ]
+    ]
+  },
+  {
+    "id": "b646c5f7.f5407",
+    "type": "function",
+    "z": "47bd7ad2.8437dc",
+    "name": "SOH Log",
+    "func": "msg.payload = \"@SOH report@\" + msg.payload;\nconsole.log(msg.payload);\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 300,
+    "y": 60,
+    "wires": [
+      [
+        "39e88b0b.bc4574"
+      ]
+    ]
+  },
+  {
+    "id": "39e88b0b.bc4574",
+    "type": "debug",
+    "z": "47bd7ad2.8437dc",
+    "name": "debug soh",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 480,
+    "y": 60,
+    "wires": []
   }
 ]
