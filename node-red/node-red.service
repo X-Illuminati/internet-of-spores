@@ -1,0 +1,10 @@
+[Unit]
+Description=node-red nodejs flow-based programming language
+
+[Service]
+Type=simple
+Environment="PATH=/usr/local/lib64/nodejs/node-v10.16.3-linux-x64/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/local/lib64/nodejs/node-v10.16.3-linux-x64/bin/node-red -v
+WorkingDirectory=%h/.node-red
+Restart=on-failure
+ProtectSystem=full
