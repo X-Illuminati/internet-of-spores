@@ -2,16 +2,25 @@
 #define _PROJECT_CONFIG_H_
 
 /* Global Configurations */
+#define DEVELOPMENT_BUILD       (0)
 #define SERIAL_SPEED            (115200)
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
-#define EXTRA_DEBUG             (0)
-#define SLEEP_TIME_US           (15000000)
 #define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
 #define PREINIT_MAGIC           (0xAA559876 ^ BUILD_UNIQUE_ID)
-#define NUM_STORAGE_SLOTS       (59)
-#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
 #define SHT30_ADDR              (0x45)
 #define REPORT_RESPONSE_TIMEOUT (2000)
+
+#if DEVELOPMENT_BUILD
+#define EXTRA_DEBUG             (1)
+#define SLEEP_TIME_US           (5000000)
+#define NUM_STORAGE_SLOTS       (17)
+#define HIGH_WATER_SLOT         (14)
+#else
+#define EXTRA_DEBUG             (0)
+#define SLEEP_TIME_US           (15000000)
+#define NUM_STORAGE_SLOTS       (59)
+#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
+#endif
 
 //persistent storage file names
 #define PERSISTENT_NODE_NAME        "node_name"

@@ -210,11 +210,14 @@ void upload_readings(void)
             clear_readings();
             response.replace("OK,","");
           }
+
+#if !DEVELOPMENT_BUILD
           if (response.startsWith("update")) {
             Serial.println("accepted firmware update command");
             if (!update_firmware(client))
               Serial.println("error: update failed");
           }
+#endif
         }
       }
     }
