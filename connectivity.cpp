@@ -32,7 +32,7 @@ unsigned long server_shutdown_timeout;
 /* Function Prototypes */
 static String format_u64(uint64_t val);
 static String json_header(void);
-static bool transmit_readings(WiFiClient& client);
+static int transmit_readings(WiFiClient& client);
 static bool update_firmware(WiFiClient& client);
 
 
@@ -186,6 +186,7 @@ void upload_readings(void)
   uint16_t report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, (int)DEFAULT_REPORT_HOST_PORT);
   String response;
   unsigned long timeout;
+  int xmit_status;
 
   Serial.print("Connecting to report server ");
   Serial.print(report_host_name);
@@ -197,7 +198,8 @@ void upload_readings(void)
     // This will send a string to the server
     Serial.println("Sending data to report server");
     if (client.connected()) {
-      if (transmit_readings(client)) {
+      xmit_status = transmit_readings(client);
+      if (xmit_status > 0) {
         // wait for response to be available
         timeout = millis();
         while (client.available() == 0) {
@@ -215,7 +217,7 @@ void upload_readings(void)
           Serial.print("Response from report server: ");
           Serial.println(response);
           if (response.startsWith("OK")) {
-            clear_readings();
+            clear_readings(xmit_status);
             response.replace("OK,","");
           }
 
@@ -236,16 +238,13 @@ void upload_readings(void)
 }
 
 // transmit the readings formatted as a json string
-static bool transmit_readings(WiFiClient& client)
+static int transmit_readings(WiFiClient& client)
 {
+  int num_readings = 0;
   unsigned result;
   String json;
 
-  json = json_header();
-  json += "\"measurements\":[";
-
-  //format measurements
-  {
+  if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
     const char typestrings[][12] = {
       "unknown",
       "temperature",
@@ -258,6 +257,10 @@ static bool transmit_readings(WiFiClient& client)
     float humidity_cal = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
     float pressure_cal = persistent_read(PERSISTENT_PRESSURE_CALIB, DEFAULT_PRESSURE_CALIB);
 
+    json = json_header();
+    json += "\"measurements\":[";
+
+    // format measurements
     for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
       sensor_reading_t *reading;
       const char* type;
@@ -309,22 +312,32 @@ static bool transmit_readings(WiFiClient& client)
       json += "\",\"value\":";
       json += calibrated_reading;
       json += "}";
+
+      num_readings++;
+
       if ((i+1) < rtc_mem[RTC_MEM_NUM_READINGS])
         json += ",";
     }
+
+    // terminate the json objects
+    json += "]}";
   }
 
-  //terminate the json objects
-  json += "]}";
-
+  if (num_readings > 0) {
 #if (EXTRA_DEBUG != 0)
-  Serial.println("Transmitting to report server:");
-  Serial.println(json);
+    Serial.println("Transmitting to report server:");
+    Serial.println(json);
 #endif
 
-  //transmit the results and verify the number of bytes written
-  result = client.print(json);
-  return (result == json.length());
+    // transmit the results and verify the number of bytes written
+    result = client.print(json);
+    if (result == json.length())
+      return num_readings;
+    else
+      return -1;
+  } else {
+    return 0; // no readings available
+  }
 }
 
 // helper to generate a json-formatted header that can have

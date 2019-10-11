@@ -118,11 +118,20 @@ void store_reading(sensor_type_t type, int32_t val)
 }
 
 // reset the rtc mem ring buffer
-void clear_readings(void)
+void clear_readings(unsigned int num /*defaults to NUM_STORAGE_SLOTS*/)
 {
-  // determine the next free slot in the RTC memory ring buffer
-  rtc_mem[RTC_MEM_FIRST_READING]=0;
-  rtc_mem[RTC_MEM_NUM_READINGS]=0;
+  if (num >= rtc_mem[RTC_MEM_NUM_READINGS]) {
+    // simple case - just reset the ring buffer
+    rtc_mem[RTC_MEM_FIRST_READING]=0;
+    rtc_mem[RTC_MEM_NUM_READINGS]=0;
+  } else {
+    // increment first reading to "erase" num readings
+    rtc_mem[RTC_MEM_FIRST_READING] += num;
+    if (rtc_mem[RTC_MEM_FIRST_READING] >= NUM_STORAGE_SLOTS)
+      rtc_mem[RTC_MEM_FIRST_READING] -= NUM_STORAGE_SLOTS;
+
+    rtc_mem[RTC_MEM_NUM_READINGS] -= num;
+  }
 }
 
 // print the stored pressure readings from the rtc mem ring buffer

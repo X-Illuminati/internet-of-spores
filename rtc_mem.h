@@ -54,7 +54,7 @@ uint64_t uptime(void);
 void deep_sleep(uint64_t time_us);
 
 void store_reading(sensor_type_t type, int32_t val);
-void clear_readings(void);
+void clear_readings(unsigned int num=NUM_STORAGE_SLOTS);
 void dump_readings(void);
 
 #endif /* _RTC_MEM_H_ */
