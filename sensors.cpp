@@ -22,8 +22,11 @@ void sensors_init(void)
 }
 
 // read and store values from the SHT30 temperature and humidity sensor
-bool read_sht30(void)
+bool read_sht30(bool perform_store)
 {
+  static float temperature=0; // running total for averaging
+  static float humidity=0;    // running total for averaging
+  static unsigned int num_readings=0; // count for averaging
   sht30_data_t data;
   int ret;
   ret = sht30_get(SHT30_ADDR, SHT30_RPT_HIGH, &data);
@@ -33,8 +36,14 @@ bool read_sht30(void)
     Serial.println(ret);
     return false;
   } else {
-    store_reading(SENSOR_TEMPERATURE, sht30_parse_temp_c(data)*1000.0 + 0.5);
-    store_reading(SENSOR_HUMIDITY, sht30_parse_humidity(data)*1000.0 + 0.5);
+    temperature += sht30_parse_temp_c(data);
+    humidity += sht30_parse_humidity(data);
+    num_readings++;
+    if (perform_store) {
+      store_reading(SENSOR_TEMPERATURE, temperature/num_readings*1000.0 + 0.5);
+      store_reading(SENSOR_HUMIDITY, humidity/num_readings*1000.0 + 0.5);
+    }
+
 #if (EXTRA_DEBUG != 0)
     Serial.print("Raw Temperature: ");
     Serial.print(sht30_parse_temp_c(data), 3);
@@ -50,7 +59,7 @@ bool read_sht30(void)
 }
 
 // read and store values from the HP303B barametric pressure sensor
-void read_hp303b(bool measure_temp)
+bool read_hp303b(bool measure_temp)
 {
   //OVERSAMPLING TABLE
   // Val | Time (ms) | Noise (counts)
@@ -86,6 +95,7 @@ void read_hp303b(bool measure_temp)
       //Look at the library code for more information about return codes
       Serial.print("Error Reading HP303B (temperature) ret=");
       Serial.println(ret);
+      return false;
     } else {
       store_reading(SENSOR_TEMPERATURE, temperature*1000);
 #if (EXTRA_DEBUG != 0)
@@ -106,6 +116,7 @@ void read_hp303b(bool measure_temp)
     //Look at the library code for more information about return codes
     Serial.print("Error Reading HP303B (pressure) ret=");
     Serial.println(ret);
+    return false;
   } else {
     store_reading(SENSOR_PRESSURE, pressure);
 #if (EXTRA_DEBUG != 0)
@@ -116,21 +127,29 @@ void read_hp303b(bool measure_temp)
     Serial.println(" in Hg)");
 #endif
   }
+
+  return true;
 }
 
 /* Set ADC mode to read VCC voltage level (battery) */
 ADC_MODE(ADC_VCC)
 
 // read and store the ESP VCC voltage level (battery)
-void read_vcc(void)
+void read_vcc(bool perform_store)
 {
+  static uint32_t readings=0; // running total for averaging
+  static unsigned int num_readings=0; // count for averaging
   uint16_t val;
   val = ESP.getVcc();
 
-  if (val > 37000)
+  if (val > 37000) {
     Serial.println("Error reading VCC value");
-  else
-    store_reading(SENSOR_BATTERY_VOLTAGE, val);
+  } else {
+    readings += val;
+    num_readings++;
+    if (perform_store)
+      store_reading(SENSOR_BATTERY_VOLTAGE, readings/num_readings);
+  }
 
 #if (EXTRA_DEBUG != 0)
   Serial.print("Battery voltage: ");

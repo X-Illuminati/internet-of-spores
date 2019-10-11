@@ -24,17 +24,32 @@ void preinit(void)
 }
 
 // Read from all of the attached sensors and store the readings
+// Read some of the sensors twice to get an average value
 void take_readings(void)
 {
   bool sht30_ok;
+  bool hp303b_ok;
+
+  read_vcc(false);
 
   //read temp/humidity from SHT30
-  sht30_ok = read_sht30();
+  sht30_ok = read_sht30(false);
+
+  if (sht30_ok) {
+    delay(100);
+    sht30_ok = read_sht30(false);
+  }
 
   //read temp/humidity from HP303B
-  read_hp303b(!sht30_ok);
+  hp303b_ok = read_hp303b(!sht30_ok);
 
-  read_vcc();
+  if (!hp303b_ok)
+    delay(100);
+
+  if (sht30_ok)
+    read_sht30(true);
+
+  read_vcc(true);
 }
 
 void setup(void)

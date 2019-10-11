@@ -16,8 +16,8 @@ typedef enum sensor_type_e {
 /* Function Prototypes */
 void sensors_init(void);
 
-bool read_sht30(void);
-void read_hp303b(bool measure_temp);
-void read_vcc(void);
+bool read_sht30(bool perform_store);
+bool read_hp303b(bool measure_temp);
+void read_vcc(bool perform_store);
 
 #endif /* _SENSORS_H_ */
