@@ -9,6 +9,7 @@
 #define PREINIT_MAGIC           (0xAA559876 ^ BUILD_UNIQUE_ID)
 #define SHT30_ADDR              (0x45)
 #define REPORT_RESPONSE_TIMEOUT (2000)
+#define WIFI_CONNECT_TIMEOUT    (30000)
 
 #if DEVELOPMENT_BUILD
 #define EXTRA_DEBUG             (1)

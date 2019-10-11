@@ -75,14 +75,22 @@ void connectivity_disable(void)
 // connect to the stored WiFi AP and return the status
 bool connect_wifi(void)
 {
-  wl_status_t wifi_status;
+  wl_status_t wifi_status = WL_DISCONNECTED;
+  unsigned long timeout;
 
   Serial.println("Connecting to AP");
-  WiFiManager wifi_manager;
-  wifi_manager.setConfigPortalTimeout(1);
-  wifi_manager.autoConnect();
+  WiFi.mode(WIFI_STA);
+  WiFi.reconnect();
 
-  wifi_status = WiFi.status();
+  //make our own "waitForConnectResult" so we can have a timeout shorter than 250 seconds
+  timeout = millis();
+  while ((millis()-timeout) < WIFI_CONNECT_TIMEOUT) {
+    wifi_status = WiFi.status();
+    if (wifi_status != WL_DISCONNECTED)
+      break;
+    delay(100);
+  }
+
 #if (EXTRA_DEBUG != 0)
   Serial.print("WiFi status ");
   switch(wifi_status) {
