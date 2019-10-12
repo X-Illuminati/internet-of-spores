@@ -33,7 +33,9 @@ unsigned long server_shutdown_timeout;
 static String format_u64(uint64_t val);
 static String json_header(void);
 static int transmit_readings(WiFiClient& client);
+#if !DEVELOPMENT_BUILD
 static bool update_firmware(WiFiClient& client);
+#endif
 
 
 /* Functions */
@@ -355,6 +357,7 @@ static String json_header(void)
   return json;
 }
 
+#if !DEVELOPMENT_BUILD
 // helper to fetch a firmware update from the server and apply it
 bool update_firmware(WiFiClient& client)
 {
@@ -408,3 +411,4 @@ bool update_firmware(WiFiClient& client)
   //this function only returns false
   return status;
 }
+#endif /* !DEVELOPMENT_BUILD */
