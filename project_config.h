@@ -19,8 +19,8 @@
 #else
 #define EXTRA_DEBUG             (0)
 #define SLEEP_TIME_US           (15000000)
-#define NUM_STORAGE_SLOTS       (59)
-#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-12)
+#define NUM_STORAGE_SLOTS       (122)
+#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-16)
 #endif
 
 //persistent storage file names

@@ -50,6 +50,8 @@ void take_readings(void)
     read_sht30(true);
 
   read_vcc(true);
+
+  store_uptime();
 }
 
 void setup(void)

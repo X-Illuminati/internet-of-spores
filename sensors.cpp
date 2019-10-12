@@ -157,3 +157,17 @@ void read_vcc(bool perform_store)
   Serial.println("V");
 #endif
 }
+
+// store the current uptime in 2 adjacent slots
+void store_uptime(void)
+{
+  flags_time_t timestamp;
+  int32_t time_l, time_h;
+
+  timestamp.millis = uptime();
+  time_l = timestamp.millis & SENSOR_TIMESTAMP_MASK;
+  time_h = (timestamp.millis >> SENSOR_TIMESTAMP_SHIFT) & SENSOR_TIMESTAMP_MASK;
+
+  store_reading(SENSOR_TIMESTAMP_L, time_l);
+  store_reading(SENSOR_TIMESTAMP_H, time_h);
+}

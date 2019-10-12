@@ -35,6 +35,8 @@ bool load_rtc_memory(void)
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
   Serial.print(", flags=0x");
   Serial.print((uint8_t)flags->flags, HEX);
+  Serial.print(", RTC_SIZE=");
+  Serial.print(RTC_MEM_MAX);
 #endif
 
   Serial.print(", num readings=");
@@ -113,8 +115,7 @@ void store_reading(sensor_type_t type, int32_t val)
   // store the sensor reading in RTC memory at the given slot
   reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
   reading->type = type;
-  reading->reading = val;
-  reading->timestamp = uptime();
+  reading->value = val;
 }
 
 // reset the rtc mem ring buffer
@@ -138,6 +139,7 @@ void clear_readings(unsigned int num /*defaults to NUM_STORAGE_SLOTS*/)
 void dump_readings(void)
 {
 #if (EXTRA_DEBUG != 0)
+  flags_time_t timestamp = {0,0,0};
   const char typestrings[][11] = {
     "UNKNOWN",
     "TEMP (C)",
@@ -145,17 +147,18 @@ void dump_readings(void)
     "PRES (kPa)",
     "PART (?)",
     "BATT (V)",
+    "TIME (ms)",
   };
   char formatted[47];
   formatted[46]=0;
 
-  Serial.println("slot |     timestamp | type       | rawvalue");
-  Serial.println("-----+---------------+------------+---------");
+  Serial.println("slot | type       |      rawvalue");
+  Serial.println("-----+------------+--------------");
 
 
   for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
     sensor_reading_t *reading;
-    const char* type;
+    const char* type = typestrings[0];
     int slot;
 
     // find the slot indexed into the ring buffer
@@ -187,14 +190,27 @@ void dump_readings(void)
         type=typestrings[5];
       break;
 
+      case SENSOR_TIMESTAMP_L:
+        timestamp.millis = reading->value & SENSOR_TIMESTAMP_MASK;
+        continue;
+      break;
+
+      case SENSOR_TIMESTAMP_H:
+        type=typestrings[6];
+        timestamp.millis |= ((uint64_t)reading->value & SENSOR_TIMESTAMP_MASK) << SENSOR_TIMESTAMP_SHIFT;
+      break;
+
       case SENSOR_UNKNOWN:
       default:
         type=typestrings[0];
       break;
     }
 
-    // format an output row with the data, type, and timestamp
-    snprintf(formatted, 45, "%4u | %13llu | %-10s | %+8.3f", i, reading->timestamp, type, reading->reading/1000.0);
+    // format an output row with the slot, type, and data
+    if (reading->type == SENSOR_TIMESTAMP_H)
+      snprintf(formatted, 45, "%4u | %-10s | %13llu", i, type, timestamp.millis);
+    else
+      snprintf(formatted, 45, "%4u | %-10s | %+13.3f", i, type, reading->value/1000.0);
     Serial.println(formatted);
   }
   Serial.printf("[%llu] dump complete\n", uptime());

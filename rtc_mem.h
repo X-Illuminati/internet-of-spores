@@ -19,9 +19,8 @@ typedef struct flags_time_s {
 
 // Structure to combine sensor readings with type and timestamp
 typedef struct sensor_reading_s {
-  sensor_type_t  type      :3;
-  uint64_t       timestamp :40;
-  int32_t        reading   :21;
+  sensor_type_t type  :8;
+  int32_t       value :24;
 } sensor_reading_t;
 
 // Fields for each of the 32-bit fields in RTC Memory

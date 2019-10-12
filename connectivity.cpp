@@ -189,6 +189,7 @@ void upload_readings(void)
   String response;
   unsigned long timeout;
   int xmit_status;
+  bool update_flag = false;
 
   Serial.print("Connecting to report server ");
   Serial.print(report_host_name);
@@ -199,9 +200,11 @@ void upload_readings(void)
   } else {
     // This will send a string to the server
     Serial.println("Sending data to report server");
-    if (client.connected()) {
+    while (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
       xmit_status = transmit_readings(client);
-      if (xmit_status > 0) {
+      if (xmit_status <= 0) {
+        break;
+      } else {
         // wait for response to be available
         timeout = millis();
         while (client.available() == 0) {
@@ -223,15 +226,27 @@ void upload_readings(void)
             response.replace("OK,","");
           }
 
-#if !DEVELOPMENT_BUILD
-          if (response.startsWith("update")) {
-            Serial.println("accepted firmware update command");
-            if (!update_firmware(client))
-              Serial.println("error: update failed");
+          // no real error handling, just remove flag and check for update
+          if (response.startsWith("error")) {
+            response.replace("error,","");
+            client.stop();  // don't try to send any more readings
           }
-#endif
+
+          if (response.startsWith("update"))
+            update_flag = true;
+        } else {
+          // some error occurred and we got no response...
+          client.stop();
         }
       }
+    }
+
+    if (update_flag) {
+      Serial.println("accepted firmware update command");
+#if !DEVELOPMENT_BUILD
+      if (!update_firmware(client))
+        Serial.println("error: update failed");
+#endif
     }
   }
 
@@ -242,7 +257,8 @@ void upload_readings(void)
 // transmit the readings formatted as a json string
 static int transmit_readings(WiFiClient& client)
 {
-  int num_readings = 0;
+  int num_slots_read = 0;
+  int num_measurements = 0;
   unsigned result;
   String json;
 
@@ -250,6 +266,7 @@ static int transmit_readings(WiFiClient& client)
     return -1;
 
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
+    flags_time_t timestamp = {0,0,0};
     const char typestrings[][12] = {
       "unknown",
       "temperature",
@@ -268,7 +285,7 @@ static int transmit_readings(WiFiClient& client)
     // format measurements
     for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
       sensor_reading_t *reading;
-      const char* type;
+      const char* type = typestrings[0];
       int slot;
       float calibrated_reading;
 
@@ -278,7 +295,8 @@ static int transmit_readings(WiFiClient& client)
         slot -= NUM_STORAGE_SLOTS;
 
       reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
-      calibrated_reading = reading->reading/1000.0;
+      calibrated_reading = reading->value/1000.0;
+      num_slots_read++;
 
       // determine the sensor type
       switch(reading->type) {
@@ -305,33 +323,62 @@ static int transmit_readings(WiFiClient& client)
           type=typestrings[5];
         break;
 
+        case SENSOR_TIMESTAMP_L:
+          // collect timestamp low bits then loop to get timestamp high bits
+          timestamp.millis = reading->value & SENSOR_TIMESTAMP_MASK;
+          continue;
+        break;
+
+        case SENSOR_TIMESTAMP_H:
+          //collect timestamp high bits then break out of the loop to send the message
+          timestamp.millis |= ((uint64_t)reading->value & SENSOR_TIMESTAMP_MASK) << SENSOR_TIMESTAMP_SHIFT;
+        break;
+
         case SENSOR_UNKNOWN:
         default:
           type=typestrings[0];
         break;
       }
-      json += "{\"timestamp\":";
-      json += format_u64(reading->timestamp);
-      json +=",\"type\":\"";
+
+      if (reading->type == SENSOR_TIMESTAMP_H) {
+        if (num_measurements > 0)
+          break;
+        else
+          continue;
+      }
+
+      json += "{\"type\":\"";
       json += type;
       json += "\",\"value\":";
-      json += calibrated_reading;
-      json += "}";
-
-      num_readings++;
-
-      if ((i+1) < rtc_mem[RTC_MEM_NUM_READINGS])
-        json += ",";
+      json += String(calibrated_reading, 3);
+      json += "},";
+      num_measurements++;
     }
 
-    // terminate the json objects
-    json += "]}";
+    // add a bonus "uptime" reading
+    if ((unsigned)num_slots_read == rtc_mem[RTC_MEM_NUM_READINGS]) {
+      json += "{\"type\":\"uptime\",";
+      json += "\"value\":"+String(uptime()/1000.0, 3);
+      json += "}";
+    } else if (json.endsWith("},")) {
+      json.remove(json.length()-1); // remove the extraneous comma
+    }
+
+    // close off the array of readings
+    json += "],";
+
+    // append a timestamp
+    json += "\"time_offset\":-";
+    json += format_u64(uptime()-timestamp.millis);
+
+    // terminate the json object
+    json += "}";
     // null-terminate
     json += ";";
     json.setCharAt(json.length()-1, '\0');
   }
 
-  if (num_readings > 0) {
+  if (num_measurements > 0) {
 #if (EXTRA_DEBUG != 0)
     Serial.println("Transmitting to report server:");
     Serial.println(json);
@@ -340,12 +387,12 @@ static int transmit_readings(WiFiClient& client)
     // transmit the results and verify the number of bytes written
     result = client.print(json);
     if (result == json.length())
-      return num_readings;
+      return num_slots_read;
     else
       return -1;
-  } else {
-    return 0; // no readings available
   }
+
+  return num_slots_read; // no measurements available
 }
 
 // helper to generate a json-formatted header that can have
@@ -355,8 +402,7 @@ static String json_header(void)
   String json;
 
   //format header
-  json = "{\"version\":1,";
-  json += "\"timestamp\":"+format_u64(uptime())+",";
+  json = "{\"version\":2,";
   json += "\"node\":\""+nodename+"\",";
   json += "\"firmware\":\""+String(preinit_magic, HEX)+"\",";
 

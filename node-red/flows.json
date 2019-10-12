@@ -83,28 +83,6 @@
     "tls": ""
   },
   {
-    "id": "fa189a34.f2435",
-    "type": "tcp in",
-    "z": "fb425031.4cd18",
-    "name": "",
-    "server": "server",
-    "host": "",
-    "port": "2880",
-    "datamode": "stream",
-    "datatype": "utf8",
-    "newline": "",
-    "topic": "",
-    "base64": false,
-    "x": 100,
-    "y": 100,
-    "wires": [
-      [
-        "c1f9de2c.2b2158",
-        "9080d47a.79cae8"
-      ]
-    ]
-  },
-  {
     "id": "7e4f34ea.f9f65c",
     "type": "json",
     "z": "fb425031.4cd18",
@@ -301,7 +279,7 @@
     "y": 120,
     "wires": [
       [
-        "e7a25533.761ed"
+        "880fc3c3.73763"
       ]
     ]
   },
@@ -315,19 +293,19 @@
     "base64": false,
     "end": false,
     "name": "tcp response",
-    "x": 1130,
-    "y": 440,
+    "x": 1170,
+    "y": 580,
     "wires": []
   },
   {
     "id": "e7a25533.761ed",
     "type": "function",
     "z": "7b8a611f.628c2",
-    "name": "parse readings",
-    "func": "var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\n//debug.protocol = msg.version;\ndebug.node = msg.node;\n//debug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp;\n//debug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];",
+    "name": "parse v1 readings",
+    "func": "var debug = {};\nvar influx_data = {};\nvar base_date;\nvar base_timestamp = 0;\n\ndebug.v = msg.version;\ndebug.node = msg.node;\n//debug.firmware = msg.firmware;\ndebug.uptime = msg.timestamp / 1000.0;\n//debug.num_measurements = msg.payload.measurements.length;\nbase_date = Date.now() - msg.timestamp;\n\ninflux_data.payload = [];\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    var measurement = {};\n    var timestamp = msg.payload.measurements[i].timestamp;\n\n    // handle timestamp batching by clumping to the first\n    // timestamp in a given 1 second window\n    if (timestamp > (base_timestamp+1000))\n        base_timestamp = timestamp;\n\n    measurement.timestamp = new Date(base_date + base_timestamp);\n    measurement.measurement = \"internet_of_spores\";\n    measurement.tags = {};\n    measurement.tags.node = msg.node;\n    measurement.tags.firmware = msg.firmware;\n    measurement.fields={};\n    measurement.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n\n    influx_data.payload.push(measurement);\n}\n\nmsg.payload = \"OK\";\ninflux_data.debug = debug;\n\nreturn [influx_data, msg];",
     "outputs": 2,
     "noerr": 0,
-    "x": 320,
+    "x": 490,
     "y": 120,
     "wires": [
       [
@@ -351,7 +329,7 @@
     "tostatus": false,
     "complete": "payload",
     "targetType": "msg",
-    "x": 540,
+    "x": 900,
     "y": 80,
     "wires": []
   },
@@ -440,8 +418,8 @@
     "func": "var update_needed = true;\n\nif (msg.firmware_dir.length === 0)\n    update_needed = false;\nelse\n    for (var i = 0; i < msg.firmware_dir.length; i++)\n    {\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) >= 0)\n            update_needed = false;\n    }\n\nif (update_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"update\";\n}\n\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 820,
-    "y": 340,
+    "x": 860,
+    "y": 480,
     "wires": [
       [
         "518dfa0d.04c784",
@@ -458,8 +436,8 @@
     "as": "single",
     "recursive": false,
     "outproperty": "firmware_dir",
-    "x": 710,
-    "y": 240,
+    "x": 750,
+    "y": 380,
     "wires": [
       [
         "885960e3.60aad8",
@@ -478,8 +456,8 @@
     "tostatus": false,
     "complete": "firmware_dir",
     "targetType": "msg",
-    "x": 890,
-    "y": 200,
+    "x": 930,
+    "y": 340,
     "wires": []
   },
   {
@@ -556,8 +534,8 @@
     "console": false,
     "tostatus": false,
     "complete": "false",
-    "x": 990,
-    "y": 300,
+    "x": 1030,
+    "y": 440,
     "wires": []
   },
   {
@@ -630,8 +608,8 @@
     "func": "msg.payload += '\\0';\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 940,
-    "y": 440,
+    "x": 980,
+    "y": 580,
     "wires": [
       [
         "cb023030.4fbfb8"
@@ -662,8 +640,8 @@
     "precision": "",
     "retentionPolicy": "",
     "name": "",
-    "x": 1150,
-    "y": 120,
+    "x": 1190,
+    "y": 220,
     "wires": []
   },
   {
@@ -674,8 +652,8 @@
     "scope": [
       "2e278535.50a472"
     ],
-    "x": 310,
-    "y": 380,
+    "x": 230,
+    "y": 460,
     "wires": [
       [
         "cbbde192.1cbe2"
@@ -693,8 +671,8 @@
     "tostatus": false,
     "complete": "true",
     "targetType": "full",
-    "x": 490,
-    "y": 420,
+    "x": 410,
+    "y": 500,
     "wires": []
   },
   {
@@ -706,8 +684,8 @@
       "cb023030.4fbfb8"
     ],
     "uncaught": false,
-    "x": 320,
-    "y": 220,
+    "x": 240,
+    "y": 300,
     "wires": [
       []
     ]
@@ -719,8 +697,8 @@
     "name": "error handler",
     "scope": null,
     "uncaught": true,
-    "x": 310,
-    "y": 300,
+    "x": 230,
+    "y": 380,
     "wires": [
       [
         "b4645501.267598",
@@ -739,8 +717,8 @@
     "tostatus": false,
     "complete": "true",
     "targetType": "full",
-    "x": 480,
-    "y": 260,
+    "x": 400,
+    "y": 340,
     "wires": []
   },
   {
@@ -754,7 +732,7 @@
     "tostatus": false,
     "complete": "debug",
     "targetType": "msg",
-    "x": 480,
+    "x": 820,
     "y": 40,
     "wires": []
   },
@@ -763,11 +741,11 @@
     "type": "function",
     "z": "7b8a611f.628c2",
     "name": "process error",
-    "func": "// for now, just avoid responding \"OK\"\nmsg.payload = \"\";\nreturn msg;",
+    "func": "if (msg.version == 1)// for now, just avoid responding \"OK\"\n    msg.payload = \"\";\nelse\n    msg.payload = \"error\";\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 480,
-    "y": 340,
+    "x": 400,
+    "y": 420,
     "wires": [
       [
         "95ef3dcc.3f7598"
@@ -824,7 +802,7 @@
     "type": "function",
     "z": "fb425031.4cd18",
     "name": "process error",
-    "func": "msg.payload = \"error\";\nreturn msg;",
+    "func": "msg.payload = \"error\\0\";\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
     "x": 160,
@@ -855,7 +833,7 @@
     "type": "function",
     "z": "fb425031.4cd18",
     "name": "detect framing",
-    "func": "if (msg.payload.slice(-3) === \"}]}\")\n    msg.complete = 1;\n\nreturn msg;",
+    "func": "if (msg.payload.slice(-1) === \"\\0\") {\n    msg.payload = msg.payload.slice(0,-1);\n    msg.complete = 1;\n} else if (msg.payload.slice(-3) === \"}]}\") {\n    //TODO remove this clause once all V1 nodes are out of circulation\n    msg.complete = 1;\n}\n\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
     "x": 190,
@@ -876,8 +854,8 @@
     "tosidebar": true,
     "console": false,
     "tostatus": false,
-    "complete": "true",
-    "targetType": "full",
+    "complete": "complete",
+    "targetType": "msg",
     "x": 360,
     "y": 140,
     "wires": []
@@ -932,5 +910,137 @@
     "x": 480,
     "y": 60,
     "wires": []
+  },
+  {
+    "id": "fa189a34.f2435",
+    "type": "tcp in",
+    "z": "fb425031.4cd18",
+    "name": "",
+    "server": "server",
+    "host": "",
+    "port": "2880",
+    "datamode": "stream",
+    "datatype": "utf8",
+    "newline": "",
+    "topic": "",
+    "base64": false,
+    "x": 100,
+    "y": 100,
+    "wires": [
+      [
+        "c1f9de2c.2b2158",
+        "9080d47a.79cae8"
+      ]
+    ]
+  },
+  {
+    "id": "880fc3c3.73763",
+    "type": "switch",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "property": "version",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "1",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "2",
+        "vt": "str"
+      }
+    ],
+    "checkall": "false",
+    "repair": false,
+    "outputs": 2,
+    "x": 290,
+    "y": 120,
+    "wires": [
+      [
+        "e7a25533.761ed"
+      ],
+      [
+        "68c7a319.da806c"
+      ]
+    ]
+  },
+  {
+    "id": "68c7a319.da806c",
+    "type": "function",
+    "z": "7b8a611f.628c2",
+    "name": "parse v2 readings",
+    "func": "var influx_data = {};\nvar debug = false;\nvar timestamp = new Date(Date.now() + msg.payload.time_offset);\n\ninflux_data.debug = {};\ninflux_data.payload = {};\ninflux_data.payload.timestamp = timestamp;\ninflux_data.payload.measurement = \"internet_of_spores\";\ninflux_data.payload.tags = {};\ninflux_data.payload.tags.node = msg.node;\ninflux_data.payload.tags.firmware = msg.firmware;\ninflux_data.payload.fields={};\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    // Detect uptime measurement to flag this as the final message\n    if (msg.payload.measurements[i].type == \"uptime\") {\n        influx_data.complete = 1;\n        //msg.payload.measurements[i].value /= 1000.0;\n        influx_data.debug.v = msg.version;\n        influx_data.debug.node = msg.node;\n        //influx_data.debug.firmware = msg.firmware;\n        //influx_data.debug.num_measurements = msg.payload.measurements.length;\n        influx_data.debug.uptime = msg.payload.measurements[i].value;\n    }\n    influx_data.payload.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n}\n\nmsg.payload = \"OK\";\n\nreturn [influx_data, msg];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 490,
+    "y": 180,
+    "wires": [
+      [
+        "dc235ec.f0454a",
+        "544cbb47.27a644"
+      ],
+      [
+        "95ef3dcc.3f7598"
+      ]
+    ]
+  },
+  {
+    "id": "dc235ec.f0454a",
+    "type": "join",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "mode": "custom",
+    "build": "array",
+    "property": "payload",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "\\n",
+    "joinerType": "str",
+    "accumulate": false,
+    "timeout": "4",
+    "count": "",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "",
+    "reduceFixup": "",
+    "x": 750,
+    "y": 220,
+    "wires": [
+      [
+        "b3c373aa.6fa49",
+        "2e278535.50a472"
+      ]
+    ]
+  },
+  {
+    "id": "544cbb47.27a644",
+    "type": "join",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "mode": "custom",
+    "build": "merged",
+    "property": "debug",
+    "propertyType": "msg",
+    "key": "topic",
+    "joiner": "\\n",
+    "joinerType": "str",
+    "accumulate": false,
+    "timeout": "4",
+    "count": "",
+    "reduceRight": false,
+    "reduceExp": "",
+    "reduceInit": "",
+    "reduceInitType": "",
+    "reduceFixup": "",
+    "x": 710,
+    "y": 180,
+    "wires": [
+      [
+        "b63d9287.1d2f18"
+      ]
+    ]
   }
 ]
