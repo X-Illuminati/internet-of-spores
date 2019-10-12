@@ -246,6 +246,9 @@ static int transmit_readings(WiFiClient& client)
   unsigned result;
   String json;
 
+  if (!client.connected())
+    return -1;
+
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
     const char typestrings[][12] = {
       "unknown",
@@ -323,6 +326,9 @@ static int transmit_readings(WiFiClient& client)
 
     // terminate the json objects
     json += "]}";
+    // null-terminate
+    json += ";";
+    json.setCharAt(json.length()-1, '\0');
   }
 
   if (num_readings > 0) {
@@ -359,14 +365,21 @@ static String json_header(void)
 
 #if !DEVELOPMENT_BUILD
 // helper to fetch a firmware update from the server and apply it
-bool update_firmware(WiFiClient& client)
+static bool update_firmware(WiFiClient& client)
 {
   String json = json_header();
   unsigned len;
   bool status = false;
 
+  if (!client.connected())
+    return false;
+
   json += "\"command\":\"update\",";
   json += "\"arg\":\"internet_of_spores\"}";
+
+  // null-terminate
+  json += ";";
+  json.setCharAt(json.length()-1, '\0');
 
   len = client.print(json);
   if (len != json.length())
