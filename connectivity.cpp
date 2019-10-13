@@ -32,7 +32,7 @@ unsigned long server_shutdown_timeout;
 /* Function Prototypes */
 static String format_u64(uint64_t val);
 static String json_header(void);
-static int transmit_readings(WiFiClient& client);
+static int transmit_readings(WiFiClient& client, float calibrations[3]);
 #if !DEVELOPMENT_BUILD
 static bool update_firmware(WiFiClient& client);
 #endif
@@ -184,12 +184,19 @@ void enter_config_mode(void)
 void upload_readings(void)
 {
   WiFiClient client;
-  String report_host_name = persistent_read(PERSISTENT_REPORT_HOST_NAME, String(DEFAULT_REPORT_HOST_NAME));
-  uint16_t report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, (int)DEFAULT_REPORT_HOST_PORT);
+  String report_host_name;
   String response;
+  float calibrations[3];
   unsigned long timeout;
   int xmit_status;
+  uint16_t report_host_port;
   bool update_flag = false;
+
+  report_host_name =  persistent_read(PERSISTENT_REPORT_HOST_NAME, String(DEFAULT_REPORT_HOST_NAME));
+  report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, (int)DEFAULT_REPORT_HOST_PORT);
+  calibrations[0] = persistent_read(PERSISTENT_TEMP_CALIB, DEFAULT_TEMP_CALIB);
+  calibrations[1] = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
+  calibrations[2] = persistent_read(PERSISTENT_PRESSURE_CALIB, DEFAULT_PRESSURE_CALIB);
 
   Serial.print("Connecting to report server ");
   Serial.print(report_host_name);
@@ -201,7 +208,7 @@ void upload_readings(void)
     // This will send a string to the server
     Serial.println("Sending data to report server");
     while (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
-      xmit_status = transmit_readings(client);
+      xmit_status = transmit_readings(client, calibrations);
       if (xmit_status <= 0) {
         break;
       } else {
@@ -255,7 +262,10 @@ void upload_readings(void)
 }
 
 // transmit the readings formatted as a json string
-static int transmit_readings(WiFiClient& client)
+// calibrations[0] - temperature offset calibration
+// calibrations[1] - humidity offset calibration
+// calibrations[2] - pressure offset calibration
+static int transmit_readings(WiFiClient& client, float calibrations[3])
 {
   int num_slots_read = 0;
   int num_measurements = 0;
@@ -275,9 +285,6 @@ static int transmit_readings(WiFiClient& client)
       "particles",
       "battery",
     };
-    float temp_cal = persistent_read(PERSISTENT_TEMP_CALIB, DEFAULT_TEMP_CALIB);
-    float humidity_cal = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
-    float pressure_cal = persistent_read(PERSISTENT_PRESSURE_CALIB, DEFAULT_PRESSURE_CALIB);
 
     json = json_header();
     json += "\"measurements\":[";
@@ -302,17 +309,17 @@ static int transmit_readings(WiFiClient& client)
       switch(reading->type) {
         case SENSOR_TEMPERATURE:
           type=typestrings[1];
-          calibrated_reading += temp_cal;
+          calibrated_reading += calibrations[0];
         break;
 
         case SENSOR_HUMIDITY:
           type=typestrings[2];
-          calibrated_reading += humidity_cal;
+          calibrated_reading += calibrations[1];
         break;
 
         case SENSOR_PRESSURE:
           type=typestrings[3];
-          calibrated_reading += pressure_cal;
+          calibrated_reading += calibrations[2];
         break;
 
         case SENSOR_PARTICLE:
