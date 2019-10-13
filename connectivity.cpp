@@ -19,6 +19,7 @@ String config_hint_clock_calib;
 String config_hint_temp_calib;
 String config_hint_humidity_calib;
 String config_hint_pressure_calib;
+String config_hint_battery_calib;
 const char* config_label_node_name        = "><label for=\"" PERSISTENT_NODE_NAME "\">Friendly Name for this Sensor</label";
 const char* config_label_report_host_name = "><label for=\"" PERSISTENT_REPORT_HOST_NAME "\">Custom Report Server</label";
 const char* config_label_report_host_port = "><label for=\"" PERSISTENT_REPORT_HOST_PORT "\">Custom Report Server Port Number</label";
@@ -26,13 +27,14 @@ const char* config_label_clock_calib      = "><label for=\"" PERSISTENT_CLOCK_CA
 const char* config_label_temp_calib       = "><label for=\"" PERSISTENT_TEMP_CALIB "\">Temperatue Offset Calibration</label";
 const char* config_label_humidity_calib   = "><label for=\"" PERSISTENT_HUMIDITY_CALIB "\">Humidity Offset Calibration</label";
 const char* config_label_pressure_calib   = "><label for=\"" PERSISTENT_PRESSURE_CALIB "\">Pressure Offset Calibration</label";
+const char* config_label_battery_calib    = "><label for=\"" PERSISTENT_BATTERY_CALIB "\">Battery Offset Calibration</label";
 String nodename;
 unsigned long server_shutdown_timeout;
 
 /* Function Prototypes */
 static String format_u64(uint64_t val);
 static String json_header(void);
-static int transmit_readings(WiFiClient& client, float calibrations[3]);
+static int transmit_readings(WiFiClient& client, float calibrations[4]);
 #if !DEVELOPMENT_BUILD
 static bool update_firmware(WiFiClient& client);
 #endif
@@ -123,6 +125,7 @@ void enter_config_mode(void)
   config_hint_temp_calib       = persistent_read(PERSISTENT_TEMP_CALIB,       "temperature calibration (°C)");
   config_hint_humidity_calib   = persistent_read(PERSISTENT_HUMIDITY_CALIB,   "humidity calibration (%)");
   config_hint_pressure_calib   = persistent_read(PERSISTENT_PRESSURE_CALIB,   "pressure calibration (kPa)");
+  config_hint_battery_calib    = persistent_read(PERSISTENT_BATTERY_CALIB,    "battery calibration (V)");
 
   WiFiManagerParameter custom_node_name(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
   WiFiManagerParameter custom_report_host(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
@@ -131,6 +134,7 @@ void enter_config_mode(void)
   WiFiManagerParameter temp_adj(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL,  6, config_label_temp_calib);
   WiFiManagerParameter humidity_adj(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL,  6, config_label_humidity_calib);
   WiFiManagerParameter pressure_adj(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL,  8, config_label_pressure_calib);
+  WiFiManagerParameter battery_adj(       PERSISTENT_BATTERY_CALIB,    config_hint_battery_calib.c_str(),    NULL,  6, config_label_battery_calib);
 
   wifi_manager.addParameter(&custom_node_name);
   wifi_manager.addParameter(&custom_report_host);
@@ -139,6 +143,7 @@ void enter_config_mode(void)
   wifi_manager.addParameter(&temp_adj);
   wifi_manager.addParameter(&humidity_adj);
   wifi_manager.addParameter(&pressure_adj);
+  wifi_manager.addParameter(&battery_adj);
   wifi_manager.setConfigPortalTimeout(CONFIG_SERVER_MAX_TIME);
 
   Serial.println("Starting config server");
@@ -177,6 +182,9 @@ void enter_config_mode(void)
     value = pressure_adj.getValue();
     if (value && value[0])
       persistent_write(PERSISTENT_PRESSURE_CALIB, value);
+    value = battery_adj.getValue();
+    if (value && value[0])
+      persistent_write(PERSISTENT_BATTERY_CALIB, value);
   }
 }
 
@@ -186,7 +194,7 @@ void upload_readings(void)
   WiFiClient client;
   String report_host_name;
   String response;
-  float calibrations[3];
+  float calibrations[4];
   unsigned long timeout;
   int xmit_status;
   uint16_t report_host_port;
@@ -197,6 +205,7 @@ void upload_readings(void)
   calibrations[0] = persistent_read(PERSISTENT_TEMP_CALIB, DEFAULT_TEMP_CALIB);
   calibrations[1] = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
   calibrations[2] = persistent_read(PERSISTENT_PRESSURE_CALIB, DEFAULT_PRESSURE_CALIB);
+  calibrations[3] = persistent_read(PERSISTENT_BATTERY_CALIB, DEFAULT_BATTERY_CALIB);
 
   Serial.print("Connecting to report server ");
   Serial.print(report_host_name);
@@ -265,7 +274,8 @@ void upload_readings(void)
 // calibrations[0] - temperature offset calibration
 // calibrations[1] - humidity offset calibration
 // calibrations[2] - pressure offset calibration
-static int transmit_readings(WiFiClient& client, float calibrations[3])
+// calibrations[3] - battery offset calibration
+static int transmit_readings(WiFiClient& client, float calibrations[4])
 {
   int num_slots_read = 0;
   int num_measurements = 0;
@@ -328,6 +338,7 @@ static int transmit_readings(WiFiClient& client, float calibrations[3])
 
         case SENSOR_BATTERY_VOLTAGE:
           type=typestrings[5];
+          calibrated_reading += calibrations[3];
         break;
 
         case SENSOR_TIMESTAMP_L:

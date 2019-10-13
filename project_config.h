@@ -31,6 +31,7 @@
 #define PERSISTENT_TEMP_CALIB       "temperature_calibration"
 #define PERSISTENT_HUMIDITY_CALIB   "humidity_calibration"
 #define PERSISTENT_PRESSURE_CALIB   "pressure_calibration"
+#define PERSISTENT_BATTERY_CALIB    "battery_calibration"
 
 #define DEFAULT_NODE_BASE_NAME      "spores-"
 #define DEFAULT_REPORT_HOST_NAME    "192.168.0.1"
@@ -39,5 +40,6 @@
 #define DEFAULT_TEMP_CALIB          (0.0f)
 #define DEFAULT_HUMIDITY_CALIB      (0.0f)
 #define DEFAULT_PRESSURE_CALIB      (0.0f)
+#define DEFAULT_BATTERY_CALIB       (0.0f)
 
 #endif /* _PROJECT_CONFIG_H_ */
