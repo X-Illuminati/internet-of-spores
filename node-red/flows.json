@@ -833,7 +833,7 @@
     "type": "function",
     "z": "fb425031.4cd18",
     "name": "detect framing",
-    "func": "if (msg.payload.slice(-1) === \"\\0\") {\n    msg.payload = msg.payload.slice(0,-1);\n    msg.complete = 1;\n} else if (msg.payload.slice(-3) === \"}]}\") {\n    //TODO remove this clause once all V1 nodes are out of circulation\n    msg.complete = 1;\n}\n\nreturn msg;",
+    "func": "if (msg.payload.slice(-1) === \"\\0\") {\n    msg.payload = msg.payload.slice(0,-1);\n    msg.complete = 1;\n}\n\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
     "x": 190,

@@ -64,8 +64,6 @@ monitor ()
 		while true; do
 			read -t $1 linehead sohmark sohtimestamp
 			status=$?
-			# dump the scheduler load_avg
-			cat /proc/$3/sched | grep se.avg.load_avg
 
 			if [ $status -gt 128 ]; then
 				break
