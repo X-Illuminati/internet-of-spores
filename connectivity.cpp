@@ -50,6 +50,7 @@ static String format_u64(uint64_t val)
   return String(llu);
 }
 
+#if !TETHERED_MODE
 // initializer called from the preinit() function
 void connectivity_preinit(void)
 {
@@ -59,6 +60,7 @@ void connectivity_preinit(void)
   //The below is a static class method, which is similar to a function, so it's ok.
   ESP8266WiFiClass::preinitWiFiOff();
 }
+#endif
 
 // initializer called from setup()
 void connectivity_init(void)
@@ -439,7 +441,7 @@ static bool update_firmware(WiFiClient& client)
     return false;
 
   json += "\"command\":\"update\",";
-  json += "\"arg\":\"internet_of_spores\"}";
+  json += "\"arg\":\"" FIRMWARE_NAME "\"}";
 
   // null-terminate
   json += ";";

@@ -14,6 +14,7 @@
 const uint32_t preinit_magic = PREINIT_MAGIC;
 
 /* Functions */
+#if !TETHERED_MODE
 void preinit(void)
 {
   // Global WiFi constructors are not called yet
@@ -22,6 +23,7 @@ void preinit(void)
 
   connectivity_preinit();
 }
+#endif
 
 // Read from all of the attached sensors and store the readings
 // Read some of the sensors twice to get an average value
@@ -80,25 +82,47 @@ void setup(void)
     enter_config_mode();
     stopWaveform(LED_BUILTIN);
     pinMode(LED_BUILTIN, INPUT);
-  } else {
-    take_readings();
-    dump_readings();
 
-    if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
-      // time to connect and upload our readings
-      connectivity_init();
-      if (connect_wifi())
-        upload_readings();
-    }
-  }
-
+#if !TETHERED_MODE
   connectivity_disable();
   deep_sleep(SLEEP_TIME_US);
+#endif
+  } else {
+#if TETHERED_MODE
+    // defer this if battery-powered
+    connectivity_init();
+#endif
+  }
 }
 
 void loop(void)
 {
-  //should never get here
+  take_readings();
+  dump_readings();
+
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+    // time to connect and upload our readings
+
+#if !TETHERED_MODE
+    //this is normally done in setup() but deferred in battery mode
+    connectivity_init();
+#endif
+
+    if (connect_wifi())
+      upload_readings();
+  }
+
+#if TETHERED_MODE
+  // in tethered mode, sleep time is more of a suggestion if other
+  // activities don't take longer
+  int64_t sleep_delta = SLEEP_TIME_US - (millis()*1000);
+  if (sleep_delta > 0) {
+    deep_sleep(sleep_delta);
+  } else {
+    save_rtc(); // it is probably still worth saving RTC mem in case of soft reset, etc.
+  }
+#else
   connectivity_disable();
   deep_sleep(SLEEP_TIME_US);
+#endif
 }

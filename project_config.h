@@ -3,6 +3,7 @@
 
 /* Global Configurations */
 #define DEVELOPMENT_BUILD       (0)
+#define TETHERED_MODE           (0)
 #define SERIAL_SPEED            (115200)
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
 #define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
@@ -12,15 +13,25 @@
 #define WIFI_CONNECT_TIMEOUT    (30000)
 
 #if DEVELOPMENT_BUILD
-#define EXTRA_DEBUG             (1)
-#define SLEEP_TIME_US           (5000000)
-#define NUM_STORAGE_SLOTS       (17)
-#define HIGH_WATER_SLOT         (14)
+  #define EXTRA_DEBUG           (1)
+  #define SLEEP_TIME_US         (5000000)
+  #define NUM_STORAGE_SLOTS     (17)
+  #if TETHERED_MODE
+    #define HIGH_WATER_SLOT     (1)
+  #else
+    #define HIGH_WATER_SLOT     (14)
+  #endif
 #else
-#define EXTRA_DEBUG             (0)
-#define SLEEP_TIME_US           (15000000)
-#define NUM_STORAGE_SLOTS       (122)
-#define HIGH_WATER_SLOT         (NUM_STORAGE_SLOTS-16)
+  #define EXTRA_DEBUG           (0)
+  #define SLEEP_TIME_US         (15000000)
+  #define NUM_STORAGE_SLOTS     (122)
+  #if TETHERED_MODE
+    #define FIRMWARE_NAME       "iotsp-tethered"
+    #define HIGH_WATER_SLOT     (1)
+  #else
+    #define FIRMWARE_NAME       "iotsp-battery"
+    #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-16)
+  #endif
 #endif
 
 //persistent storage file names
@@ -33,7 +44,7 @@
 #define PERSISTENT_PRESSURE_CALIB   "pressure_calibration"
 #define PERSISTENT_BATTERY_CALIB    "battery_calibration"
 
-#define DEFAULT_NODE_BASE_NAME      "spores-"
+#define DEFAULT_NODE_BASE_NAME      "iotsp-"
 #define DEFAULT_REPORT_HOST_NAME    "192.168.0.1"
 #define DEFAULT_REPORT_HOST_PORT    (2880)
 #define DEFAULT_SLEEP_CLOCK_ADJ     (120)

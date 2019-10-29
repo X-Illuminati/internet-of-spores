@@ -76,8 +76,8 @@ uint64_t uptime(void)
   return uptime_ms;
 }
 
-// helper for saving rtc memory before entering deep sleep
-void deep_sleep(uint64_t time_us)
+// helper for saving rtc memory
+void save_rtc(uint64_t time_us)
 {
   flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
 
@@ -89,7 +89,18 @@ void deep_sleep(uint64_t time_us)
 
   // store the array to RTC memory and enter suspend
   ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
+}
+
+// helper for saving rtc memory before entering deep sleep
+void deep_sleep(uint64_t time_us)
+{
+  save_rtc(time_us);
+
+#if TETHERED_MODE
+  ESP.deepSleep(time_us, RF_NO_CAL);
+#else
   ESP.deepSleep(time_us, RF_DISABLED);
+#endif
 }
 
 // store sensor reading in the rtc mem ring buffer
