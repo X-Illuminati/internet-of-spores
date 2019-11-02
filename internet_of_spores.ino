@@ -56,6 +56,24 @@ void take_readings(void)
   store_uptime();
 }
 
+#if TETHERED_MODE
+void tethered_sleep(int64_t millis_offset)
+{
+  int64_t sleep_delta = (int64_t)SLEEP_TIME_US - (((int64_t)millis()-millis_offset)*1000);
+
+#if EXTRA_DEBUG
+  Serial.printf("[%llu] sleep_delta=%lld\n", uptime(), sleep_delta);
+#endif
+  if (sleep_delta > 200000LL)
+    deep_sleep(sleep_delta);
+  else
+    save_rtc(); // it is probably still worth saving RTC mem in case of soft reset, etc.
+
+  if (sleep_delta > 0)
+    delay(sleep_delta/1000);
+}
+#endif /* TETHERED_MODE */
+
 void setup(void)
 {
   bool rtc_config_valid = false;
@@ -97,6 +115,10 @@ void setup(void)
 
 void loop(void)
 {
+#if TETHERED_MODE
+  unsigned long loop_start = millis();
+#endif
+
   take_readings();
   dump_readings();
 
@@ -115,12 +137,7 @@ void loop(void)
 #if TETHERED_MODE
   // in tethered mode, sleep time is more of a suggestion if other
   // activities don't take longer
-  int64_t sleep_delta = SLEEP_TIME_US - (millis()*1000);
-  if (sleep_delta > 0) {
-    deep_sleep(sleep_delta);
-  } else {
-    save_rtc(); // it is probably still worth saving RTC mem in case of soft reset, etc.
-  }
+  tethered_sleep(loop_start);
 #else
   connectivity_disable();
   deep_sleep(SLEEP_TIME_US);
