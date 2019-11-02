@@ -84,6 +84,12 @@ bool connect_wifi(void)
   wl_status_t wifi_status = WL_DISCONNECTED;
   unsigned long timeout;
 
+  if (WiFi.isConnected())
+  {
+    Serial.println("WiFi status is connected");
+    return true;
+  }
+
   Serial.println("Connecting to AP");
   WiFi.mode(WIFI_STA);
   WiFi.reconnect();
