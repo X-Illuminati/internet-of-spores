@@ -57,7 +57,7 @@ void take_readings(void)
 }
 
 #if TETHERED_MODE
-void tethered_sleep(int64_t millis_offset)
+void tethered_sleep(int64_t millis_offset, bool please_reboot)
 {
   int64_t sleep_delta = (int64_t)SLEEP_TIME_US - (((int64_t)millis()-millis_offset)*1000);
 
@@ -66,6 +66,8 @@ void tethered_sleep(int64_t millis_offset)
 #endif
   if (sleep_delta > 200000LL)
     deep_sleep(sleep_delta);
+  else if (please_reboot)
+    deep_sleep(100);
   else
     save_rtc(); // it is probably still worth saving RTC mem in case of soft reset, etc.
 
@@ -117,6 +119,7 @@ void loop(void)
 {
 #if TETHERED_MODE
   unsigned long loop_start = millis();
+  bool connect_failed = false;
 #endif
 
   take_readings();
@@ -132,12 +135,16 @@ void loop(void)
 
     if (connect_wifi())
       upload_readings();
+#if TETHERED_MODE
+    else
+      connect_failed = true;
+#endif
   }
 
 #if TETHERED_MODE
   // in tethered mode, sleep time is more of a suggestion if other
   // activities don't take longer
-  tethered_sleep(loop_start);
+  tethered_sleep(loop_start, connect_failed);
 #else
   connectivity_disable();
   deep_sleep(SLEEP_TIME_US);
