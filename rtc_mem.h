@@ -50,7 +50,7 @@ bool load_rtc_memory(void);
 void invalidate_rtc(void);
 
 uint64_t uptime(void);
-void save_rtc(uint64_t time_us=0);
+void save_rtc(uint64_t sleep_time_us=0);
 void deep_sleep(uint64_t time_us);
 
 void store_reading(sensor_type_t type, int32_t val);

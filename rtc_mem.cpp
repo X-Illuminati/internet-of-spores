@@ -77,18 +77,22 @@ uint64_t uptime(void)
 }
 
 // helper for saving rtc memory
-void save_rtc(uint64_t time_us)
+void save_rtc(uint64_t sleep_time_us)
 {
   flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint64_t backup_millis = timestruct->millis; //store the current uptime value in case we aren't sleeping
 
   // update the stored millis including some overhead for the write, suspend, and wake
-  timestruct->millis += millis() + time_us/1000 + timestruct->clock_cal;
+  timestruct->millis += millis() + sleep_time_us/1000 + timestruct->clock_cal;
 
   // update the header checksum
   rtc_mem[RTC_MEM_CHECK] = preinit_magic - rtc_mem[RTC_MEM_BOOT_COUNT];
 
-  // store the array to RTC memory and enter suspend
+  // store the array to RTC memory
   ESP.rtcUserMemoryWrite(0, rtc_mem, sizeof(rtc_mem));
+
+  // restore the old uptime in case we aren't sleeping (millis won't be reset in that case)
+  timestruct->millis = backup_millis;
 }
 
 // helper for saving rtc memory before entering deep sleep
