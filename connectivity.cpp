@@ -349,15 +349,8 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
           calibrated_reading += calibrations[3];
         break;
 
-        case SENSOR_TIMESTAMP_L:
-          // collect timestamp low bits then loop to get timestamp high bits
-          timestamp.millis = reading->value & SENSOR_TIMESTAMP_MASK;
-          continue;
-        break;
-
-        case SENSOR_TIMESTAMP_H:
-          //collect timestamp high bits then break out of the loop to send the message
-          timestamp.millis |= ((uint64_t)reading->value & SENSOR_TIMESTAMP_MASK) << SENSOR_TIMESTAMP_SHIFT;
+        case SENSOR_TIMESTAMP_OFFS:
+          timestamp.millis = (rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT) + (uint64_t)reading->value;
         break;
 
         case SENSOR_UNKNOWN:
@@ -366,7 +359,7 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
         break;
       }
 
-      if (reading->type == SENSOR_TIMESTAMP_H) {
+      if (reading->type == SENSOR_TIMESTAMP_OFFS) {
         if (num_measurements > 0)
           break;
         else

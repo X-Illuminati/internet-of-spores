@@ -11,6 +11,10 @@
 uint32_t rtc_mem[RTC_MEM_MAX];
 
 
+/* Function Prototypes */
+static void refactor_timebase(void);
+
+
 /* Functions */
 // read rtc user memory and print some details to serial
 // increments the boot count and returns true if the RTC memory was OK
@@ -119,13 +123,14 @@ void store_reading(sensor_type_t type, int32_t val)
     slot -= NUM_STORAGE_SLOTS;
 
   // update the ring buffer metadata
-  if (rtc_mem[RTC_MEM_NUM_READINGS] == NUM_STORAGE_SLOTS)
+  if (rtc_mem[RTC_MEM_NUM_READINGS] == NUM_STORAGE_SLOTS) {
     rtc_mem[RTC_MEM_FIRST_READING]++;
-  else
+    if (rtc_mem[RTC_MEM_FIRST_READING] >= NUM_STORAGE_SLOTS)
+      rtc_mem[RTC_MEM_FIRST_READING]=0;
+    refactor_timebase();
+  } else {
     rtc_mem[RTC_MEM_NUM_READINGS]++;
-
-  if (rtc_mem[RTC_MEM_FIRST_READING] >= NUM_STORAGE_SLOTS)
-    rtc_mem[RTC_MEM_FIRST_READING]=0;
+  }
 
   // store the sensor reading in RTC memory at the given slot
   reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
@@ -148,6 +153,8 @@ void clear_readings(unsigned int num /*defaults to NUM_STORAGE_SLOTS*/)
 
     rtc_mem[RTC_MEM_NUM_READINGS] -= num;
   }
+
+  refactor_timebase();
 }
 
 // print the stored pressure readings from the rtc mem ring buffer
@@ -205,14 +212,9 @@ void dump_readings(void)
         type=typestrings[5];
       break;
 
-      case SENSOR_TIMESTAMP_L:
-        timestamp.millis = reading->value & SENSOR_TIMESTAMP_MASK;
-        continue;
-      break;
-
-      case SENSOR_TIMESTAMP_H:
+      case SENSOR_TIMESTAMP_OFFS:
         type=typestrings[6];
-        timestamp.millis |= ((uint64_t)reading->value & SENSOR_TIMESTAMP_MASK) << SENSOR_TIMESTAMP_SHIFT;
+        timestamp.millis = (rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT) + (uint64_t)reading->value;
       break;
 
       case SENSOR_UNKNOWN:
@@ -222,7 +224,7 @@ void dump_readings(void)
     }
 
     // format an output row with the slot, type, and data
-    if (reading->type == SENSOR_TIMESTAMP_H)
+    if (reading->type == SENSOR_TIMESTAMP_OFFS)
       snprintf(formatted, 45, "%4u | %-10s | %13llu", i, type, timestamp.millis);
     else
       snprintf(formatted, 45, "%4u | %-10s | %+13.3f", i, type, reading->value/1000.0);
@@ -230,4 +232,49 @@ void dump_readings(void)
   }
   Serial.printf("[%llu] dump complete\n", uptime());
 #endif
+}
+
+// helper for resetting the time offset for all of the
+// SENSOR_TIMESTAMP_OFFS in the rtc mem ring buffer
+static void refactor_timebase(void)
+{
+  uint64_t oldbase = rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT;
+  uint64_t newbase = 0;
+
+  // iterate through each reading in the rtc mem ring buffer
+  for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
+    sensor_reading_t *reading;
+    int slot;
+
+    // find the slot indexed into the ring buffer
+    slot = rtc_mem[RTC_MEM_FIRST_READING] + i;
+    if (slot >= NUM_STORAGE_SLOTS)
+      slot -= NUM_STORAGE_SLOTS;
+
+    reading = (sensor_reading_t*) &rtc_mem[RTC_MEM_DATA+slot*NUM_WORDS(sensor_reading_t)];
+
+    // we only care about timestamp offsets
+    if (reading->type == SENSOR_TIMESTAMP_OFFS) {
+      uint64_t timestamp;
+      timestamp = oldbase + (uint64_t)reading->value;
+
+      // special case for the first timestamp offset we find:
+      // use it as the new base timestamp that all of the others will
+      // be an offset from
+      if (0 == newbase)
+        newbase = timestamp & RTC_DATA_TIMEBASE_MASK;
+
+      // cast the timestamp from the old base offset to the new one
+      reading->value = (int32_t)(timestamp - newbase);
+    }
+  }
+
+  // special case when no timestamp sensor readings were found:
+  // keep a relatively current value for future readings to use
+  // as their base offset
+  if (0 == newbase)
+    newbase = uptime() & RTC_DATA_TIMEBASE_MASK;
+
+  // store the new timebase
+  rtc_mem[RTC_MEM_DATA_TIMEBASE] = (uint32_t)(newbase >> RTC_DATA_TIMEBASE_SHIFT);
 }

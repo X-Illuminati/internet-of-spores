@@ -24,7 +24,7 @@
 #else
   #define EXTRA_DEBUG           (0)
   #define SLEEP_TIME_US         (30000000ULL)
-  #define NUM_STORAGE_SLOTS     (122)
+  #define NUM_STORAGE_SLOTS     (121)
   #if TETHERED_MODE
     #define FIRMWARE_NAME       "iotsp-tethered"
     #define HIGH_WATER_SLOT     (1)

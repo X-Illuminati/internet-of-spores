@@ -158,16 +158,19 @@ void read_vcc(bool perform_store)
 #endif
 }
 
-// store the current uptime in 2 adjacent slots
+// store the current uptime as an offset from RTC_MEM_DATA_TIMEBASE
 void store_uptime(void)
 {
-  flags_time_t timestamp;
-  int32_t time_l, time_h;
+  uint64_t timestamp;
+  uint64_t time_h;
+  uint32_t time_l;
 
-  timestamp.millis = uptime();
-  time_l = timestamp.millis & SENSOR_TIMESTAMP_MASK;
-  time_h = (timestamp.millis >> SENSOR_TIMESTAMP_SHIFT) & SENSOR_TIMESTAMP_MASK;
+  timestamp = uptime();
+  time_h = rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT;
+  time_l = timestamp - time_h;
 
-  store_reading(SENSOR_TIMESTAMP_L, time_l);
-  store_reading(SENSOR_TIMESTAMP_H, time_h);
+#if EXTRA_DEBUG
+  Serial.printf("[%llu] Storing Timestamp Offset %u (@%llu)\n", timestamp, time_l, time_h);
+#endif
+  store_reading(SENSOR_TIMESTAMP_OFFS, (int32_t)time_l);
 }

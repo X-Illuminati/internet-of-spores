@@ -5,6 +5,11 @@
 #include "sensors.h"
 
 
+/* Global Configurations */
+#define RTC_DATA_TIMEBASE_SHIFT (8)
+#define RTC_DATA_TIMEBASE_MASK  (-1LL<<RTC_DATA_TIMEBASE_SHIFT)
+
+
 /* Types and Enums */
 // Macro to calculate the number of words that a
 // data structure will take up in RTC memory
@@ -29,6 +34,7 @@ enum rtc_mem_fields_e {
   RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss
   RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields
   RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
+  RTC_MEM_DATA_TIMEBASE,   // Timestamp (upper 32 bits) from which sensor readings are stored as offsets
   RTC_MEM_NUM_READINGS,    // Number of occupied slots
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
 
