@@ -12,6 +12,15 @@
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define WIFI_CONNECT_TIMEOUT    (30000)
 
+#if TETHERED_MODE
+  #define PPD42_PIN_DET         (D5)
+  #define PPD42_PIN_1_0         (D7)
+  #define PPD42_PIN_2_5         (D6)
+  #define FIRMWARE_NAME         "iotsp-tethered"
+#else
+  #define FIRMWARE_NAME         "iotsp-battery"
+#endif
+
 #if DEVELOPMENT_BUILD
   #define EXTRA_DEBUG           (1)
   #define SLEEP_TIME_US         (10000000ULL)
@@ -26,10 +35,8 @@
   #define SLEEP_TIME_US         (30000000ULL)
   #define NUM_STORAGE_SLOTS     (121)
   #if TETHERED_MODE
-    #define FIRMWARE_NAME       "iotsp-tethered"
     #define HIGH_WATER_SLOT     (1)
   #else
-    #define FIRMWARE_NAME       "iotsp-battery"
     #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-16)
   #endif
 #endif

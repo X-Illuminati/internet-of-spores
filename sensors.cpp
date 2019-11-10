@@ -5,21 +5,96 @@
 #include <LOLIN_HP303B.h>
 #include <Wire.h>
 
+#include "pulse2.h"
+#include "rtc_mem.h"
 #include "sensors.h"
 #include "sht30.h"
-#include "rtc_mem.h"
 
 
 /* Global Data Structures */
 LOLIN_HP303B HP303BPressureSensor;
-
+#if TETHERED_MODE
+Pulse2 pulse;
+#endif
 
 /* Functions */
 // setup sensors
 void sensors_init(void)
 {
   Wire.begin();
+
+#if TETHERED_MODE
+  pinMode(PPD42_PIN_DET, INPUT);
+  if (digitalRead(PPD42_PIN_DET)) {
+    pinMode(PPD42_PIN_1_0, INPUT);
+    pinMode(PPD42_PIN_2_5, INPUT);
+    pulse.register_pin(PPD42_PIN_1_0, LOW);
+    pulse.register_pin(PPD42_PIN_2_5, LOW);
+  }
+#endif
 }
+
+#if TETHERED_MODE
+// read and store values from the PPD42 particle sensor
+// this measurement is recommended to take 30 seconds (parameter)
+// also the sensor requires a 3 minute warm-up time
+// so only available in tethered mode
+void read_ppd42(unsigned long sampletime_us)
+{
+  if (digitalRead(PPD42_PIN_DET)) {
+    unsigned long starttime_us = micros();
+    unsigned long lpo10 = 0;
+    unsigned long lpo25 = 0;
+    unsigned long total;
+    pulse.reset();
+    delay(1);
+
+    while ((total = micros() - starttime_us) < sampletime_us) {
+      unsigned long duration;
+      uint8_t pin;
+      pin = pulse.watch(&duration, (sampletime_us-total));
+      if (PULSE2_NO_PIN != pin) {
+        if (PPD42_PIN_1_0 == pin)
+          lpo10 += duration;
+        if (PPD42_PIN_2_5 == pin)
+          lpo25 += duration;
+#if EXTRA_DEBUG
+        Serial.printf("%lu: pulse: %lu: %s\n", millis(), duration, (pin==PPD42_PIN_1_0)?"PIN10":"PIN25");
+#endif
+      }
+    }
+
+    {
+      float ratio10;
+      float ratio25;
+      float concentration10;
+      float concentration25;
+      int32_t count10;
+      int32_t count25;
+
+      // percentage of sampletime_us where 1.0/2.5μm pin was pulsed low
+      ratio10 = lpo25*(100.0/total);
+      ratio25 = lpo10*(100.0/total);
+      concentration10 = 1.1*pow(ratio10,3)-3.8*pow(ratio10,2)+520*ratio10;
+      concentration25 = 1.1*pow(ratio25,3)-3.8*pow(ratio25,2)+520*ratio25;
+      if (concentration10 > 0)
+        count10=concentration10/10; // *100 /1000
+      else
+        count10 = 0;
+      if (concentration25 > 0)
+        count25=concentration25/10; // *100 /1000
+      else
+        count25 = 0;
+      store_reading(SENSOR_PARTICLE_1_0, count10);
+      store_reading(SENSOR_PARTICLE_2_5, count25);
+#if EXTRA_DEBUG
+      Serial.printf("Raw Particle Count >1.0μm: %d particles/cf\n", count10*1000);
+      Serial.printf("Raw Particle Count >2.5μm: %d particles/cf\n", count25*1000);
+#endif
+    }
+  }
+}
+#endif
 
 // read and store values from the SHT30 temperature and humidity sensor
 bool read_sht30(bool perform_store)

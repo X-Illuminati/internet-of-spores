@@ -295,12 +295,13 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
 
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
     flags_time_t timestamp = {0,0,0};
-    const char typestrings[][12] = {
+    const char typestrings[7][17] = {
       "unknown",
       "temperature",
       "humidity",
       "pressure",
-      "particles",
+      "particles 1.0µm",
+      "particles 2.5µm",
       "battery",
     };
 
@@ -340,12 +341,18 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
           calibrated_reading += calibrations[2];
         break;
 
-        case SENSOR_PARTICLE:
+        case SENSOR_PARTICLE_1_0:
           type=typestrings[4];
+          calibrated_reading = reading->value * 1000.0;
+        break;
+
+        case SENSOR_PARTICLE_2_5:
+          type=typestrings[5];
+          calibrated_reading = reading->value * 1000.0;
         break;
 
         case SENSOR_BATTERY_VOLTAGE:
-          type=typestrings[5];
+          type=typestrings[6];
           calibrated_reading += calibrations[3];
         break;
 

@@ -34,6 +34,10 @@ void take_readings(void)
 
   read_vcc(false);
 
+#if TETHERED_MODE
+  read_ppd42();
+#endif
+
   //read temp/humidity from SHT30
   sht30_ok = read_sht30(false);
 

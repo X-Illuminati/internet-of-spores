@@ -162,20 +162,21 @@ void dump_readings(void)
 {
 #if (EXTRA_DEBUG != 0)
   flags_time_t timestamp = {0,0,0};
-  const char typestrings[][11] = {
+  const char typestrings[8][12] = {
     "UNKNOWN",
     "TEMP (C)",
     "HUMI (%)",
     "PRES (kPa)",
-    "PART (?)",
+    "1.0um (/cf)",
+    "2.5um (/cf)",
     "BATT (V)",
     "TIME (ms)",
   };
   char formatted[47];
   formatted[46]=0;
 
-  Serial.println("slot | type       |      rawvalue");
-  Serial.println("-----+------------+--------------");
+  Serial.println("slot | type        |      rawvalue");
+  Serial.println("-----+-------------+--------------");
 
 
   for (unsigned i=0; i < rtc_mem[RTC_MEM_NUM_READINGS]; i++) {
@@ -204,16 +205,20 @@ void dump_readings(void)
         type=typestrings[3];
       break;
 
-      case SENSOR_PARTICLE:
+      case SENSOR_PARTICLE_1_0:
         type=typestrings[4];
       break;
 
-      case SENSOR_BATTERY_VOLTAGE:
+      case SENSOR_PARTICLE_2_5:
         type=typestrings[5];
       break;
 
-      case SENSOR_TIMESTAMP_OFFS:
+      case SENSOR_BATTERY_VOLTAGE:
         type=typestrings[6];
+      break;
+
+      case SENSOR_TIMESTAMP_OFFS:
+        type=typestrings[7];
         timestamp.millis = (rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT) + (uint64_t)reading->value;
       break;
 
@@ -225,9 +230,12 @@ void dump_readings(void)
 
     // format an output row with the slot, type, and data
     if (reading->type == SENSOR_TIMESTAMP_OFFS)
-      snprintf(formatted, 45, "%4u | %-10s | %13llu", i, type, timestamp.millis);
+      snprintf(formatted, 45, "%4u | %-11s | %13llu", i, type, timestamp.millis);
+    else if ((reading->type == SENSOR_PARTICLE_1_0)
+          || (reading->type == SENSOR_PARTICLE_2_5))
+      snprintf(formatted, 45, "%4u | %-11s | %13llu", i, type, ((uint64_t)reading->value)*1000ULL);
     else
-      snprintf(formatted, 45, "%4u | %-10s | %+13.3f", i, type, reading->value/1000.0);
+      snprintf(formatted, 45, "%4u | %-11s | %+13.3f", i, type, reading->value/1000.0);
     Serial.println(formatted);
   }
   Serial.printf("[%llu] dump complete\n", uptime());
