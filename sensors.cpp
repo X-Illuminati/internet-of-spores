@@ -59,7 +59,7 @@ void read_ppd42(unsigned long sampletime_us)
         if (PPD42_PIN_2_5 == pin)
           lpo25 += duration;
 #if EXTRA_DEBUG
-        Serial.printf("%lu: pulse: %lu: %s\n", millis(), duration, (pin==PPD42_PIN_1_0)?"PIN10":"PIN25");
+        //Serial.printf("%lu: pulse: %lu: %s\n", millis(), duration, (pin==PPD42_PIN_1_0)?"PIN10":"PIN25");
 #endif
       }
     }
@@ -73,8 +73,8 @@ void read_ppd42(unsigned long sampletime_us)
       int32_t count25;
 
       // percentage of sampletime_us where 1.0/2.5μm pin was pulsed low
-      ratio10 = lpo25*(100.0/total);
-      ratio25 = lpo10*(100.0/total);
+      ratio10 = lpo10*(100.0/total);
+      ratio25 = lpo25*(100.0/total);
       concentration10 = 1.1*pow(ratio10,3)-3.8*pow(ratio10,2)+520*ratio10;
       concentration25 = 1.1*pow(ratio25,3)-3.8*pow(ratio25,2)+520*ratio25;
       if (concentration10 > 0)
