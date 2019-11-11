@@ -115,10 +115,6 @@ bool read_sht30(bool perform_store)
     temperature += sht30_parse_temp_c(data);
     humidity += sht30_parse_humidity(data);
     num_readings++;
-    if (perform_store) {
-      store_reading(SENSOR_TEMPERATURE, temperature/num_readings*1000.0 + 0.5);
-      store_reading(SENSOR_HUMIDITY, humidity/num_readings*1000.0 + 0.5);
-    }
 
 #if (EXTRA_DEBUG != 0)
     Serial.print("Raw Temperature: ");
@@ -129,6 +125,14 @@ bool read_sht30(bool perform_store)
     Serial.print("Raw Humidity: ");
     Serial.println(sht30_parse_humidity(data), 3);
 #endif
+  }
+
+  if (perform_store && num_readings) {
+    store_reading(SENSOR_TEMPERATURE, temperature/num_readings*1000.0 + 0.5);
+    store_reading(SENSOR_HUMIDITY, humidity/num_readings*1000.0 + 0.5);
+    temperature = 0;
+    humidity = 0;
+    num_readings = 0;
   }
 
   return true;
@@ -223,15 +227,19 @@ void read_vcc(bool perform_store)
   } else {
     readings += val;
     num_readings++;
-    if (perform_store)
-      store_reading(SENSOR_BATTERY_VOLTAGE, readings/num_readings);
   }
 
 #if (EXTRA_DEBUG != 0)
-  Serial.print("Battery voltage: ");
+  Serial.print("Raw Battery Voltage: ");
   Serial.print(val/1000.0, 3);
   Serial.println("V");
 #endif
+
+  if (perform_store && num_readings) {
+    store_reading(SENSOR_BATTERY_VOLTAGE, readings/num_readings);
+    num_readings = 0;
+    readings = 0;
+  }
 }
 
 // store the current uptime as an offset from RTC_MEM_DATA_TIMEBASE
