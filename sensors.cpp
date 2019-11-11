@@ -28,8 +28,6 @@ void sensors_init(void)
   if (digitalRead(PPD42_PIN_DET)) {
     pinMode(PPD42_PIN_1_0, INPUT);
     pinMode(PPD42_PIN_2_5, INPUT);
-    pulse.register_pin(PPD42_PIN_1_0, LOW);
-    pulse.register_pin(PPD42_PIN_2_5, LOW);
   }
 #endif
 }
@@ -46,8 +44,8 @@ void read_ppd42(unsigned long sampletime_us)
     unsigned long lpo10 = 0;
     unsigned long lpo25 = 0;
     unsigned long total;
-    pulse.reset();
-    delay(1);
+    pulse.register_pin(PPD42_PIN_1_0, LOW);
+    pulse.register_pin(PPD42_PIN_2_5, LOW);
 
     while ((total = micros() - starttime_us) < sampletime_us) {
       unsigned long duration;
@@ -92,6 +90,9 @@ void read_ppd42(unsigned long sampletime_us)
       Serial.printf("Raw Particle Count >2.5μm: %d particles/cf\n", count25*1000);
 #endif
     }
+
+    pulse.unregister_pin(PPD42_PIN_1_0);
+    pulse.unregister_pin(PPD42_PIN_2_5);
   }
 }
 #endif
