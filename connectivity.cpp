@@ -294,7 +294,7 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
     return -1;
 
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
-    flags_time_t timestamp = {0,0,0};
+    flags_time_t timestamp = {0,0,0,0};
     const char typestrings[7][17] = {
       "unknown",
       "temperature",

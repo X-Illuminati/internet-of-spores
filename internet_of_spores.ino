@@ -71,6 +71,29 @@ void tethered_sleep(int64_t millis_offset, bool please_reboot)
 }
 #endif /* TETHERED_MODE */
 
+#if !TETHERED_MODE
+void battery_sleep(bool connect_failed=false)
+{
+  uint64_t sleep_delta = SLEEP_TIME_US;
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+
+  connectivity_disable();
+
+  if (connect_failed) {
+    sleep_delta <<= flags->fail_count;
+    if (flags->fail_count < 6)
+      flags->fail_count++;
+#if EXTRA_DEBUG
+    Serial.printf("[%llu] sleep_delta=%lld\n", uptime(), sleep_delta);
+#endif
+  } else {
+    flags->fail_count = 0;
+  }
+
+  deep_sleep(sleep_delta);
+}
+#endif /* !TETHERED_MODE */
+
 void setup(void)
 {
   bool rtc_config_valid = false;
@@ -99,8 +122,7 @@ void setup(void)
     pinMode(LED_BUILTIN, INPUT);
 
 #if !TETHERED_MODE
-  connectivity_disable();
-  deep_sleep(SLEEP_TIME_US);
+  battery_sleep();
 #endif
   } else {
 #if TETHERED_MODE
@@ -114,8 +136,8 @@ void loop(void)
 {
 #if TETHERED_MODE
   unsigned long loop_start = millis();
-  bool connect_failed = false;
 #endif
+  bool connect_failed = false;
 
   take_readings();
   dump_readings();
@@ -130,8 +152,13 @@ void loop(void)
 
     if (connect_wifi())
       upload_readings();
-#if TETHERED_MODE
     else
+      connect_failed = true;
+
+#if !TETHERED_MODE
+    //we failed to make progress uploading readings
+    //factor this into sleep time decisions
+    if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT)
       connect_failed = true;
 #endif
   }
@@ -141,7 +168,6 @@ void loop(void)
   // activities don't take longer
   tethered_sleep(loop_start, connect_failed);
 #else
-  connectivity_disable();
-  deep_sleep(SLEEP_TIME_US);
+  battery_sleep(connect_failed);
 #endif
 }
