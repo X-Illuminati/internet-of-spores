@@ -30,7 +30,6 @@ void preinit(void)
 void take_readings(void)
 {
   bool sht30_ok;
-  bool hp303b_ok;
 
   read_vcc(false);
 
@@ -41,16 +40,8 @@ void take_readings(void)
   //read temp/humidity from SHT30
   sht30_ok = read_sht30(false);
 
-  if (sht30_ok) {
-    delay(100);
-    sht30_ok = read_sht30(false);
-  }
-
   //read temp/humidity from HP303B
-  hp303b_ok = read_hp303b(!sht30_ok);
-
-  if (!hp303b_ok)
-    delay(100);
+  read_hp303b(!sht30_ok);
 
   if (sht30_ok)
     read_sht30(true);
