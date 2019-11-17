@@ -3,7 +3,7 @@
 
 /* Global Configurations */
 #define DEVELOPMENT_BUILD       (0)
-#define TETHERED_MODE           (1)
+#define TETHERED_MODE           (0)
 #define SERIAL_SPEED            (115200)
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
 #define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
