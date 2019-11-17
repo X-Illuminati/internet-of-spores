@@ -33,6 +33,7 @@ unsigned long server_shutdown_timeout;
 
 /* Function Prototypes */
 static String format_u64(uint64_t val);
+static bool try_connect(float power_level);
 static String json_header(void);
 static int transmit_readings(WiFiClient& client, float calibrations[4]);
 #if !DEVELOPMENT_BUILD
@@ -78,8 +79,8 @@ void connectivity_disable(void)
   WiFi.mode(WIFI_OFF);
 }
 
-// connect to the stored WiFi AP and return the status
-bool connect_wifi(void)
+// helper to attempt a WiFi connection with timeout
+static bool try_connect(float power_level)
 {
   wl_status_t wifi_status = WL_DISCONNECTED;
   unsigned long timeout;
@@ -90,8 +91,8 @@ bool connect_wifi(void)
     return true;
   }
 
-  Serial.println("Connecting to AP");
   WiFi.mode(WIFI_STA);
+  WiFi.setOutputPower(power_level);
   WiFi.reconnect();
 
   //make our own "waitForConnectResult" so we can have a timeout shorter than 250 seconds
@@ -104,7 +105,9 @@ bool connect_wifi(void)
   }
 
 #if (EXTRA_DEBUG != 0)
-  Serial.print("WiFi status ");
+  Serial.print("WiFi status (power level ");
+  Serial.print(power_level);
+  Serial.print(") ");
   switch(wifi_status) {
     case WL_NO_SHIELD: Serial.println("WL_NO_SHIELD"); break;
     case WL_IDLE_STATUS: Serial.println("WL_IDLE_STATUS"); break;
@@ -119,6 +122,39 @@ bool connect_wifi(void)
 #endif
 
   return (wifi_status == WL_CONNECTED);
+}
+
+// connect to the stored WiFi AP and return the status
+bool connect_wifi(void)
+{
+  flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint8_t wifi_power = timestruct->wifi_power; //start with the previous successful power level
+  bool retval = false;
+
+  if (WiFi.isConnected())
+  {
+    Serial.println("WiFi status is connected");
+    return true;
+  }
+  Serial.println("Connecting to AP");
+
+  // occasionally try decrementing the WiFi TX power
+  if ((wifi_power > 0) && (0 == (micros() % 6)))
+      wifi_power--;
+
+  while (!retval) {
+    retval = try_connect(get_wifi_power(wifi_power));
+    if (!retval) {
+      if (7 == wifi_power)
+        break;
+      else
+        wifi_power++; //try harder
+    }
+  }
+
+  timestruct->wifi_power = wifi_power; //store the power level even if unsuccessful
+
+  return retval;
 }
 
 // run the WiFi configuration mode
@@ -294,7 +330,7 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
     return -1;
 
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
-    flags_time_t timestamp = {0,0,0,0};
+    flags_time_t timestamp = {0,0,0,0,0};
     const char typestrings[7][17] = {
       "unknown",
       "temperature",
@@ -497,3 +533,16 @@ static bool update_firmware(WiFiClient& client)
   return status;
 }
 #endif /* !DEVELOPMENT_BUILD */
+
+// helper to calculate the current WiFi TX power setting
+float get_wifi_power(uint8_t power_setting)
+{
+  float power_level_db;
+
+  if (7==power_setting)
+    power_level_db = 20.5f;
+  else
+    power_level_db = 2.5f * power_setting;
+
+  return power_level_db;
+}
