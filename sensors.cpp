@@ -24,11 +24,7 @@ void sensors_init(void)
   Wire.begin();
 
 #if TETHERED_MODE
-  pinMode(PPD42_PIN_DET, INPUT);
-  if (digitalRead(PPD42_PIN_DET)) {
-    pinMode(PPD42_PIN_1_0, INPUT);
-    pinMode(PPD42_PIN_2_5, INPUT);
-  }
+  pinMode(PPD42_PIN_DET, INPUT_PULLUP);
 #endif
 }
 
@@ -39,11 +35,13 @@ void sensors_init(void)
 // so only available in tethered mode
 void read_ppd42(unsigned long sampletime_us)
 {
-  if (digitalRead(PPD42_PIN_DET)) {
+  if (!digitalRead(PPD42_PIN_DET)) {
     unsigned long starttime_us = micros();
     unsigned long lpo10 = 0;
     unsigned long lpo25 = 0;
     unsigned long total;
+    pinMode(PPD42_PIN_1_0, INPUT);
+    pinMode(PPD42_PIN_2_5, INPUT);
     pulse.register_pin(PPD42_PIN_1_0, LOW);
     pulse.register_pin(PPD42_PIN_2_5, LOW);
 
