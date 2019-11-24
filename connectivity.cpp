@@ -76,7 +76,8 @@ void connectivity_init(void)
 // shutdown wifi
 void connectivity_disable(void)
 {
-  WiFi.mode(WIFI_OFF);
+  WiFi.disconnect(true); // calls WiFi.mode(WIFI_OFF)
+  yield(); //ensure rom has a chance to switch off
 }
 
 // helper to attempt a WiFi connection with timeout
