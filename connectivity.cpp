@@ -5,6 +5,9 @@
 #include <ESP8266WiFi.h>
 #include <Updater.h>
 #include <WiFiManager.h>
+#if EXTRA_DEBUG
+#include <user_interface.h>
+#endif
 
 #include "connectivity.h"
 #include "persistent.h"
@@ -137,7 +140,14 @@ bool connect_wifi(void)
     Serial.println("WiFi status is connected");
     return true;
   }
+
   Serial.println("Connecting to AP");
+#if EXTRA_DEBUG
+  struct station_config configdata;
+  Serial.printf("WiFi.persistent=%d WiFi.mode=%X\n", WiFi.getPersistent(), WiFi.getMode());
+  if (wifi_station_get_config(&configdata))
+    Serial.printf("config: ssid=%.*s, password=%.*s\n", (int)sizeof(configdata.ssid), configdata.ssid, (int)sizeof(configdata.password), configdata.password);
+#endif
 
   // occasionally try decrementing the WiFi TX power
   if ((wifi_power > 0) && (0 == (micros() % 6)))
