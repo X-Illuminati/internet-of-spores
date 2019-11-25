@@ -28,6 +28,17 @@ void preinit(void)
 // Read from all of the attached sensors and store the readings
 // Read some of the sensors twice to get an average value
 void take_readings(void)
+#if VCC_CAL_MODE
+{
+  for (int i=0; i<9; i++) {
+    read_vcc(false);
+    delay(100);
+  }
+  read_vcc(true);
+
+  store_uptime();
+}
+#else
 {
   bool sht30_ok;
 
@@ -50,6 +61,7 @@ void take_readings(void)
 
   store_uptime();
 }
+#endif
 
 #if TETHERED_MODE
 void tethered_sleep(int64_t millis_offset, bool please_reboot)

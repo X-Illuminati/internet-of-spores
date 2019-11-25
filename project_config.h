@@ -2,8 +2,15 @@
 #define _PROJECT_CONFIG_H_
 
 /* Global Configurations */
+#define VCC_CAL_MODE            (0)
+#if VCC_CAL_MODE
+#define DEVELOPMENT_BUILD       (1)
+#define TETHERED_MODE           (1)
+#else
 #define DEVELOPMENT_BUILD       (0)
 #define TETHERED_MODE           (0)
+#endif
+
 #define SERIAL_SPEED            (115200)
 #define CONFIG_SERVER_MAX_TIME  (120 /* seconds without client */)
 #define BUILD_UNIQUE_ID         (__TIME__[3]*1000+__TIME__[4]*100+__TIME__[6]*10+__TIME__[7])
