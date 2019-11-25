@@ -197,8 +197,10 @@ void enter_config_mode(void)
   if (wifi_manager.startConfigPortal(nodename.c_str())) {
     const char* value;
     value = custom_node_name.getValue();
-    if (value && value[0])
+    if (value && value[0]) {
       persistent_write(PERSISTENT_NODE_NAME, value);
+      nodename = value;
+    }
     value = custom_report_host.getValue();
     if (value && value[0])
       persistent_write(PERSISTENT_REPORT_HOST_NAME, value);
