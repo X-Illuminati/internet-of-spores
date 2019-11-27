@@ -2,7 +2,7 @@
 #define _PROJECT_CONFIG_H_
 
 /* Global Configurations */
-#define VCC_CAL_MODE            (0)
+#define VCC_CAL_MODE            (1)
 #if VCC_CAL_MODE
 #define DEVELOPMENT_BUILD       (1)
 #define TETHERED_MODE           (1)
