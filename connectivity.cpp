@@ -172,6 +172,10 @@ void enter_config_mode(void)
 {
   WiFiManager wifi_manager;
 
+  // there is a bug? somewhere that causes WiFi.disconnect() to lose
+  // the stored SSID/password when WiFi.mode is STA.
+  WiFi.mode(WIFI_OFF); 
+
   config_hint_node_name        = persistent_read(PERSISTENT_NODE_NAME,        nodename);
   config_hint_report_host_name = persistent_read(PERSISTENT_REPORT_HOST_NAME, "report server hostname/IP");
   config_hint_report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, "report server port number");
