@@ -8,7 +8,7 @@
 #define TETHERED_MODE           (1)
 #else
 #define DEVELOPMENT_BUILD       (0)
-#define TETHERED_MODE           (1)
+#define TETHERED_MODE           (0)
 #endif
 
 #define SERIAL_SPEED            (115200)
