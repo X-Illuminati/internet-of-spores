@@ -2,13 +2,13 @@
 #define _PROJECT_CONFIG_H_
 
 /* Global Configurations */
-#define VCC_CAL_MODE            (1)
+#define VCC_CAL_MODE            (0)
 #if VCC_CAL_MODE
 #define DEVELOPMENT_BUILD       (1)
 #define TETHERED_MODE           (1)
 #else
 #define DEVELOPMENT_BUILD       (0)
-#define TETHERED_MODE           (0)
+#define TETHERED_MODE           (1)
 #endif
 
 #define SERIAL_SPEED            (115200)
