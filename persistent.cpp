@@ -63,7 +63,7 @@ String persistent_read(const char* filename)
 String persistent_read(const char* filename, String default_value)
 {
   String persist_value = persistent_read(filename);
-  if (persist_value == "")
+  if (persist_value == "" || persist_value == " ")
     return default_value;
   else
     return persist_value;
