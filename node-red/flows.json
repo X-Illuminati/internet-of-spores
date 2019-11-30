@@ -14,6 +14,13 @@
     "info": ""
   },
   {
+    "id": "263f914f.d00ace",
+    "type": "tab",
+    "label": "update config",
+    "disabled": false,
+    "info": ""
+  },
+  {
     "id": "7b8a611f.628c2",
     "type": "tab",
     "label": "handle sensor readings",
@@ -73,7 +80,7 @@
   {
     "id": "1eee8b34.6a70bd",
     "type": "influxdb",
-    "z": "",
+    "z": 0,
     "hostname": "127.0.0.1",
     "port": "8086",
     "protocol": "http",
@@ -187,17 +194,33 @@
         "vt": "str"
       },
       {
-        "t": "else"
+        "t": "eq",
+        "v": "get_config",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "delete_config",
+        "vt": "str"
+      },
+      {
+        "t": "null"
       }
     ],
     "checkall": "false",
     "repair": false,
-    "outputs": 2,
+    "outputs": 4,
     "x": 430,
     "y": 500,
     "wires": [
       [
         "fca8a92b.2eccc"
+      ],
+      [
+        "4c6b5bad.916dbc"
+      ],
+      [
+        "4c6b5bad.916dbc"
       ],
       [
         "96ec5b54.f3e4"
@@ -248,7 +271,7 @@
       "41799362.815f0c"
     ],
     "x": 535,
-    "y": 480,
+    "y": 460,
     "wires": []
   },
   {
@@ -293,8 +316,8 @@
     "base64": false,
     "end": false,
     "name": "tcp response",
-    "x": 1170,
-    "y": 580,
+    "x": 1290,
+    "y": 640,
     "wires": []
   },
   {
@@ -342,7 +365,7 @@
       "960d055.d13aa78"
     ],
     "x": 535,
-    "y": 520,
+    "y": 540,
     "wires": []
   },
   {
@@ -380,23 +403,6 @@
     "wires": []
   },
   {
-    "id": "b7ec7007.a70f48",
-    "type": "md5",
-    "z": "8e97fd4.b42f18",
-    "name": "",
-    "fieldToHash": "payload",
-    "fieldTypeToHash": "msg",
-    "hashField": "md5",
-    "hashFieldType": "msg",
-    "x": 570,
-    "y": 220,
-    "wires": [
-      [
-        "1fa38d60.24dbd3"
-      ]
-    ]
-  },
-  {
     "id": "368cd58a.f195da",
     "type": "tcp out",
     "z": "8e97fd4.b42f18",
@@ -415,33 +421,15 @@
     "type": "function",
     "z": "7b8a611f.628c2",
     "name": "check update",
-    "func": "var update_needed = true;\n\nif (msg.firmware_dir.length === 0)\n    update_needed = false;\nelse\n    for (var i = 0; i < msg.firmware_dir.length; i++)\n    {\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) >= 0)\n            update_needed = false;\n    }\n\nif (update_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"update\";\n}\n\nreturn msg;",
+    "func": "var update_needed = true;\nvar cfg_needed = false;\nvar i;\n\nif (msg.firmware_dir.length === 0)\n    update_needed = false;\nelse\n    for (i = 0; i < msg.firmware_dir.length; i++)\n    {\n        if (msg.firmware_dir[i].toLowerCase().search(msg.firmware.toLowerCase()) >= 0)\n            update_needed = false;\n    }\n\nif (update_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"update\";\n}\n\nif (msg.config_dir.length > 0)\n    for (i = 0; i < msg.config_dir.length; i++)\n    {\n        if (msg.config_dir[i].toLowerCase().search(msg.node.toLowerCase()) >= 0)\n            cfg_needed = true;\n    }\n\nif (cfg_needed) {\n    if (msg.payload.length > 0)\n        msg.payload += \",\";\n    msg.payload += \"config\";\n}\n\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 860,
-    "y": 480,
+    "x": 980,
+    "y": 540,
     "wires": [
       [
         "518dfa0d.04c784",
         "4e892c6a.4e9454"
-      ]
-    ]
-  },
-  {
-    "id": "95ef3dcc.3f7598",
-    "type": "readdir",
-    "z": "7b8a611f.628c2",
-    "name": "firmware dir",
-    "dir": "firmware",
-    "as": "single",
-    "recursive": false,
-    "outproperty": "firmware_dir",
-    "x": 750,
-    "y": 380,
-    "wires": [
-      [
-        "885960e3.60aad8",
-        "d11d326.c7027d"
       ]
     ]
   },
@@ -459,24 +447,6 @@
     "x": 930,
     "y": 340,
     "wires": []
-  },
-  {
-    "id": "7dcb104b.e3f668",
-    "type": "readdir",
-    "z": "8e97fd4.b42f18",
-    "name": "firmware_dir",
-    "dir": "firmware/",
-    "as": "single",
-    "recursive": false,
-    "outproperty": "firmware_dir",
-    "x": 310,
-    "y": 60,
-    "wires": [
-      [
-        "c054a5c6.afd4c8",
-        "29a13cd7.a828fc"
-      ]
-    ]
   },
   {
     "id": "6362a80a.76498",
@@ -534,8 +504,8 @@
     "console": false,
     "tostatus": false,
     "complete": "false",
-    "x": 1030,
-    "y": 440,
+    "x": 1150,
+    "y": 500,
     "wires": []
   },
   {
@@ -608,8 +578,8 @@
     "func": "msg.payload += '\\0';\nreturn msg;",
     "outputs": 1,
     "noerr": 0,
-    "x": 980,
-    "y": 580,
+    "x": 1100,
+    "y": 640,
     "wires": [
       [
         "cb023030.4fbfb8"
@@ -631,18 +601,6 @@
         "368cd58a.f195da"
       ]
     ]
-  },
-  {
-    "id": "2e278535.50a472",
-    "type": "influxdb batch",
-    "z": "7b8a611f.628c2",
-    "influxdb": "1eee8b34.6a70bd",
-    "precision": "",
-    "retentionPolicy": "",
-    "name": "",
-    "x": 1190,
-    "y": 220,
-    "wires": []
   },
   {
     "id": "7976474.fc7cd38",
@@ -679,12 +637,13 @@
     "id": "9e86e030.0fb7a8",
     "type": "catch",
     "z": "7b8a611f.628c2",
-    "name": "ignore tcp errors",
+    "name": "ignore tcp and recursive errors",
     "scope": [
-      "cb023030.4fbfb8"
+      "cb023030.4fbfb8",
+      "4c8eec4c.6f6e7c"
     ],
     "uncaught": false,
-    "x": 240,
+    "x": 290,
     "y": 300,
     "wires": [
       []
@@ -971,7 +930,7 @@
     "type": "function",
     "z": "7b8a611f.628c2",
     "name": "parse v2 readings",
-    "func": "//create a new msg and replicate standard fields\nvar influx_data = {};\ninflux_data.version = msg.version;\ninflux_data.timestamp = msg.timestamp;\ninflux_data.node = msg.node;\ninflux_data.firmware = msg.firmware;\n\nvar timestamp = new Date(Date.now() + msg.payload.time_offset);\n\ninflux_data.debug = {};\ninflux_data.payload = {};\ninflux_data.payload.timestamp = timestamp;\ninflux_data.payload.measurement = \"internet_of_spores\";\ninflux_data.payload.tags = {};\ninflux_data.payload.tags.node = msg.node;\ninflux_data.payload.tags.firmware = msg.firmware;\ninflux_data.payload.fields={};\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    // Detect uptime measurement to flag this as the final message\n    if (msg.payload.measurements[i].type == \"uptime\") {\n        influx_data.complete = 1;\n        influx_data.debug.uptime = msg.payload.measurements[i].value;\n    }\n\n    // Add a debug field if it doesn't exist\n    if (undefined === influx_data.debug.v) {\n        //msg.payload.measurements[i].value /= 1000.0;\n        influx_data.debug.v = msg.version;\n        influx_data.debug.node = msg.node;\n        //influx_data.debug.firmware = msg.firmware;\n        //influx_data.debug.num_measurements = msg.payload.measurements.length;\n    }\n\n    // Add the measurement to the influx payload\n    influx_data.payload.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n}\n\nmsg.payload = \"OK\";\n\nreturn [influx_data, msg];",
+    "func": "var timestamp = new Date(Date.now() + msg.payload.time_offset);\n\n//create a new msg to send to influxdb\nvar influx_data = {\n    //replicate the standard fields\n\tversion: msg.version,\n\ttimestamp: msg.timestamp,\n\tnode: msg.node,\n\tfirmware: msg.firmware,\n\t//add the influxdb template fields\n\tpayload: {\n\t    timestamp: timestamp,\n\t    measurement: \"internet_of_spores\",\n\t    tags: {\n\t        node: msg.node,\n\t        firmware: msg.firmware,\n\t    },\n\t    fields: {}\n\t},\n\t//add some debug logging\n\tdebug: {\n        v: msg.version,\n        node: msg.node,\n        //firmware: msg.firmware,\n        //num_measurements: msg.payload.measurements.length,\n\t}\n};\n\n//populate the measurements\nfor (var i = 0; i < msg.payload.measurements.length; i++)\n{\n    // Detect uptime measurement to flag this as the final message\n    if (msg.payload.measurements[i].type == \"uptime\") {\n        influx_data.complete = 1;\n        influx_data.debug.uptime = msg.payload.measurements[i].value;\n    }\n\n    // Add the measurement to the influx payload\n    influx_data.payload.fields[msg.payload.measurements[i].type] = msg.payload.measurements[i].value;\n}\n\n//todo: influx node doesn't trigger a the status node\n//for now, always respond OK to the device\nmsg.payload = \"OK\";\n\nreturn [influx_data, msg];",
     "outputs": 2,
     "noerr": 0,
     "x": 490,
@@ -1040,6 +999,474 @@
     "wires": [
       [
         "b63d9287.1d2f18"
+      ]
+    ]
+  },
+  {
+    "id": "2e278535.50a472",
+    "type": "influxdb batch",
+    "z": "7b8a611f.628c2",
+    "influxdb": "1eee8b34.6a70bd",
+    "precision": "",
+    "retentionPolicy": "",
+    "name": "",
+    "x": 1190,
+    "y": 220,
+    "wires": []
+  },
+  {
+    "id": "b7ec7007.a70f48",
+    "type": "md5",
+    "z": "8e97fd4.b42f18",
+    "name": "",
+    "fieldToHash": "payload",
+    "fieldTypeToHash": "msg",
+    "hashField": "md5",
+    "hashFieldType": "msg",
+    "x": 570,
+    "y": 220,
+    "wires": [
+      [
+        "1fa38d60.24dbd3"
+      ]
+    ]
+  },
+  {
+    "id": "95ef3dcc.3f7598",
+    "type": "readdir",
+    "z": "7b8a611f.628c2",
+    "name": "firmware dir",
+    "dir": "firmware",
+    "as": "single",
+    "recursive": false,
+    "outproperty": "firmware_dir",
+    "x": 750,
+    "y": 380,
+    "wires": [
+      [
+        "d11d326.c7027d",
+        "56fddfb4.5011b"
+      ]
+    ]
+  },
+  {
+    "id": "7dcb104b.e3f668",
+    "type": "readdir",
+    "z": "8e97fd4.b42f18",
+    "name": "firmware_dir",
+    "dir": "firmware/",
+    "as": "single",
+    "recursive": false,
+    "outproperty": "firmware_dir",
+    "x": 310,
+    "y": 60,
+    "wires": [
+      [
+        "c054a5c6.afd4c8",
+        "29a13cd7.a828fc"
+      ]
+    ]
+  },
+  {
+    "id": "56fddfb4.5011b",
+    "type": "readdir",
+    "z": "7b8a611f.628c2",
+    "name": "sensor-cfg dir",
+    "dir": "sensor-cfg",
+    "as": "single",
+    "recursive": true,
+    "outproperty": "config_dir",
+    "x": 860,
+    "y": 460,
+    "wires": [
+      [
+        "885960e3.60aad8",
+        "9d460ed4.d76728"
+      ]
+    ]
+  },
+  {
+    "id": "9d460ed4.d76728",
+    "type": "debug",
+    "z": "7b8a611f.628c2",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "config_dir",
+    "targetType": "msg",
+    "x": 1040,
+    "y": 420,
+    "wires": []
+  },
+  {
+    "id": "4c6b5bad.916dbc",
+    "type": "link out",
+    "z": "fb425031.4cd18",
+    "name": "handle get_config",
+    "links": [
+      "a903d2c.516c3b"
+    ],
+    "x": 535,
+    "y": 500,
+    "wires": []
+  },
+  {
+    "id": "a903d2c.516c3b",
+    "type": "link in",
+    "z": "263f914f.d00ace",
+    "name": "handle get_config",
+    "links": [
+      "4c6b5bad.916dbc"
+    ],
+    "x": 135,
+    "y": 60,
+    "wires": [
+      [
+        "e432b712.e74d4"
+      ]
+    ]
+  },
+  {
+    "id": "2e7f6798.ff0258",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "parse get_config",
+    "func": "var filename = msg.payload.arg;\n\nmsg.arg = filename;\nmsg.file_match = false;\nmsg.filename = \"__invalid__\";\n\nfor (var i = 0; i < msg.config_dir.length; i++)\n{\n    if (msg.config_dir[i].toLowerCase().search(msg.node.toLowerCase()) >= 0)\n        if (msg.config_dir[i].toLowerCase().search(filename.toLowerCase()) >= 0) {\n            msg.filename = msg.config_dir[i];\n            msg.file_match = true;\n        }\n}\n\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 350,
+    "y": 140,
+    "wires": [
+      [
+        "cbd1205c.61f0e",
+        "48751f4f.10a3a8"
+      ]
+    ]
+  },
+  {
+    "id": "78ad66f5.1b46e",
+    "type": "file in",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "filename": "",
+    "format": "",
+    "chunk": false,
+    "sendError": false,
+    "encoding": "none",
+    "x": 670,
+    "y": 220,
+    "wires": [
+      [
+        "4b4474b4.adde7c"
+      ]
+    ]
+  },
+  {
+    "id": "849a7c51.68f818",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "transmit update",
+    "func": "var details = { payload : {} };\nvar response = \"\";\n\ndetails.payload.filename = msg.filename;\ndetails.payload.content = msg.payload;\ndetails.payload.size = msg.payload.length;\ndetails.payload.md5 = msg.md5;\n\nresponse += msg.payload.length;\nresponse += \"\\n\";\nresponse += msg.md5;\nresponse += \"\\n\";\n\nvar msg_buf = Buffer.concat([Buffer.from(response), msg.payload], msg.payload.length + response.length);\nmsg.payload = msg_buf;\n\nreturn [details, msg];",
+    "outputs": 2,
+    "noerr": 0,
+    "x": 980,
+    "y": 220,
+    "wires": [
+      [
+        "e8015237.472358"
+      ],
+      [
+        "865160f9.200348"
+      ]
+    ]
+  },
+  {
+    "id": "7d2b19f9.f47c18",
+    "type": "debug",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "config_dir",
+    "targetType": "msg",
+    "x": 460,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "cbd1205c.61f0e",
+    "type": "debug",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "filename",
+    "targetType": "msg",
+    "x": 540,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "4b4474b4.adde7c",
+    "type": "md5",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "fieldToHash": "payload",
+    "fieldTypeToHash": "msg",
+    "hashField": "md5",
+    "hashFieldType": "msg",
+    "x": 810,
+    "y": 220,
+    "wires": [
+      [
+        "849a7c51.68f818"
+      ]
+    ]
+  },
+  {
+    "id": "e8015237.472358",
+    "type": "debug",
+    "z": "263f914f.d00ace",
+    "name": "firmware details",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "x": 1160,
+    "y": 180,
+    "wires": []
+  },
+  {
+    "id": "865160f9.200348",
+    "type": "tcp out",
+    "z": "263f914f.d00ace",
+    "host": "",
+    "port": "",
+    "beserver": "reply",
+    "base64": false,
+    "end": false,
+    "name": "tcp response",
+    "x": 1190,
+    "y": 360,
+    "wires": []
+  },
+  {
+    "id": "b74335fa.940bb",
+    "type": "catch",
+    "z": "263f914f.d00ace",
+    "name": "error handler",
+    "scope": null,
+    "uncaught": true,
+    "x": 190,
+    "y": 720,
+    "wires": [
+      [
+        "b20b1403.1feb9",
+        "fcaa5a66.adf9a"
+      ]
+    ]
+  },
+  {
+    "id": "b20b1403.1feb9",
+    "type": "debug",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "active": false,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "msg.error",
+    "targetType": "jsonata",
+    "x": 350,
+    "y": 700,
+    "wires": []
+  },
+  {
+    "id": "fcaa5a66.adf9a",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "abort upload",
+    "func": "msg.payload = \"0\\n\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 360,
+    "y": 760,
+    "wires": [
+      [
+        "a4e32531.caa61"
+      ]
+    ]
+  },
+  {
+    "id": "4ccee259.e7da8c",
+    "type": "catch",
+    "z": "263f914f.d00ace",
+    "name": "ignore tcp errors",
+    "scope": [
+      "849a7c51.68f818"
+    ],
+    "uncaught": false,
+    "x": 200,
+    "y": 620,
+    "wires": [
+      [
+        "b20b1403.1feb9"
+      ]
+    ]
+  },
+  {
+    "id": "a4e32531.caa61",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "null-terminate",
+    "func": "msg.payload += '\\0';\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 460,
+    "y": 840,
+    "wires": [
+      [
+        "865160f9.200348"
+      ]
+    ]
+  },
+  {
+    "id": "e432b712.e74d4",
+    "type": "readdir",
+    "z": "263f914f.d00ace",
+    "name": "sensor-cfg dir",
+    "dir": "sensor-cfg",
+    "as": "single",
+    "recursive": true,
+    "outproperty": "config_dir",
+    "x": 260,
+    "y": 60,
+    "wires": [
+      [
+        "7d2b19f9.f47c18",
+        "2e7f6798.ff0258"
+      ]
+    ]
+  },
+  {
+    "id": "48751f4f.10a3a8",
+    "type": "switch",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "property": "file_match",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "true",
+        "vt": "jsonata"
+      },
+      {
+        "t": "else"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 390,
+    "y": 220,
+    "wires": [
+      [
+        "2902a070.4cc4f8"
+      ],
+      [
+        "83419bca.cbf4a"
+      ]
+    ]
+  },
+  {
+    "id": "4be0151b.51036c",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "null-terminate",
+    "func": "msg.payload += '\\0';\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 1000,
+    "y": 360,
+    "wires": [
+      [
+        "865160f9.200348"
+      ]
+    ]
+  },
+  {
+    "id": "83419bca.cbf4a",
+    "type": "function",
+    "z": "263f914f.d00ace",
+    "name": "send empty response",
+    "func": "msg.payload = \"\\n\";\nreturn msg;",
+    "outputs": 1,
+    "noerr": 0,
+    "x": 780,
+    "y": 360,
+    "wires": [
+      [
+        "4be0151b.51036c"
+      ]
+    ]
+  },
+  {
+    "id": "2902a070.4cc4f8",
+    "type": "switch",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "property": "payload.command",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "get_config",
+        "vt": "str"
+      },
+      {
+        "t": "eq",
+        "v": "delete_config",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 2,
+    "x": 530,
+    "y": 220,
+    "wires": [
+      [
+        "78ad66f5.1b46e"
+      ],
+      [
+        "8e148f68.475b48"
+      ]
+    ]
+  },
+  {
+    "id": "8e148f68.475b48",
+    "type": "file",
+    "z": "263f914f.d00ace",
+    "name": "",
+    "filename": "",
+    "appendNewline": true,
+    "createDir": false,
+    "overwriteFile": "delete",
+    "encoding": "none",
+    "x": 670,
+    "y": 280,
+    "wires": [
+      [
+        "83419bca.cbf4a"
       ]
     ]
   }
