@@ -13,5 +13,6 @@ int persistent_read(const char* filename, int default_value);
 float persistent_read(const char* filename, float default_value);
 
 bool persistent_write(const char* filename, String data);
+bool persistent_write(const char* filename, const uint8_t *buf, size_t size);
 
 #endif /* _PERSISTENT_H_ */

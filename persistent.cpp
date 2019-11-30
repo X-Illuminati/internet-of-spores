@@ -115,3 +115,30 @@ bool persistent_write(const char* filename, String data)
 
   return retval;
 }
+
+// write a data buffer to a persistent file
+bool persistent_write(const char* filename, const uint8_t *buf, size_t size)
+{
+  bool retval = false;
+
+  if (spiffs_init()) {
+    String path = "/"; path += filename;
+    File persfile = SPIFFS.open(path, "w");
+
+    if (persfile) {
+#if (EXTRA_DEBUG != 0)
+      Serial.printf("%s <- %.*s\n", path.c_str(), size, (const char*)buf);
+#endif
+      size_t result = persfile.write(buf, size);
+      persfile.close();
+      if (result != size)
+        Serial.printf("Short write %s (%d)\n", path.c_str(), result);
+      else
+        retval = true;
+    } else {
+      Serial.print("Could not open "); Serial.println(path);
+    }
+  }
+
+  return retval;
+}

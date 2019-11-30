@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include <Esp.h>
 #include <ESP8266WiFi.h>
+#include <MD5Builder.h>
 #include <Updater.h>
 #include <WiFiManager.h>
 #if EXTRA_DEBUG
@@ -39,6 +40,7 @@ static String format_u64(uint64_t val);
 static bool try_connect(float power_level);
 static String json_header(void);
 static int transmit_readings(WiFiClient& client, float calibrations[4]);
+static bool update_config(WiFiClient& client);
 #if !DEVELOPMENT_BUILD
 static bool update_firmware(WiFiClient& client);
 #endif
@@ -205,6 +207,10 @@ void enter_config_mode(void)
   wifi_manager.setConfigPortalTimeout(CONFIG_SERVER_MAX_TIME);
 
   Serial.println("Starting config server");
+  Serial.println("current config SSID: "+WiFi.SSID());
+  struct station_config conf;
+  wifi_station_get_config_default(&conf);
+  Serial.printf("default config SSID: %.*s\n", sizeof(conf.ssid), conf.ssid);
   Serial.print("Connect to AP ");
   Serial.println(nodename);
   if (wifi_manager.startConfigPortal(nodename.c_str())) {
@@ -259,6 +265,7 @@ void upload_readings(void)
   int xmit_status;
   uint16_t report_host_port;
   bool update_flag = false;
+  bool config_flag = false;
 
   report_host_name =  persistent_read(PERSISTENT_REPORT_HOST_NAME, String(DEFAULT_REPORT_HOST_NAME));
   report_host_port = persistent_read(PERSISTENT_REPORT_HOST_PORT, (int)DEFAULT_REPORT_HOST_PORT);
@@ -308,8 +315,15 @@ void upload_readings(void)
             client.stop();  // don't try to send any more readings
           }
 
-          if (response.startsWith("update"))
+          if (response.startsWith("update")) {
             update_flag = true;
+            response.replace("update,","");
+          }
+
+          if (response.startsWith("config")) {
+            config_flag = true;
+            response.replace("config,","");
+          }
         } else {
           // some error occurred and we got no response...
           client.stop();
@@ -317,11 +331,17 @@ void upload_readings(void)
       }
     }
 
+    if (config_flag) {
+      Serial.println("accepted config update command");
+      if (!update_config(client))
+        Serial.println("error: config update failed");
+    }
+
     if (update_flag) {
       Serial.println("accepted firmware update command");
 #if !DEVELOPMENT_BUILD
       if (!update_firmware(client))
-        Serial.println("error: update failed");
+        Serial.println("error: firmware update failed");
 #endif
     }
   }
@@ -485,6 +505,114 @@ static String json_header(void)
   json += "\"firmware\":\""+String(preinit_magic, HEX)+"\",";
 
   return json;
+}
+
+// helper to fetch the config update files from the server store them in SPIFFS
+static bool update_config(WiFiClient& client)
+{
+  const char* filenames[] = {
+    PERSISTENT_NODE_NAME,
+    PERSISTENT_REPORT_HOST_NAME,
+    PERSISTENT_REPORT_HOST_PORT,
+    PERSISTENT_CLOCK_CALIB,
+    PERSISTENT_TEMP_CALIB,
+    PERSISTENT_HUMIDITY_CALIB,
+    PERSISTENT_PRESSURE_CALIB,
+    PERSISTENT_BATTERY_CALIB,
+  };
+  bool status = true;
+
+  if (!client.connected())
+    return false;
+
+  for (size_t i=0; i<(sizeof(filenames)/sizeof(*filenames)); i++) {
+    String json;
+    uint16_t len;
+
+    Serial.print("Retrieving config file: ");
+    Serial.println(filenames[i]);
+
+    json = json_header();
+    json += "\"command\":\"get_config\",";
+    json += "\"arg\":\"";
+    json += filenames[i];
+    json += "\"}";
+
+    // null-terminate
+    json += ";";
+    json.setCharAt(json.length()-1, '\0');
+
+    len = client.print(json);
+    if (len != json.length()) {
+      Serial.println("warning: update command not fully transmitted");
+      status = false;
+      continue;
+    }
+
+    String filesize = client.readStringUntil('\n');
+    if (0 == filesize.length())
+      continue; //normal condition -- server will return empty string
+                //if config file is not present
+
+    if ((filesize.charAt(0) < '0') || (filesize.charAt(0) > '9')) {
+      Serial.println("warning: invalid response received from server");
+      status = false;
+      continue;
+    }
+
+    len = filesize.toInt();
+
+    String md5sum = client.readStringUntil('\n');
+
+    uint8_t *buffer = new uint8_t[len];
+
+    Serial.println("Receiving config update...");
+    Serial.print("File Size = ");  Serial.println(filesize);
+    Serial.print("MD5 = ");  Serial.println(md5sum);
+
+    if (len != client.readBytes(buffer, len)) {
+      Serial.print("warning: short read of file "); Serial.println(filenames[i]);
+      status = false;
+    } else {
+      MD5Builder *md5 = new MD5Builder();
+      md5->begin();
+      md5->add(buffer, len);
+      md5->calculate();
+      if (!md5->toString().equals(md5sum)) {
+        status=false;
+        Serial.println("warning: md5sum mismatch");
+#if EXTRA_DEBUG
+        Serial.print(md5sum); Serial.print(" != "); Serial.println(md5->toString());
+#endif
+      } else {
+#if EXTRA_DEBUG
+        Serial.print(md5sum); Serial.print(" == "); Serial.println(md5->toString());
+#endif
+        // everything is OK, store in SPIFFS
+        if (persistent_write(filenames[i], buffer, len)) {
+          // inform the server that it can delete the update file
+          json = json_header();
+          json += "\"command\":\"delete_config\",";
+          json += "\"arg\":\"";
+          json += filenames[i];
+          json += "\"}";
+
+          // null-terminate
+          json += ";";
+          json.setCharAt(json.length()-1, '\0');
+
+          client.print(json);
+        } else {
+          status = false;
+        }
+      }
+
+      delete md5;
+    }
+    delete[] buffer;
+  }
+
+  return status;
 }
 
 #if !DEVELOPMENT_BUILD
