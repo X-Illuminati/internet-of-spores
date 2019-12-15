@@ -25,7 +25,18 @@ systemctl --user stop node-red.service
 systemctl --user status node-red.service
 ```
 
-# State of Health Monitor
+## State of Health Monitor
 The soh-monitor.sh script will monitor the journal output of node-red and
 expect periodic watch-dog statements. If node-red locks-up, the script will
 restart it after a few minutes using systemctl.
+
+The soh-monitor also has a systemd unit file, "node-red-soh.service". It can
+be installed and started in the same way as node-red.service. Since it depends
+on node-red.service, you only need to start the node-red-soh service and the
+node-red service will automatically be started.
+
+```
+systemctl --user start node-red-soh.service
+systemctl --user stop node-red-soh.service
+systemctl --user status node-red-soh.service
+```

@@ -1,11 +1,12 @@
 [Unit]
-Description=node-red nodejs flow-based programming language
-PartOf=node-red-soh.service
+Description=State-of-Health Monitor for node-red
+Requires=node-red.service
+After=node-red.service
 
 [Service]
 Type=simple
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
-ExecStart=/usr/local/bin/node-red -v
+ExecStart=%h/.node-red/scripts/soh-monitor.sh
 WorkingDirectory=%h/.node-red
 Restart=on-failure
 ProtectSystem=full
