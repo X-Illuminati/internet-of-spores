@@ -24,7 +24,7 @@ The node-red.service is a systemd unit file that can be used to create a
 systemd service to start and run the flows. It is compatible with being run as
 a systemd user-service if installed in ~/.local/share/systemd/user/.
 
-```
+```shell
 systemctl --user start node-red.service
 systemctl --user restart node-red.service
 systemctl --user stop node-red.service
@@ -41,7 +41,7 @@ be installed and started in the same way as node-red.service. Since it depends
 on node-red.service, you only need to start the node-red-soh service and the
 node-red service will automatically be started.
 
-```
+```shell
 systemctl --user start node-red-soh.service
 systemctl --user stop node-red-soh.service
 systemctl --user status node-red-soh.service
