@@ -1,6 +1,7 @@
 # Internet of Spores
 IOT Sensor Platform for ESP8266 Arduino
 Specifically targeting Lolin D1 Mini.
+![D1 mini board stackup](doc/stackup.png)
 
 ## Supported Sensors
 * Temperature
