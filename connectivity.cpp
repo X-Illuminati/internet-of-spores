@@ -468,10 +468,10 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
     // send the current calibration values in the last packet
     if ((unsigned)num_slots_read == rtc_mem[RTC_MEM_NUM_READINGS]) {
       json += "\"calibrations\":[";
-      json +=  "{\"type\":\"" + String(typestrings[1]) + "\",\"value\":" + String(calibrations[0]) + "}";
-      json += ",{\"type\":\"" + String(typestrings[2]) + "\",\"value\":" + String(calibrations[1]) + "}";
-      json += ",{\"type\":\"" + String(typestrings[3]) + "\",\"value\":" + String(calibrations[2]) + "}";
-      json += ",{\"type\":\"" + String(typestrings[6]) + "\",\"value\":" + String(calibrations[3]) + "}";
+      json +=  "{\"type\":\"" + String(typestrings[1]) + "\",\"value\":" + String(calibrations[0], 3) + "}";
+      json += ",{\"type\":\"" + String(typestrings[2]) + "\",\"value\":" + String(calibrations[1], 3) + "}";
+      json += ",{\"type\":\"" + String(typestrings[3]) + "\",\"value\":" + String(calibrations[2], 3) + "}";
+      json += ",{\"type\":\"" + String(typestrings[6]) + "\",\"value\":" + String(calibrations[3], 3) + "}";
       json += "],";
     }
 
