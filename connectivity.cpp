@@ -44,6 +44,7 @@ static bool update_config(WiFiClient& client);
 #if !DEVELOPMENT_BUILD
 static bool update_firmware(WiFiClient& client);
 #endif
+static bool send_command(WiFiClient& client, String& command);
 
 
 /* Functions */
@@ -359,7 +360,6 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
 {
   int num_slots_read = 0;
   int num_measurements = 0;
-  unsigned result;
   String json;
 
   if (!client.connected())
@@ -492,9 +492,8 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
     Serial.println(json);
 #endif
 
-    // transmit the results and verify the number of bytes written
-    result = client.print(json);
-    if (result == json.length())
+    // transmit the json command
+    if (send_command(client, json))
       return num_slots_read;
     else
       return -1;
@@ -537,7 +536,7 @@ static bool update_config(WiFiClient& client)
 
   for (size_t i=0; i<(sizeof(filenames)/sizeof(*filenames)); i++) {
     String json;
-    uint16_t len;
+    unsigned len;
 
     Serial.print("Retrieving config file: ");
     Serial.println(filenames[i]);
@@ -552,8 +551,7 @@ static bool update_config(WiFiClient& client)
     json += ";";
     json.setCharAt(json.length()-1, '\0');
 
-    len = client.print(json);
-    if (len != json.length()) {
+    if (!send_command(client, json)) {
       Serial.println("warning: update command not fully transmitted");
       status = false;
       continue;
@@ -571,6 +569,12 @@ static bool update_config(WiFiClient& client)
     }
 
     len = filesize.toInt();
+    if (len > 4096) {
+      Serial.print("warning: invalid filesize received: ");
+      Serial.println(len);
+      status = false;
+      continue;
+    }
 
     String md5sum = client.readStringUntil('\n');
 
@@ -611,7 +615,7 @@ static bool update_config(WiFiClient& client)
           json += ";";
           json.setCharAt(json.length()-1, '\0');
 
-          client.print(json);
+          send_command(client, json);
         } else {
           status = false;
         }
@@ -643,8 +647,7 @@ static bool update_firmware(WiFiClient& client)
   json += ";";
   json.setCharAt(json.length()-1, '\0');
 
-  len = client.print(json);
-  if (len != json.length())
+  if (!send_command(client, json))
     Serial.println("warning: update command not fully transmitted");
 
   String filesize = client.readStringUntil('\n');
@@ -652,6 +655,13 @@ static bool update_firmware(WiFiClient& client)
   len = filesize.toInt();
   if (len == 0)
     Serial.println("Recieved 0 byte len response - check server logs");
+
+  if (len > 0x300000) {
+    Serial.print("error: filesize too large: ");
+    Serial.println(len);
+    status = false;
+    len = 0;
+  }
 
   if (len > 0) {
     Serial.println("Receiving firmware update...");
@@ -699,4 +709,17 @@ float get_wifi_power(uint8_t power_setting)
     power_level_db = 2.5f * power_setting;
 
   return power_level_db;
+}
+
+static bool send_command(WiFiClient& client, String& command)
+{
+  unsigned len;
+
+  // flush any pending data in the client buffers
+  client.flush();
+  while (client.read() >= 0) {}
+
+  // transmit the command and verify the number of bytes written
+  len = client.print(command);
+  return (len == command.length());
 }
