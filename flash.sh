@@ -38,18 +38,18 @@ try_flash()
 				return 1
 			fi
 			;;
-		2.6.*)
+		2.6.* | 2.7.*)
 			if [ ! -f "$tooldir/tools/upload.py" ]; then
 				return 1
 			fi
-			echo "Using 2.6.x toolchain to flash $FILENAME"
+			echo "Using $tooldir toolchain to flash $FILENAME"
 			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset write_flash 0x0 "$FILENAME"
 			;;
 		2.5.*)
 			if [ ! -f "$tooldir/tools/upload.py" ]; then
 				return 1
 			fi
-			echo "Using 2.5.x toolchain to flash $FILENAME"
+			echo "Using $tooldir toolchain to flash $FILENAME"
 			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" version --end --chip "$CHIP" --port "$PORT" --baud "$BAUD" write_flash 0x0 "$FILENAME" --end
 			;;
 		*)
