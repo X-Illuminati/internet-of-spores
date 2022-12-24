@@ -3,11 +3,13 @@
 TOOLCHAIN_PATH="$HOME/.arduino15/packages/esp8266/hardware/esp8266"
 CHIP="esp8266"
 BAUD="460800"
+MODE="write"
 
 show_help()
 {
 	echo "Usage: $0 FILENAME [PORT]"
 	echo "	PORT defaults to /dev/ttyUSB0"
+	echo "  FILENAME can also be \"erase_rfcal\" or \"erase_all\""
 }
 
 try_flash()
@@ -15,6 +17,7 @@ try_flash()
 	local tooldir
 	local FILENAME
 	local PORT
+	local extra_erase_args
 	tooldir="$1"
 	FILENAME="$2"
 	PORT="$3"
@@ -23,34 +26,51 @@ try_flash()
 		return 1
 	fi
 
+	#TODO: I'm not actually sure these erase commands work with 2.x toolchain
+	case "$MODE" in
+		"write")
+			extra_erase_args=""
+			;;
+		"erase_rfcal")
+			extra_erase_args="erase_region 0x3FC000 0x4000"
+			;;
+		"erase_all")
+			extra_erase_args="erase_flash"
+			;;
+		*)
+			#unknown mode
+			return 2
+			;;
+	esac
+
 	case "$tooldir" in
 		_esptool)
 			if esptool.py version 2>/dev/null; then
 				echo "Using esptool.py from PATH to flash $FILENAME"
-				esptool.py --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset write_flash 0x0 "$FILENAME"
+				esptool.py --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset $extra_erase_args write_flash 0x0 "$FILENAME"
 			elif python3 -m esptool version 2>/dev/null; then
 				echo "Using python3 -m esptool to flash $FILENAME"
-				python3 -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset write_flash 0x0 "$FILENAME"
+				python3 -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after $extra_erase_args hard_reset write_flash 0x0 "$FILENAME"
 			elif python -m esptool version 2>/dev/null; then
 				echo "Using python -m esptool to flash $FILENAME"
-				python -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset write_flash 0x0 "$FILENAME"
+				python -m esptool --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset $extra_erase_args write_flash 0x0 "$FILENAME"
 			else
 				return 1
 			fi
 			;;
-		2.6.* | 2.7.*)
+		2.6.* | 2.7.* | 3.*)
 			if [ ! -f "$tooldir/tools/upload.py" ]; then
 				return 1
 			fi
 			echo "Using $tooldir toolchain to flash $FILENAME"
-			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset write_flash 0x0 "$FILENAME"
+			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" --before default_reset --after hard_reset $extra_erase_args write_flash 0x0 "$FILENAME"
 			;;
 		2.5.*)
 			if [ ! -f "$tooldir/tools/upload.py" ]; then
 				return 1
 			fi
 			echo "Using $tooldir toolchain to flash $FILENAME"
-			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" version --end --chip "$CHIP" --port "$PORT" --baud "$BAUD" write_flash 0x0 "$FILENAME" --end
+			python3 "$tooldir/tools/upload.py" --chip "$CHIP" --port "$PORT" --baud "$BAUD" version --end --chip "$CHIP" --port "$PORT" --baud "$BAUD" $extra_erase_args write_flash 0x0 "$FILENAME" --end
 			;;
 		*)
 			#unknown toolchain
@@ -65,16 +85,24 @@ script_main()
 	local PORT
 	local toolchain
 
-	if [ -z "$1" -o ! -f "$1" ]; then
-		echo "Invalid FILENAME $1"
-		show_help
-		return 1
-	fi
-	if [ "$1" = "--help" -o "$1" = "-h" ]; then
+	if [ -z "$1" -o "$1" = "--help" -o "$1" = "-h" ]; then
 		show_help
 		return 0
 	fi
-	FILENAME="$(realpath "$1")"
+
+	if [ "$1" = "erase_rfcal" ]; then
+		FILENAME="$(realpath "./firmware/empty.bin")"
+		MODE="erase_rfcal"
+	elif [ "$1" = "erase_all" ]; then
+		FILENAME="$(realpath "./firmware/empty.bin")"
+		MODE="erase_all"
+	elif [ ! -f "$1" ]; then
+		echo "Invalid FILENAME $1"
+		show_help
+		return 1
+	else
+		FILENAME="$(realpath "$1")"
+	fi
 
 	if [ -z "$2" ]; then
 		echo "Defaulting PORT to /dev/ttyUSB0"
