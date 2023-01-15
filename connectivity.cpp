@@ -133,8 +133,6 @@ static bool try_connect(float power_level)
 // connect to the stored WiFi AP and return the status
 bool connect_wifi(void)
 {
-  flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
-  uint8_t wifi_power = timestruct->wifi_power; //start with the previous successful power level
   bool retval = false;
 
   if (WiFi.isConnected())
@@ -151,21 +149,8 @@ bool connect_wifi(void)
     Serial.printf("config: ssid=%.*s, password=%.*s\n", (int)sizeof(configdata.ssid), configdata.ssid, (int)sizeof(configdata.password), configdata.password);
 #endif
 
-  // occasionally try decrementing the WiFi TX power
-  if ((wifi_power > 0) && (0 == (micros() % 6)))
-      wifi_power--;
-
-  while (!retval) {
-    retval = try_connect(get_wifi_power(wifi_power));
-    if (!retval) {
-      if (7 == wifi_power)
-        break;
-      else
-        wifi_power++; //try harder
-    }
-  }
-
-  timestruct->wifi_power = wifi_power; //store the power level even if unsuccessful
+  //recommended output power 17.5 dBm to reduce noise compared to max power 20.5 dBm
+  retval = try_connect(17.5f);
 
   return retval;
 }
@@ -366,7 +351,7 @@ static int transmit_readings(WiFiClient& client, float calibrations[4])
     return -1;
 
   if (rtc_mem[RTC_MEM_NUM_READINGS] > 0) {
-    flags_time_t timestamp = {0,0,0,0,0};
+    flags_time_t timestamp = {0,0,0,0};
     const char typestrings[7][17] = {
       "unknown",
       "temperature",
@@ -697,19 +682,6 @@ static bool update_firmware(WiFiClient& client)
   return status;
 }
 #endif /* !DEVELOPMENT_BUILD */
-
-// helper to calculate the current WiFi TX power setting
-float get_wifi_power(uint8_t power_setting)
-{
-  float power_level_db;
-
-  if (7==power_setting)
-    power_level_db = 20.5f;
-  else
-    power_level_db = 2.5f * power_setting;
-
-  return power_level_db;
-}
 
 static bool send_command(WiFiClient& client, String& command)
 {

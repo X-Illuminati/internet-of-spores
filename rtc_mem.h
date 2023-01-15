@@ -17,8 +17,7 @@
 
 // Structure to combine uptime with device flags
 typedef struct flags_time_s {
-  uint64_t flags      :2;
-  uint64_t wifi_power :3;  //keep track of wifi power level needed
+  uint64_t flags      :5;
   uint64_t fail_count :3;  //keep track of wifi connection failures
   uint64_t clock_cal  :16; //calibration for clock drift during suspend in ms
   uint64_t millis     :40; //uptime in ms tracked over suspend cycles

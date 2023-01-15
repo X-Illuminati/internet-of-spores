@@ -40,8 +40,6 @@ bool load_rtc_memory(void)
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
   Serial.print(", flags=0x");
   Serial.print((uint8_t)flags->flags, HEX);
-  Serial.print(", wifi power=");
-  Serial.print(get_wifi_power(flags->wifi_power));
   Serial.print(", connect failures=");
   Serial.print((uint8_t)flags->fail_count);
   Serial.print(", RTC_SIZE=");
@@ -166,7 +164,7 @@ void clear_readings(unsigned int num /*defaults to NUM_STORAGE_SLOTS*/)
 void dump_readings(void)
 {
 #if (EXTRA_DEBUG != 0)
-  flags_time_t timestamp = {0,0,0,0,0};
+  flags_time_t timestamp = {0,0,0,0};
   const char typestrings[8][12] = {
     "UNKNOWN",
     "TEMP (C)",
