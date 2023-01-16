@@ -63,6 +63,32 @@ void take_readings(void)
 }
 #endif
 
+bool check_upload_conditions(void)
+{
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint32_t boot_count = rtc_mem[RTC_MEM_BOOT_COUNT];
+
+  /*
+   * Normal upload condition:
+   * If our number of collected readings is above the high water mark, then it
+   * is time to start uploading (allowing for a couple of failed connections).
+   * Extra conditions:
+   * If our boot count is a power of 2 during the first few boots, then we will
+   * do a special upload to get some early readings sent to the server.
+   * (This way you won't have to wait for 30-45 minutes before the initial
+   * readings come in.)
+   */
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+    flags->flags |= FLAG_BIT_NORMAL_UPLOAD_COND;
+    return true;
+  }
+  if ( (0 == (flags->flags & FLAG_BIT_NORMAL_UPLOAD_COND)) &&
+    (0==(boot_count & (boot_count - 1))) )
+    return true;
+
+  return false;
+}
+
 #if TETHERED_MODE
 void tethered_sleep(int64_t millis_offset, bool please_reboot)
 {
@@ -158,9 +184,11 @@ void loop(void)
 #if !TETHERED_MODE
   if (0 != (flags->flags & FLAG_BIT_CONNECT_NEXT_WAKE))
 #else
-  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT)
+  if (check_upload_conditions())
 #endif
   {
+    uint32_t num_readings = rtc_mem[RTC_MEM_NUM_READINGS];
+
     // time to connect and upload our readings
 #if !TETHERED_MODE
     //this is normally done in setup() but deferred in battery mode
@@ -169,25 +197,23 @@ void loop(void)
 
     if (connect_wifi())
       upload_readings();
-    else
-      connect_failed = true;
 
-#if !TETHERED_MODE
     //we failed to make progress uploading readings
     //factor this into sleep time decisions
-    if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT)
+    if (rtc_mem[RTC_MEM_NUM_READINGS] == num_readings)
       connect_failed = true;
-#endif
   }
 
 #if !TETHERED_MODE
-  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
-    // we have collected enough readings, time to upload them
-    // due to bugs/changes in deep sleep operation, the workaround is to do a
-    // non-rf-disabled sleep and then transmit on the next wakeup
-    flags->flags |= FLAG_BIT_CONNECT_NEXT_WAKE;
-  } else {
-    flags->flags &= ~FLAG_BIT_CONNECT_NEXT_WAKE;
+  if (!connect_failed) {
+    if (check_upload_conditions()) {
+      // we have collected enough readings, time to upload them
+      // due to bugs/changes in deep sleep operation, the workaround is to do a
+      // non-rf-disabled sleep and then transmit on the next wakeup
+      flags->flags |= FLAG_BIT_CONNECT_NEXT_WAKE;
+    } else {
+      flags->flags &= ~FLAG_BIT_CONNECT_NEXT_WAKE;
+    }
   }
 #endif
 

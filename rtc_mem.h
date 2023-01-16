@@ -24,7 +24,8 @@ typedef struct flags_time_s {
 } flags_time_t;
 
 // Flag bits
-#define FLAG_BIT_CONNECT_NEXT_WAKE (1 << 0)
+#define FLAG_BIT_CONNECT_NEXT_WAKE  (1 << 0)
+#define FLAG_BIT_NORMAL_UPLOAD_COND (1 << 1)
 
 // Structure to combine sensor readings with type and timestamp
 typedef struct sensor_reading_s {
