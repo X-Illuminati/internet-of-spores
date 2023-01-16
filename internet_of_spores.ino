@@ -41,8 +41,15 @@ void take_readings(void)
 #else
 {
   bool sht30_ok;
+#if TETHERED_MODE
+  bool bat_ok = true;
+#else
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  bool bat_ok = (0 == (flags->flags & FLAG_BIT_CONNECT_NEXT_WAKE));
+#endif
 
-  read_vcc(false);
+  if (bat_ok)
+    read_vcc(false);
 
 #if TETHERED_MODE
   read_ppd42();
@@ -57,7 +64,8 @@ void take_readings(void)
   if (sht30_ok)
     read_sht30(true);
 
-  read_vcc(true);
+  if (bat_ok)
+    read_vcc(true);
 
   store_uptime();
 }
