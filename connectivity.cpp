@@ -41,7 +41,7 @@ static bool try_connect(float power_level);
 static String json_header(void);
 static int transmit_readings(WiFiClient& client, float calibrations[4]);
 static bool update_config(WiFiClient& client);
-#if !DEVELOPMENT_BUILD
+#if !DISABLE_FW_UPDATE
 static bool update_firmware(WiFiClient& client);
 #endif
 static bool send_command(WiFiClient& client, String& command);
@@ -325,7 +325,7 @@ void upload_readings(void)
 
     if (update_flag) {
       Serial.println("accepted firmware update command");
-#if !DEVELOPMENT_BUILD
+#if !DISABLE_FW_UPDATE
       if (!update_firmware(client))
         Serial.println("error: firmware update failed");
 #endif
@@ -614,7 +614,7 @@ static bool update_config(WiFiClient& client)
   return status;
 }
 
-#if !DEVELOPMENT_BUILD
+#if !DISABLE_FW_UPDATE
 // helper to fetch a firmware update from the server and apply it
 static bool update_firmware(WiFiClient& client)
 {
@@ -681,7 +681,7 @@ static bool update_firmware(WiFiClient& client)
   //this function only returns false
   return status;
 }
-#endif /* !DEVELOPMENT_BUILD */
+#endif /* !DISABLE_FW_UPDATE */
 
 static bool send_command(WiFiClient& client, String& command)
 {
