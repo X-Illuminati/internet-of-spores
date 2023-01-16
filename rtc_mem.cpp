@@ -105,12 +105,16 @@ void save_rtc(uint64_t sleep_time_us)
 // helper for saving rtc memory before entering deep sleep
 void deep_sleep(uint64_t time_us)
 {
+  flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
   save_rtc(time_us);
 
 #if TETHERED_MODE
-  ESP.deepSleep(time_us, RF_NO_CAL);
+  ESP.deepSleepInstant(time_us, RF_NO_CAL);
 #else
-  ESP.deepSleep(time_us, RF_DISABLED);
+  if (0 != (timestruct->flags & FLAG_BIT_CONNECT_NEXT_WAKE))
+    ESP.deepSleepInstant(time_us, RF_NO_CAL); //we want to be able to connect on next boot
+  else
+    ESP.deepSleepInstant(time_us, RF_DISABLED);
 #endif
 }
 

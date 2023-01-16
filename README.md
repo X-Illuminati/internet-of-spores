@@ -25,9 +25,11 @@ The toolchain can be installed via the Arduino board manager.
 Instructions for this can be found [in their readme](https://github.com/esp8266/Arduino/blob/master/README.md).
 
 #### Supported Version
-I have thoroughly tested version 2.5.2. The latest version 2.6.3 compiles with
-some caveats (mentioned below) and I anticipate will generally work without
-issue.
+I have thoroughly tested version 2.5.2 and 2.6.3. The latest version 3.0.2
+required some changes to the code and I have not done the same level of testing
+on these changes.
+See the details below related to configurations/setting differences needed for
+each version.
 
 #### Board Setup
 Most board settings can be left at their defaults.
@@ -35,6 +37,7 @@ Most board settings can be left at their defaults.
 * Need to configure some flash for SPIFFS
   * v2.5.2: select Flash Size "4M (1M SPIFFS)"
   * v2.6.3: select Flash Size "4MB (FS:1MB OTA:~1019KB)"
+  * v3.0.2: select Flash Size "4MB (FS:1MB OTA:~1019KB)"
 
 ### WiFi Manager
 There is a library dependency on WiFiManager by tzapu.
@@ -44,6 +47,7 @@ This can be installed via the library manager.
 Please select a compatible version:
 * v2.5.2: use WiFiManager version 0.14.0
 * v2.6.3: use WiFiManager version 0.15.0-beta
+* v3.0.2: use WiFiManager version 0.16.0
 
 ### Lolin HP303B Driver
 There is a library dependency on the Lolin HP303B driver.

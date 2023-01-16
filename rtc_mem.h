@@ -23,6 +23,9 @@ typedef struct flags_time_s {
   uint64_t millis     :40; //uptime in ms tracked over suspend cycles
 } flags_time_t;
 
+// Flag bits
+#define FLAG_BIT_CONNECT_NEXT_WAKE (1 << 0)
+
 // Structure to combine sensor readings with type and timestamp
 typedef struct sensor_reading_s {
   sensor_type_t type  :8;

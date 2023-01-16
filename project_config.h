@@ -46,7 +46,7 @@
   #if TETHERED_MODE
     #define HIGH_WATER_SLOT     (1)
   #else
-    #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-16)
+    #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-19)
   #endif
 #endif
 

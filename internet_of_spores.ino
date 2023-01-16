@@ -146,6 +146,7 @@ void setup(void)
 
 void loop(void)
 {
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
 #if TETHERED_MODE
   unsigned long loop_start = millis();
 #endif
@@ -154,9 +155,13 @@ void loop(void)
   take_readings();
   dump_readings();
 
-  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+#if !TETHERED_MODE
+  if (0 != (flags->flags & FLAG_BIT_CONNECT_NEXT_WAKE))
+#else
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT)
+#endif
+  {
     // time to connect and upload our readings
-
 #if !TETHERED_MODE
     //this is normally done in setup() but deferred in battery mode
     connectivity_init();
@@ -174,6 +179,17 @@ void loop(void)
       connect_failed = true;
 #endif
   }
+
+#if !TETHERED_MODE
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+    // we have collected enough readings, time to upload them
+    // due to bugs/changes in deep sleep operation, the workaround is to do a
+    // non-rf-disabled sleep and then transmit on the next wakeup
+    flags->flags |= FLAG_BIT_CONNECT_NEXT_WAKE;
+  } else {
+    flags->flags &= ~FLAG_BIT_CONNECT_NEXT_WAKE;
+  }
+#endif
 
 #if TETHERED_MODE
   // in tethered mode, sleep time is more of a suggestion if other
