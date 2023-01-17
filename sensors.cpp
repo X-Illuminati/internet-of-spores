@@ -16,6 +16,8 @@ LOLIN_HP303B HP303BPressureSensor;
 #if TETHERED_MODE
 Pulse2 pulse;
 #endif
+static float gTemperature=NAN;
+static float gHumidity=NAN;
 
 /* Functions */
 // setup sensors
@@ -128,6 +130,8 @@ bool read_sht30(bool perform_store)
   if (perform_store && num_readings) {
     store_reading(SENSOR_TEMPERATURE, temperature/num_readings*1000.0 + 0.5);
     store_reading(SENSOR_HUMIDITY, humidity/num_readings*1000.0 + 0.5);
+    gTemperature = temperature/num_readings;
+    gHumidity = humidity/num_readings;
     temperature = 0;
     humidity = 0;
     num_readings = 0;
@@ -176,6 +180,7 @@ bool read_hp303b(bool measure_temp)
       return false;
     } else {
       store_reading(SENSOR_TEMPERATURE, temperature*1000);
+      gTemperature = temperature;
 #if (EXTRA_DEBUG != 0)
       Serial.print("Raw Temperature: ");
       Serial.print(temperature);
@@ -234,7 +239,12 @@ void read_vcc(bool perform_store)
 #endif
 
   if (perform_store && num_readings) {
-    store_reading(SENSOR_BATTERY_VOLTAGE, readings/num_readings);
+    int32 avgval = readings/num_readings;
+    store_reading(SENSOR_BATTERY_VOLTAGE, avgval);
+    if (avgval < LOW_BATTERY_MV) {
+      flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+      flags->flags |= FLAG_BIT_LOW_BATTERY;
+    }
     num_readings = 0;
     readings = 0;
   }
@@ -255,4 +265,14 @@ void store_uptime(void)
   Serial.printf("[%llu] Storing Timestamp Offset %u (@%llu)\n", timestamp, time_l, time_h);
 #endif
   store_reading(SENSOR_TIMESTAMP_OFFS, (int32_t)time_l);
+}
+
+float get_temp(void)
+{
+  return gTemperature;
+}
+
+float get_humidity(void)
+{
+  return gHumidity;
 }

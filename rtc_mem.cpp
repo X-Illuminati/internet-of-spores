@@ -25,9 +25,15 @@ bool load_rtc_memory(void)
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
   if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != preinit_magic) {
+    float tempf;
     Serial.println(String("Preinit magic doesn't compute, reinitializing (0x") + String(preinit_magic, HEX) + ")");
     invalidate_rtc();
     retval = false;
+
+    tempf = persistent_read(PERSISTENT_TEMP_CALIB, DEFAULT_TEMP_CALIB);
+    rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
+    tempf = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
+    rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
   }
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
@@ -37,13 +43,22 @@ bool load_rtc_memory(void)
   Serial.print(", boot count=");
   Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
 #if (EXTRA_DEBUG != 0)
-  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
-  Serial.print(", flags=0x");
-  Serial.print((uint8_t)flags->flags, HEX);
-  Serial.print(", connect failures=");
-  Serial.print((uint8_t)flags->fail_count);
-  Serial.print(", RTC_SIZE=");
-  Serial.print(RTC_MEM_MAX);
+  {
+    flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+    float* rtc_float_ptr;
+    Serial.print(", flags=0x");
+    Serial.print((uint8_t)flags->flags, HEX);
+    Serial.print(", connect failures=");
+    Serial.print((uint8_t)flags->fail_count);
+    Serial.print(", RTC_SIZE=");
+    Serial.print(RTC_MEM_MAX);
+    Serial.print(", temp cal=");
+    rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
+    Serial.print(*rtc_float_ptr);
+    Serial.print(",humidity cal=");
+    rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
+    Serial.print(*rtc_float_ptr);
+  }
 #endif
 
   Serial.print(", num readings=");

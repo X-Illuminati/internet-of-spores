@@ -28,5 +28,7 @@ bool read_sht30(bool perform_store);
 bool read_hp303b(bool measure_temp);
 void read_vcc(bool perform_store);
 void store_uptime(void);
+float get_temp(void);
+float get_humidity(void);
 
 #endif /* _SENSORS_H_ */

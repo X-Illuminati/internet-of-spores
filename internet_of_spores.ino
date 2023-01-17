@@ -6,6 +6,7 @@
 #include <user_interface.h>
 
 #include "connectivity.h"
+#include "EPD_1in9.h"
 #include "rtc_mem.h"
 #include "sensors.h"
 
@@ -38,7 +39,7 @@ void take_readings(void)
 
   store_uptime();
 }
-#else
+#else /* VCC_CAL_MODE */
 {
   bool sht30_ok;
 #if TETHERED_MODE
@@ -52,7 +53,10 @@ void take_readings(void)
     read_vcc(false);
 
 #if TETHERED_MODE
-  read_ppd42();
+  // check the detection pin before reading the partical sensor since it shares
+  // DIO pins with the 1.9" EPD
+  if (!digitalRead(PPD42_PIN_DET))
+    read_ppd42();
 #endif
 
   //read temp/humidity from SHT30
@@ -69,7 +73,46 @@ void take_readings(void)
 
   store_uptime();
 }
+#endif /* VCC_CAL_MODE */
+
+void disp_readings(bool connectivity)
+{
+  float temp;
+  float *rtc_float_ptr;
+  float humidity;
+  flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint8_t res;
+  bool low_battery;
+
+#if TETHERED_MODE
+  // check the PPD42 detection pin before initializing the 1.9" EPD display
+  // since they share DIO pins
+  if (!digitalRead(PPD42_PIN_DET))
+    return;
 #endif
+
+  EPD_1in9_GPIOInit();
+  res = EPD_1in9_init();
+  if (0 != res) {
+    digitalWrite(EPD_RST_PIN, 0);
+    return;
+  }
+  else
+  {
+    EPD_1in9_Clear_Screen();
+  }
+
+  temp=get_temp();
+  rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
+  temp += *rtc_float_ptr;
+  temp = (temp * 9/5)+32.0;
+  humidity=get_humidity();
+  rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
+  humidity += *rtc_float_ptr;
+  low_battery = (0 != (flags->flags & FLAG_BIT_LOW_BATTERY));
+  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery);
+  EPD_1in9_sleep();
+}
 
 bool check_upload_conditions(void)
 {
@@ -185,16 +228,22 @@ void loop(void)
   unsigned long loop_start = millis();
 #endif
   bool connect_failed = false;
+  bool want_to_connect = false;
 
   take_readings();
   dump_readings();
 
 #if !TETHERED_MODE
   if (0 != (flags->flags & FLAG_BIT_CONNECT_NEXT_WAKE))
+    want_to_connect = true;
 #else
   if (check_upload_conditions())
+    want_to_connect = true;
 #endif
-  {
+
+  disp_readings(want_to_connect);
+
+  if (want_to_connect) {
     uint32_t num_readings = rtc_mem[RTC_MEM_NUM_READINGS];
 
     // time to connect and upload our readings

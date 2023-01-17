@@ -18,6 +18,7 @@
 #define SHT30_ADDR              (0x45)
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define WIFI_CONNECT_TIMEOUT    (30000)
+#define LOW_BATTERY_MV          (2850)
 
 #if TETHERED_MODE
   #define PPD42_PIN_DET         (D5)
@@ -27,6 +28,8 @@
 #else
   #define FIRMWARE_NAME         "iotsp-battery"
 #endif
+  #define EPD_BUSY_PIN          (D7)
+  #define EPD_RST_PIN           (D6)
 
 #if DEVELOPMENT_BUILD
   #define EXTRA_DEBUG           (1)
@@ -42,11 +45,11 @@
   #define EXTRA_DEBUG           (0)
   #define DISABLE_FW_UPDATE     (0)
   #define SLEEP_TIME_US         (60000000ULL)
-  #define NUM_STORAGE_SLOTS     (121)
+  #define NUM_STORAGE_SLOTS     (119)
   #if TETHERED_MODE
     #define HIGH_WATER_SLOT     (1)
   #else
-    #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-19)
+    #define HIGH_WATER_SLOT     (NUM_STORAGE_SLOTS-18)
   #endif
 #endif
 

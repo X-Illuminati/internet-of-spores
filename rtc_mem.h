@@ -26,6 +26,7 @@ typedef struct flags_time_s {
 // Flag bits
 #define FLAG_BIT_CONNECT_NEXT_WAKE  (1 << 0)
 #define FLAG_BIT_NORMAL_UPLOAD_COND (1 << 1)
+#define FLAG_BIT_LOW_BATTERY        (1 << 2)
 
 // Structure to combine sensor readings with type and timestamp
 typedef struct sensor_reading_s {
@@ -42,6 +43,8 @@ enum rtc_mem_fields_e {
   RTC_MEM_DATA_TIMEBASE,   // Timestamp (upper 32 bits) from which sensor readings are stored as offsets
   RTC_MEM_NUM_READINGS,    // Number of occupied slots
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
+  RTC_MEM_TEMP_CAL,        // Store the temperature calibration so we don't have to initialize SPIFFs every time
+  RTC_MEM_HUMIDITY_CAL,    // Store the humidity calibration so we don't have to initialize SPIFFs every time
 
   //array of sensor readings
   RTC_MEM_DATA,

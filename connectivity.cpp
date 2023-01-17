@@ -191,19 +191,45 @@ static void wifi_manager_save_config_callback(void)
       persistent_write(PERSISTENT_CLOCK_CALIB, String(DEFAULT_SLEEP_CLOCK_ADJ));
     }
   }
+
   value = temp_adj->getValue();
   if (value && value[0]) {
-    if (persistent_write(PERSISTENT_TEMP_CALIB, value))
-      rtc_mem[RTC_MEM_TEMP_CAL] = atoi(value);
+    char* endptr = (char*)value;
+    float tempf;
+
+    //check for valid float
+    tempf = strtof(value, &endptr);
+    if ((0==tempf) && (value==endptr)) {
+      persistent_write(PERSISTENT_TEMP_CALIB, ""); //erase existing humidity calibration
+      tempf = DEFAULT_TEMP_CALIB;
+      rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
+    } else {
+      if (persistent_write(PERSISTENT_TEMP_CALIB, value))
+        rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
+    }
   }
+
   value = humidity_adj->getValue();
   if (value && value[0]) {
-    if (persistent_write(PERSISTENT_HUMIDITY_CALIB, value))
-      rtc_mem[RTC_MEM_HUMIDITY_CAL] = atoi(value);
+    char* endptr = (char*)value;
+    float tempf;
+
+    //check for valid float
+    tempf = strtof(value, &endptr);
+    if ((0==tempf) && (value==endptr)) {
+      persistent_write(PERSISTENT_HUMIDITY_CALIB, ""); //erase existing humidity calibration
+      tempf = DEFAULT_HUMIDITY_CALIB;
+      rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+    } else {
+      if (persistent_write(PERSISTENT_HUMIDITY_CALIB, value))
+        rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+    }
   }
+
   value = pressure_adj->getValue();
   if (value && value[0])
     persistent_write(PERSISTENT_PRESSURE_CALIB, value);
+
   value = battery_adj->getValue();
   if (value && value[0])
     persistent_write(PERSISTENT_BATTERY_CALIB, value);
@@ -611,6 +637,37 @@ static bool update_config(WiFiClient& client)
 #endif
         // everything is OK, store in SPIFFS
         if (persistent_write(filenames[i], buffer, len)) {
+
+          // special handling to update the RTC mem value for temp calib
+          if (4==i) {
+            float tempf;
+            const char* nptr = (const char*)buffer;
+            char* endptr = (char*)nptr;
+
+            //check for valid float
+            tempf = strtof(nptr, &endptr);
+            if ((0==tempf) && (nptr==endptr)) {
+              persistent_write(filenames[i], ""); //erase existing file
+              tempf = DEFAULT_TEMP_CALIB;
+            }
+            rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
+          }
+
+          // special handling to update the RTC mem value for humidity calib
+          if (5==i) {
+            float tempf;
+            const char* nptr = (const char*)buffer;
+            char* endptr = (char*)nptr;
+
+            //check for valid float
+            tempf = strtof(nptr, &endptr);
+            if ((0==tempf) && (nptr==endptr)) {
+              persistent_write(filenames[i], ""); //erase existing file
+              tempf = DEFAULT_HUMIDITY_CALIB;
+            }
+            rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+          }
+
           // inform the server that it can delete the update file
           json = json_header();
           json += "\"command\":\"delete_config\",";
