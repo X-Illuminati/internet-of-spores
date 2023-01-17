@@ -24,6 +24,15 @@ String config_hint_temp_calib;
 String config_hint_humidity_calib;
 String config_hint_pressure_calib;
 String config_hint_battery_calib;
+WiFiManagerParameter* custom_node_name;
+WiFiManagerParameter* custom_report_host;
+WiFiManagerParameter* custom_report_port;
+WiFiManagerParameter* clock_drift_adj;
+WiFiManagerParameter* temp_adj;
+WiFiManagerParameter* humidity_adj;
+WiFiManagerParameter* pressure_adj;
+WiFiManagerParameter* battery_adj;
+
 const char* config_label_node_name        = "><label for=\"" PERSISTENT_NODE_NAME "\">Friendly Name for this Sensor</label";
 const char* config_label_report_host_name = "><label for=\"" PERSISTENT_REPORT_HOST_NAME "\">Custom Report Server</label";
 const char* config_label_report_host_port = "><label for=\"" PERSISTENT_REPORT_HOST_PORT "\">Custom Report Server Port Number</label";
@@ -155,6 +164,51 @@ bool connect_wifi(void)
   return retval;
 }
 
+static void wifi_manager_save_config_callback(void)
+{
+  const char* value;
+  value = custom_node_name->getValue();
+  if (value && value[0]) {
+    persistent_write(PERSISTENT_NODE_NAME, value);
+    nodename = value;
+  }
+  value = custom_report_host->getValue();
+  if (value && value[0])
+    persistent_write(PERSISTENT_REPORT_HOST_NAME, value);
+  value = custom_report_port->getValue();
+  if (value && value[0])
+    persistent_write(PERSISTENT_REPORT_HOST_PORT, value);
+  value = clock_drift_adj->getValue();
+  if (value && value[0]) {
+    flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+    String strValue = value;
+    int clock_cal = strValue.toInt();
+    if (clock_cal > 0) {
+      persistent_write(PERSISTENT_CLOCK_CALIB, strValue);
+      timestruct->clock_cal = clock_cal;
+    } else {
+      timestruct->clock_cal = DEFAULT_SLEEP_CLOCK_ADJ;
+      persistent_write(PERSISTENT_CLOCK_CALIB, String(DEFAULT_SLEEP_CLOCK_ADJ));
+    }
+  }
+  value = temp_adj->getValue();
+  if (value && value[0]) {
+    if (persistent_write(PERSISTENT_TEMP_CALIB, value))
+      rtc_mem[RTC_MEM_TEMP_CAL] = atoi(value);
+  }
+  value = humidity_adj->getValue();
+  if (value && value[0]) {
+    if (persistent_write(PERSISTENT_HUMIDITY_CALIB, value))
+      rtc_mem[RTC_MEM_HUMIDITY_CAL] = atoi(value);
+  }
+  value = pressure_adj->getValue();
+  if (value && value[0])
+    persistent_write(PERSISTENT_PRESSURE_CALIB, value);
+  value = battery_adj->getValue();
+  if (value && value[0])
+    persistent_write(PERSISTENT_BATTERY_CALIB, value);
+}
+
 // run the WiFi configuration mode
 void enter_config_mode(void)
 {
@@ -173,24 +227,26 @@ void enter_config_mode(void)
   config_hint_pressure_calib   = persistent_read(PERSISTENT_PRESSURE_CALIB,   "pressure calibration (kPa)");
   config_hint_battery_calib    = persistent_read(PERSISTENT_BATTERY_CALIB,    "battery calibration (V)");
 
-  WiFiManagerParameter custom_node_name(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
-  WiFiManagerParameter custom_report_host(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
-  WiFiManagerParameter custom_report_port(PERSISTENT_REPORT_HOST_PORT, config_hint_report_host_port.c_str(), NULL,  5, config_label_report_host_port);
-  WiFiManagerParameter clock_drift_adj(   PERSISTENT_CLOCK_CALIB,      config_hint_clock_calib.c_str(),      NULL,  5, config_label_clock_calib);
-  WiFiManagerParameter temp_adj(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL,  6, config_label_temp_calib);
-  WiFiManagerParameter humidity_adj(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL,  6, config_label_humidity_calib);
-  WiFiManagerParameter pressure_adj(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL,  8, config_label_pressure_calib);
-  WiFiManagerParameter battery_adj(       PERSISTENT_BATTERY_CALIB,    config_hint_battery_calib.c_str(),    NULL,  6, config_label_battery_calib);
+  custom_node_name = new WiFiManagerParameter(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
+  custom_report_host = new WiFiManagerParameter(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
+  custom_report_port = new WiFiManagerParameter(PERSISTENT_REPORT_HOST_PORT, config_hint_report_host_port.c_str(), NULL,  5, config_label_report_host_port);
+  clock_drift_adj = new WiFiManagerParameter(   PERSISTENT_CLOCK_CALIB,      config_hint_clock_calib.c_str(),      NULL,  5, config_label_clock_calib);
+  temp_adj = new WiFiManagerParameter(          PERSISTENT_TEMP_CALIB,       config_hint_temp_calib.c_str(),       NULL,  6, config_label_temp_calib);
+  humidity_adj = new WiFiManagerParameter(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL,  6, config_label_humidity_calib);
+  pressure_adj = new WiFiManagerParameter(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL,  8, config_label_pressure_calib);
+  battery_adj = new WiFiManagerParameter(       PERSISTENT_BATTERY_CALIB,    config_hint_battery_calib.c_str(),    NULL,  6, config_label_battery_calib);
 
-  wifi_manager.addParameter(&custom_node_name);
-  wifi_manager.addParameter(&custom_report_host);
-  wifi_manager.addParameter(&custom_report_port);
-  wifi_manager.addParameter(&clock_drift_adj);
-  wifi_manager.addParameter(&temp_adj);
-  wifi_manager.addParameter(&humidity_adj);
-  wifi_manager.addParameter(&pressure_adj);
-  wifi_manager.addParameter(&battery_adj);
+  wifi_manager.addParameter(custom_node_name);
+  wifi_manager.addParameter(custom_report_host);
+  wifi_manager.addParameter(custom_report_port);
+  wifi_manager.addParameter(clock_drift_adj);
+  wifi_manager.addParameter(temp_adj);
+  wifi_manager.addParameter(humidity_adj);
+  wifi_manager.addParameter(pressure_adj);
+  wifi_manager.addParameter(battery_adj);
   wifi_manager.setConfigPortalTimeout(CONFIG_SERVER_MAX_TIME);
+  wifi_manager.setBreakAfterConfig(true);
+  wifi_manager.setSaveConfigCallback(&wifi_manager_save_config_callback);
 
   Serial.println("Starting config server");
   Serial.println("current config SSID: "+WiFi.SSID());
@@ -200,43 +256,9 @@ void enter_config_mode(void)
   Serial.print("Connect to AP ");
   Serial.println(nodename);
   if (wifi_manager.startConfigPortal(nodename.c_str())) {
-    const char* value;
-    value = custom_node_name.getValue();
-    if (value && value[0]) {
-      persistent_write(PERSISTENT_NODE_NAME, value);
-      nodename = value;
-    }
-    value = custom_report_host.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_REPORT_HOST_NAME, value);
-    value = custom_report_port.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_REPORT_HOST_PORT, value);
-    value = clock_drift_adj.getValue();
-    if (value && value[0]) {
-      flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
-      String strValue = value;
-      int clock_cal = strValue.toInt();
-      if (clock_cal > 0) {
-        persistent_write(PERSISTENT_CLOCK_CALIB, strValue);
-        timestruct->clock_cal = clock_cal;
-      } else {
-        timestruct->clock_cal = DEFAULT_SLEEP_CLOCK_ADJ;
-        persistent_write(PERSISTENT_CLOCK_CALIB, String(DEFAULT_SLEEP_CLOCK_ADJ));
-      }
-    }
-    value = temp_adj.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_TEMP_CALIB, value);
-    value = humidity_adj.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_HUMIDITY_CALIB, value);
-    value = pressure_adj.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_PRESSURE_CALIB, value);
-    value = battery_adj.getValue();
-    if (value && value[0])
-      persistent_write(PERSISTENT_BATTERY_CALIB, value);
+    Serial.println("Config portal result Success");
+  } else {
+    Serial.println("Config portal result Failed");
   }
 }
 
