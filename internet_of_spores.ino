@@ -120,7 +120,7 @@ void disp_readings(bool connectivity)
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
   humidity += *rtc_float_ptr;
   low_battery = (0 != (flags->flags & FLAG_BIT_LOW_BATTERY));
-  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery);
+  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery, false);
   EPD_1in9_sleep();
 }
 

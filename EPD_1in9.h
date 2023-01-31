@@ -32,6 +32,6 @@ void EPD_1in9_Write_Screen1(unsigned char *image);
 void EPD_1in9_sleep(void);
 void EPD_1in9_Clear_Screen(void);
 void EPD_1in9_Set_Temp(unsigned char temp);
-void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity, bool connect, bool battery);
+void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity, bool connect, bool battery, bool connection_error);
 
 #endif
