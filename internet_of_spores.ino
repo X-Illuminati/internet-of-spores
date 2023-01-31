@@ -91,8 +91,21 @@ void disp_readings(bool connectivity)
     return;
 #endif
 
-  EPD_1in9_GPIOInit();
-  res = EPD_1in9_init();
+  // use the current temperature to initialize some display timings
+  temp=get_temp();
+  rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
+  temp += *rtc_float_ptr;
+  if ((!isnan(temp)) && (temp >= 0))
+    EPD_1in9_Set_Temp(int(temp));
+
+  // if temperature is below 0 celsius, don't initialize the display
+  if (temp < 0) {
+    res = 1;
+  } else {
+    EPD_1in9_GPIOInit();
+    res = EPD_1in9_init();
+  }
+
   if (0 != res) {
     digitalWrite(EPD_RST_PIN, 0);
     return;
@@ -102,9 +115,6 @@ void disp_readings(bool connectivity)
     EPD_1in9_Clear_Screen();
   }
 
-  temp=get_temp();
-  rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
-  temp += *rtc_float_ptr;
   temp = (temp * 9/5)+32.0;
   humidity=get_humidity();
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
