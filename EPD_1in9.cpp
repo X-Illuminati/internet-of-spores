@@ -343,7 +343,7 @@ void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity
 {
   unsigned char ram_buffer[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0x4,0};
   unsigned char i;
-  const unsigned char symbols[10][2] = {
+  const unsigned char symbols[11][2] = {
     {0xbf, 0x1f}, //0
     {0x00, 0x1f}, //1
     {0xfd, 0x17}, //2
@@ -354,6 +354,7 @@ void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity
     {0x21, 0x1f}, //7
     {0xff, 0x1f}, //8
     {0xf7, 0x1f}, //9
+    {0x44, 0x04}, //NaN
   };
 
   // correct bogus inputs
@@ -378,38 +379,56 @@ void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity
     ram_buffer[0] = 0x04;
 
   // set the 10s digit for temperature
-  i = int(abs(temp / 10)) % 10;
+  if (isnan(temp))
+    i=10;
+  else
+    i = int(abs(temp / 10)) % 10;
   ram_buffer[1] = symbols[i][0];
   ram_buffer[2] = symbols[i][1];
 
   // set the 1s digit for temperature
-  i = int(abs(temp)) % 10;
+  if (isnan(temp))
+    i=10;
+  else
+    i = int(abs(temp)) % 10;
   ram_buffer[3] = symbols[i][0];
   ram_buffer[4] = symbols[i][1];
 
   // set the tenths digit for temperature
-  i = int(abs(temp * 10)) % 10;
-  ram_buffer[11] = symbols[i][0];
-  ram_buffer[12] = symbols[i][1];
+  if (!isnan(temp)) {
+    i = int(abs(temp * 10)) % 10;
+    ram_buffer[11] = symbols[i][0];
+    ram_buffer[12] = symbols[i][1];
+  }
 
   // set the 10s digit for humidity
-  i = int(abs(humidity / 10)) % 10;
+  if (isnan(humidity))
+    i=10;
+  else
+    i = int(abs(humidity / 10)) % 10;
   ram_buffer[5] = symbols[i][0];
   ram_buffer[6] = symbols[i][1];
 
   // set the 1s digit for humidity
-  i = int(abs(humidity)) % 10;
+  if (isnan(humidity))
+    i=10;
+  else
+    i = int(abs(humidity)) % 10;
   ram_buffer[7] = symbols[i][0];
   ram_buffer[8] = symbols[i][1];
 
   // set the tenths digit for humidity
-  i = int(abs(humidity * 10)) % 10;
-  ram_buffer[9] = symbols[i][0];
-  ram_buffer[10] = symbols[i][1];
+  if (!isnan(humidity)) {
+    i = int(abs(humidity * 10)) % 10;
+   ram_buffer[9] = symbols[i][0];
+    ram_buffer[10] = symbols[i][1];
+  }
 
   // add decimal points and % symbol
-  ram_buffer[4] |= 0x20;
-  ram_buffer[8] |= 0x20;
+  if (!isnan(temp))
+    ram_buffer[4] |= 0x20;
+  if (!isnan(humidity))
+    ram_buffer[8] |= 0x20;
   ram_buffer[10] |= 0x20;
 
   // add other symbols
