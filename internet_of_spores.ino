@@ -75,7 +75,7 @@ void take_readings(void)
 }
 #endif /* VCC_CAL_MODE */
 
-void disp_readings(bool connectivity)
+void disp_readings(bool connectivity=false, bool connection_error=false)
 {
   float temp;
   float *rtc_float_ptr;
@@ -120,7 +120,7 @@ void disp_readings(bool connectivity)
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
   humidity += *rtc_float_ptr;
   low_battery = (0 != (flags->flags & FLAG_BIT_LOW_BATTERY));
-  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery, false);
+  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery, connection_error);
   EPD_1in9_sleep();
 }
 
@@ -251,12 +251,16 @@ void loop(void)
     want_to_connect = true;
 #endif
 
-  disp_readings(want_to_connect);
+  // display the readings on the EPD_1in9 display
+  // but, if we are already showing the connection error message
+  // don't bother updating the display until we are successful
+  if (flags->fail_count <= DISP_CONNECT_FAIL_COUNT)
+    disp_readings(want_to_connect);
 
+  // is it time to connect and upload our readings?
   if (want_to_connect) {
     uint32_t num_readings = rtc_mem[RTC_MEM_NUM_READINGS];
 
-    // time to connect and upload our readings
 #if !TETHERED_MODE
     //this is normally done in setup() but deferred in battery mode
     connectivity_init();
@@ -269,6 +273,16 @@ void loop(void)
     //factor this into sleep time decisions
     if (rtc_mem[RTC_MEM_NUM_READINGS] == num_readings)
       connect_failed = true;
+
+    // if we have failed the defined number of times, display a connection error message
+    // on the EPD_1in9 display
+    if (connect_failed && (flags->fail_count == DISP_CONNECT_FAIL_COUNT))
+      disp_readings(true, true);
+
+    // if we have succeeded, but are currently showing the connection error message
+    // on the EPD_1in9 display, then clear it and show the actual readings
+    if (!connect_failed && (flags->fail_count > DISP_CONNECT_FAIL_COUNT))
+      disp_readings(false, false);
   }
 
 #if !TETHERED_MODE

@@ -19,6 +19,12 @@
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define WIFI_CONNECT_TIMEOUT    (30000)
 #define LOW_BATTERY_MV          (2850)
+/* num of connection failures after which the next failure will result in
+   displaying the connection error message on the EPD_1in9 display
+   3 seems reasonable, since it will have been 7xSLEEP_TIME_US since we were
+   ready to transmit and the next display update will come in 8xSLEEP_TIME_US
+   at which point the current display will be very out-of-date */
+#define DISP_CONNECT_FAIL_COUNT (3)
 
 #if TETHERED_MODE
   #define PPD42_PIN_DET         (D5)
