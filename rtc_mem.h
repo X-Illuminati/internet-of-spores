@@ -34,6 +34,11 @@ typedef struct sensor_reading_s {
   int32_t       value :24;
 } sensor_reading_t;
 
+typedef struct sleep_params_s {
+  uint32_t high_water_slot :8;
+  uint32_t sleep_time_ms   :24;
+} sleep_params_t;
+
 // Fields for each of the 32-bit fields in RTC Memory
 enum rtc_mem_fields_e {
   RTC_MEM_CHECK = 0,       // Magic/Header CRC
@@ -45,6 +50,7 @@ enum rtc_mem_fields_e {
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
   RTC_MEM_TEMP_CAL,        // Store the temperature calibration so we don't have to initialize SPIFFs every time
   RTC_MEM_HUMIDITY_CAL,    // Store the humidity calibration so we don't have to initialize SPIFFs every time
+  RTC_MEM_SLEEP_PARAMS,    // Store the user's sleep params so we don't have to initialize SPIFFs every time
 
   //array of sensor readings
   RTC_MEM_DATA,

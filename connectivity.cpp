@@ -24,6 +24,8 @@ String config_hint_temp_calib;
 String config_hint_humidity_calib;
 String config_hint_pressure_calib;
 String config_hint_battery_calib;
+String config_hint_sleep_time_ms;
+String config_hint_high_water_slot;
 WiFiManagerParameter* custom_node_name;
 WiFiManagerParameter* custom_report_host;
 WiFiManagerParameter* custom_report_port;
@@ -32,6 +34,8 @@ WiFiManagerParameter* temp_adj;
 WiFiManagerParameter* humidity_adj;
 WiFiManagerParameter* pressure_adj;
 WiFiManagerParameter* battery_adj;
+WiFiManagerParameter* custom_sleep_time_ms;
+WiFiManagerParameter* custom_high_water_slot;
 
 const char* config_label_node_name        = "><label for=\"" PERSISTENT_NODE_NAME "\">Friendly Name for this Sensor</label";
 const char* config_label_report_host_name = "><label for=\"" PERSISTENT_REPORT_HOST_NAME "\">Custom Report Server</label";
@@ -41,6 +45,9 @@ const char* config_label_temp_calib       = "><label for=\"" PERSISTENT_TEMP_CAL
 const char* config_label_humidity_calib   = "><label for=\"" PERSISTENT_HUMIDITY_CALIB "\">Humidity Offset Calibration</label";
 const char* config_label_pressure_calib   = "><label for=\"" PERSISTENT_PRESSURE_CALIB "\">Pressure Offset Calibration</label";
 const char* config_label_battery_calib    = "><label for=\"" PERSISTENT_BATTERY_CALIB "\">Battery Offset Calibration</label";
+const char* config_label_sleep_time_ms    = "><label for=\"" PERSISTENT_SLEEP_TIME_MS "\">Custom Sleep Period Between Measurements (ms)</label";
+const char* config_label_high_water_slot  = "><label for=\"" PERSISTENT_HIGH_WATER_SLOT "\">Upload After #Measurements</label";
+
 String nodename;
 unsigned long server_shutdown_timeout;
 
@@ -233,6 +240,50 @@ static void wifi_manager_save_config_callback(void)
   value = battery_adj->getValue();
   if (value && value[0])
     persistent_write(PERSISTENT_BATTERY_CALIB, value);
+
+  value = custom_sleep_time_ms->getValue();
+  if (value && value[0]) {
+    sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+    int temp;
+    char* endptr = (char*)value;
+
+    //check for valid integer
+    temp = strtol(value, &endptr, 0);
+    if ((0==temp) && (value==endptr)) {
+      persistent_write(PERSISTENT_SLEEP_TIME_MS, ""); //erase existing sleep time
+      sleep_params->sleep_time_ms = (int)DEFAULT_SLEEP_TIME_MS;
+    } else {
+      if (persistent_write(PERSISTENT_SLEEP_TIME_MS, value)) {
+        if (temp < 200)
+          temp = 200;
+        if (temp > 11200000)
+          temp = 11200000;
+        sleep_params->sleep_time_ms = temp;
+      }
+    }
+  }
+
+  value = custom_high_water_slot->getValue();
+  if (value && value[0]) {
+    sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+    int temp;
+    char* endptr = (char*)value;
+
+    //check for valid integer
+    temp = strtol(value, &endptr, 0);
+    if ((0==temp) && (value==endptr)) {
+      persistent_write(PERSISTENT_HIGH_WATER_SLOT, ""); //erase existing high-water slot
+      sleep_params->high_water_slot = DEFAULT_HIGH_WATER_SLOT;
+    } else {
+      if (persistent_write(PERSISTENT_SLEEP_TIME_MS, value)) {
+        if (temp <= 0)
+          temp = 1;
+        if (temp > NUM_STORAGE_SLOTS)
+          temp = NUM_STORAGE_SLOTS;
+        sleep_params->high_water_slot = temp;
+      }
+    }
+  }
 }
 
 // run the WiFi configuration mode
@@ -252,6 +303,8 @@ void enter_config_mode(void)
   config_hint_humidity_calib   = persistent_read(PERSISTENT_HUMIDITY_CALIB,   "humidity calibration (%)");
   config_hint_pressure_calib   = persistent_read(PERSISTENT_PRESSURE_CALIB,   "pressure calibration (kPa)");
   config_hint_battery_calib    = persistent_read(PERSISTENT_BATTERY_CALIB,    "battery calibration (V)");
+  config_hint_sleep_time_ms    = persistent_read(PERSISTENT_SLEEP_TIME_MS,    String("sleep time (") + String((int)DEFAULT_SLEEP_TIME_MS) + String(" ms)"));
+  config_hint_high_water_slot  = persistent_read(PERSISTENT_HIGH_WATER_SLOT,  String("#measurements (") + String(DEFAULT_HIGH_WATER_SLOT) + String(")"));
 
   custom_node_name = new WiFiManagerParameter(  PERSISTENT_NODE_NAME,        config_hint_node_name.c_str(),        NULL, 31, config_label_node_name);
   custom_report_host = new WiFiManagerParameter(PERSISTENT_REPORT_HOST_NAME, config_hint_report_host_name.c_str(), NULL, 40, config_label_report_host_name);
@@ -261,6 +314,8 @@ void enter_config_mode(void)
   humidity_adj = new WiFiManagerParameter(      PERSISTENT_HUMIDITY_CALIB,   config_hint_humidity_calib.c_str(),   NULL,  6, config_label_humidity_calib);
   pressure_adj = new WiFiManagerParameter(      PERSISTENT_PRESSURE_CALIB,   config_hint_pressure_calib.c_str(),   NULL,  8, config_label_pressure_calib);
   battery_adj = new WiFiManagerParameter(       PERSISTENT_BATTERY_CALIB,    config_hint_battery_calib.c_str(),    NULL,  6, config_label_battery_calib);
+  custom_sleep_time_ms = new WiFiManagerParameter(PERSISTENT_SLEEP_TIME_MS,  config_hint_sleep_time_ms.c_str(),    NULL,  8, config_label_sleep_time_ms);
+  custom_high_water_slot = new WiFiManagerParameter(PERSISTENT_HIGH_WATER_SLOT, config_hint_high_water_slot.c_str(), NULL, 3, config_label_high_water_slot);
 
   wifi_manager.addParameter(custom_node_name);
   wifi_manager.addParameter(custom_report_host);
@@ -270,6 +325,8 @@ void enter_config_mode(void)
   wifi_manager.addParameter(humidity_adj);
   wifi_manager.addParameter(pressure_adj);
   wifi_manager.addParameter(battery_adj);
+  wifi_manager.addParameter(custom_sleep_time_ms);
+  wifi_manager.addParameter(custom_high_water_slot);
   wifi_manager.setConfigPortalTimeout(CONFIG_SERVER_MAX_TIME);
   wifi_manager.setBreakAfterConfig(true);
   wifi_manager.setSaveConfigCallback(&wifi_manager_save_config_callback);
@@ -561,6 +618,8 @@ static bool update_config(WiFiClient& client)
     PERSISTENT_HUMIDITY_CALIB,
     PERSISTENT_PRESSURE_CALIB,
     PERSISTENT_BATTERY_CALIB,
+    PERSISTENT_SLEEP_TIME_MS,
+    PERSISTENT_HIGH_WATER_SLOT,
   };
   bool status = true;
 
@@ -666,6 +725,48 @@ static bool update_config(WiFiClient& client)
               tempf = DEFAULT_HUMIDITY_CALIB;
             }
             rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+          }
+
+          // special handling to update the RTC mem value for custom sleep time
+          if (8==i) {
+            sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+            int temp;
+            const char* nptr = (const char*)buffer;
+            char* endptr = (char*)nptr;
+
+            //check for valid integer
+            temp = strtol(nptr, &endptr, 0);
+            if ((0==temp) && (nptr==endptr)) {
+              persistent_write(filenames[i], ""); //erase existing file
+              sleep_params->sleep_time_ms = (int)DEFAULT_SLEEP_TIME_MS;
+            } else {
+              if (temp < 200)
+                temp = 200;
+              if (temp > 11200000)
+                temp = 11200000;
+              sleep_params->sleep_time_ms = temp;
+            }
+          }
+
+          // special handling to update the RTC mem value for custom high-water slot
+          if (9==i) {
+            sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+            int temp;
+            const char* nptr = (const char*)buffer;
+            char* endptr = (char*)nptr;
+
+            //check for valid integer
+            temp = strtol(nptr, &endptr, 0);
+            if ((0==temp) && (nptr==endptr)) {
+              persistent_write(filenames[i], ""); //erase existing file
+              sleep_params->high_water_slot = DEFAULT_HIGH_WATER_SLOT;
+            } else {
+              if (temp <= 0)
+                temp = 1;
+              if (temp > NUM_STORAGE_SLOTS)
+                temp = NUM_STORAGE_SLOTS;
+              sleep_params->high_water_slot = temp;
+            }
           }
 
           // inform the server that it can delete the update file

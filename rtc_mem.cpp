@@ -21,11 +21,13 @@ static void refactor_timebase(void);
 // increments the boot count and returns true if the RTC memory was OK
 bool load_rtc_memory(void)
 {
+  sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
   bool retval = true;
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
   if (rtc_mem[RTC_MEM_CHECK] + rtc_mem[RTC_MEM_BOOT_COUNT] != preinit_magic) {
     float tempf;
+    int temp;
     Serial.println(String("Preinit magic doesn't compute, reinitializing (0x") + String(preinit_magic, HEX) + ")");
     invalidate_rtc();
     retval = false;
@@ -34,6 +36,20 @@ bool load_rtc_memory(void)
     rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
     tempf = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
     rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+
+    temp = persistent_read(PERSISTENT_HIGH_WATER_SLOT, DEFAULT_HIGH_WATER_SLOT);
+    if (temp <= 0)
+      temp = 1;
+    if (temp > NUM_STORAGE_SLOTS)
+      temp = NUM_STORAGE_SLOTS;
+    sleep_params->high_water_slot = temp;
+
+    temp = persistent_read(PERSISTENT_SLEEP_TIME_MS, (int)DEFAULT_SLEEP_TIME_MS);
+    if (temp < 200)
+      temp = 200;
+    if (temp > 11200000)
+      temp = 11200000;
+    sleep_params->sleep_time_ms = temp;
   }
   rtc_mem[RTC_MEM_BOOT_COUNT]++;
 
@@ -55,9 +71,13 @@ bool load_rtc_memory(void)
     Serial.print(", temp cal=");
     rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
     Serial.print(*rtc_float_ptr);
-    Serial.print(",humidity cal=");
+    Serial.print(", humidity cal=");
     rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
     Serial.print(*rtc_float_ptr);
+    Serial.print(", sleep time=");
+    Serial.print(sleep_params->sleep_time_ms);
+    Serial.print(", high water=");
+    Serial.print(sleep_params->high_water_slot);
   }
 #endif
 

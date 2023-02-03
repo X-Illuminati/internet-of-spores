@@ -127,6 +127,7 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
 bool check_upload_conditions(void)
 {
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
   uint32_t boot_count = rtc_mem[RTC_MEM_BOOT_COUNT];
 
   /*
@@ -139,7 +140,7 @@ bool check_upload_conditions(void)
    * (This way you won't have to wait for 30-45 minutes before the initial
    * readings come in.)
    */
-  if (rtc_mem[RTC_MEM_NUM_READINGS] >= HIGH_WATER_SLOT) {
+  if (rtc_mem[RTC_MEM_NUM_READINGS] >= sleep_params->high_water_slot) {
     flags->flags |= FLAG_BIT_NORMAL_UPLOAD_COND;
     return true;
   }
@@ -153,43 +154,45 @@ bool check_upload_conditions(void)
 #if TETHERED_MODE
 void tethered_sleep(int64_t millis_offset, bool please_reboot)
 {
-  int64_t sleep_delta = (int64_t)SLEEP_TIME_US - (((int64_t)millis()-millis_offset)*1000);
+  sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+  int64_t sleep_delta_ms = (int64_t)sleep_params->sleep_time_ms - ((int64_t)millis()-millis_offset);
 
 #if EXTRA_DEBUG
-  Serial.printf("[%llu] sleep_delta=%lld\n", uptime(), sleep_delta);
+  Serial.printf("[%llu] sleep_delta_ms=%lld\n", uptime(), sleep_delta_ms);
 #endif
-  if (sleep_delta > 200000LL)
-    deep_sleep(sleep_delta);
+  if (sleep_delta_ms > 200LL)
+    deep_sleep(sleep_delta_ms*1000);
   else if (please_reboot)
     deep_sleep(100);
   else
     save_rtc(); // it is probably still worth saving RTC mem in case of soft reset, etc.
 
-  if (sleep_delta > 0)
-    delay(sleep_delta/1000);
+  if (sleep_delta_ms > 0)
+    delay(sleep_delta_ms);
 }
 #endif /* TETHERED_MODE */
 
 #if !TETHERED_MODE
 void battery_sleep(bool connect_failed=false)
 {
-  uint64_t sleep_delta = SLEEP_TIME_US;
+  sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  uint64_t sleep_delta_ms = sleep_params->sleep_time_ms;
 
   connectivity_disable();
 
   if (connect_failed) {
-    sleep_delta <<= flags->fail_count;
+    sleep_delta_ms <<= flags->fail_count;
     if (flags->fail_count < 6)
       flags->fail_count++;
 #if EXTRA_DEBUG
-    Serial.printf("[%llu] sleep_delta=%lld\n", uptime(), sleep_delta);
+    Serial.printf("[%llu] sleep_delta_ms=%lld\n", uptime(), sleep_delta_ms);
 #endif
   } else {
     flags->fail_count = 0;
   }
 
-  deep_sleep(sleep_delta);
+  deep_sleep(sleep_delta_ms*1000);
 }
 #endif /* !TETHERED_MODE */
 

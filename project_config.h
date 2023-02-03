@@ -51,7 +51,7 @@
   #define EXTRA_DEBUG           (0)
   #define DISABLE_FW_UPDATE     (0)
   #define SLEEP_TIME_US         (60000000ULL)
-  #define NUM_STORAGE_SLOTS     (119)
+  #define NUM_STORAGE_SLOTS     (118)
   #if TETHERED_MODE
     #define HIGH_WATER_SLOT     (1)
   #else
@@ -68,7 +68,10 @@
 #define PERSISTENT_HUMIDITY_CALIB   "humidity_calibration"
 #define PERSISTENT_PRESSURE_CALIB   "pressure_calibration"
 #define PERSISTENT_BATTERY_CALIB    "battery_calibration"
+#define PERSISTENT_SLEEP_TIME_MS    "sleep_time_ms"
+#define PERSISTENT_HIGH_WATER_SLOT  "high_water_slot"
 
+//persistent storage default values
 #define DEFAULT_NODE_BASE_NAME      "iotsp-"
 #define DEFAULT_REPORT_HOST_NAME    "192.168.0.1"
 #define DEFAULT_REPORT_HOST_PORT    (2880)
@@ -77,5 +80,7 @@
 #define DEFAULT_HUMIDITY_CALIB      (0.0f)
 #define DEFAULT_PRESSURE_CALIB      (0.0f)
 #define DEFAULT_BATTERY_CALIB       (0.0f)
+#define DEFAULT_SLEEP_TIME_MS       (SLEEP_TIME_US/1000)
+#define DEFAULT_HIGH_WATER_SLOT     (HIGH_WATER_SLOT)
 
 #endif /* _PROJECT_CONFIG_H_ */
