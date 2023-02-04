@@ -272,8 +272,15 @@ void loop(void)
     connectivity_init();
 #endif
 
+#if SIMULATE_GOOD_CONNECTION
+    Serial.println("Simulating WiFi connection");
+    Serial.println("Simulating upload");
+    clear_readings();
+    Serial.println("Upload OK");
+#else
     if (connect_wifi())
       upload_readings();
+#endif
 
     //we failed to make progress uploading readings
     //factor this into sleep time decisions

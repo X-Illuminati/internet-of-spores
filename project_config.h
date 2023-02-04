@@ -41,6 +41,7 @@
 #if DEVELOPMENT_BUILD
   #define EXTRA_DEBUG           (1)
   #define DISABLE_FW_UPDATE     (1)
+  #define SIMULATE_GOOD_CONNECTION (1)
   #define SLEEP_TIME_US         (10000000ULL)
   #define NUM_STORAGE_SLOTS     (27)
   #if TETHERED_MODE
@@ -51,6 +52,7 @@
 #else
   #define EXTRA_DEBUG           (0)
   #define DISABLE_FW_UPDATE     (0)
+  #define SIMULATE_GOOD_CONNECTION (0)
   #define SLEEP_TIME_US         (60000000ULL)
   #define NUM_STORAGE_SLOTS     (118)
   #if TETHERED_MODE
