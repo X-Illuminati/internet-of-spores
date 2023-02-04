@@ -93,6 +93,7 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
 
   // use the current temperature to initialize some display timings
   temp=get_temp();
+
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
   temp += *rtc_float_ptr;
   if ((!isnan(temp)) && (temp >= 0))
@@ -115,12 +116,14 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
     EPD_1in9_Clear_Screen();
   }
 
+#if EPD_FAHRENHEIT
   temp = (temp * 9/5)+32.0;
+#endif
   humidity=get_humidity();
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
   humidity += *rtc_float_ptr;
   low_battery = (0 != (flags->flags & FLAG_BIT_LOW_BATTERY));
-  EPD_1in9_Easy_Write_Full_Screen(temp, true, humidity, connectivity, low_battery, connection_error);
+  EPD_1in9_Easy_Write_Full_Screen(temp, EPD_FAHRENHEIT, humidity, connectivity, low_battery, connection_error);
   EPD_1in9_sleep();
 }
 

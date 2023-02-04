@@ -36,6 +36,7 @@
 #endif
   #define EPD_BUSY_PIN          (D7)
   #define EPD_RST_PIN           (D6)
+  #define EPD_FAHRENHEIT        (1)
 
 #if DEVELOPMENT_BUILD
   #define EXTRA_DEBUG           (1)
