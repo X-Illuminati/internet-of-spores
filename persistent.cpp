@@ -60,33 +60,54 @@ String persistent_read(const char* filename)
 }
 
 // read the value of a persistent file or return default_value
+// return default_value if persistent file contains "", " ", or "default"
 String persistent_read(const char* filename, String default_value)
 {
   String persist_value = persistent_read(filename);
-  if (persist_value == "" || persist_value == " ")
+  if (persist_value == "" || persist_value == " " || persist_value == "default")
     return default_value;
   else
     return persist_value;
 }
 
 // read an integer from a persistent file or return default_value
+// return default_value if persistent file contains "", " ", or if there is no parseable integer
 int persistent_read(const char* filename, int default_value)
 {
   String persist_value = persistent_read(filename);
-  if (persist_value == "")
+  const char* nptr = persist_value.c_str();
+  char* endptr = (char*)nptr;
+  int retval;
+
+  if (persist_value == "" || persist_value == " ")
     return default_value;
   else
-    return persist_value.toInt();
+    retval = strtol(nptr, &endptr, 0);
+
+  if ((0==retval) && (nptr==endptr))
+    return default_value;
+  else
+    return retval;
 }
 
 // read a float from a persistent file or return default_value
+// return default_value if persistent file contains "", " ", or if there is no parseable float
 float persistent_read(const char* filename, float default_value)
 {
   String persist_value = persistent_read(filename);
-  if (persist_value == "")
+  const char* nptr = persist_value.c_str();
+  char* endptr = (char*)nptr;
+  float retval;
+
+  if (persist_value == "" || persist_value == " ")
     return default_value;
   else
-    return persist_value.toFloat();
+    retval = strtof(nptr, &endptr);
+
+  if ((0==retval) && (nptr==endptr))
+    return default_value;
+  else
+    return retval;
 }
 
 // write a data string to a persistent file
