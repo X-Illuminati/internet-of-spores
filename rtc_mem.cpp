@@ -22,6 +22,7 @@ static void refactor_timebase(void);
 bool load_rtc_memory(void)
 {
   sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
+  boot_count_t *boot_count = (boot_count_t*) &rtc_mem[RTC_MEM_BOOT_COUNT];
   bool retval = true;
 
   ESP.rtcUserMemoryRead(0, rtc_mem, sizeof(rtc_mem));
@@ -51,22 +52,34 @@ bool load_rtc_memory(void)
       temp = 11200000;
     sleep_params->sleep_time_ms = temp;
   }
-  rtc_mem[RTC_MEM_BOOT_COUNT]++;
+  boot_count->boot_count++;
 
   Serial.printf("[%llu] ", uptime());
   Serial.print("setup: reset reason=");
   Serial.print(ESP.getResetReason());
   Serial.print(", boot count=");
-  Serial.print(rtc_mem[RTC_MEM_BOOT_COUNT]);
-#if (EXTRA_DEBUG != 0)
+  Serial.print(boot_count->boot_count);
+
+#if EXTRA_DEBUG
   {
     flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
-    float* rtc_float_ptr;
+    Serial.print(", epd refr=");
+    Serial.print(boot_count->epd_partial_refresh_count);
     Serial.print(", flags=0x");
     Serial.print((uint8_t)flags->flags, HEX);
     Serial.print(", connect failures=");
     Serial.print((uint8_t)flags->fail_count);
-    Serial.print(", RTC_SIZE=");
+  }
+#endif
+
+  Serial.print(", num readings=");
+  Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
+
+#if EXTRA_DEBUG
+  {
+    float* rtc_float_ptr;
+    Serial.printf("[%llu] ", uptime());
+    Serial.print("RTC_SIZE=");
     Serial.print(RTC_MEM_MAX);
     Serial.print(", temp cal=");
     rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
@@ -78,11 +91,10 @@ bool load_rtc_memory(void)
     Serial.print(sleep_params->sleep_time_ms);
     Serial.print(", high water=");
     Serial.print(sleep_params->high_water_slot);
+
+    Serial.println();
   }
 #endif
-
-  Serial.print(", num readings=");
-  Serial.println(rtc_mem[RTC_MEM_NUM_READINGS]);
 
   if (RTC_MEM_MAX > 128)
     Serial.println("*************************\nWARNING RTC_MEM_MAX > 128\n*************************");

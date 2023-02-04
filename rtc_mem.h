@@ -34,23 +34,30 @@ typedef struct sensor_reading_s {
   int32_t       value :24;
 } sensor_reading_t;
 
+// Structure to combine custom sleep time and high-water slot configurations
 typedef struct sleep_params_s {
   uint32_t high_water_slot :8;
   uint32_t sleep_time_ms   :24;
 } sleep_params_t;
 
+// Structure to combine boot count and EPD refresh cycle count
+typedef struct boot_count_s {
+  uint32_t epd_partial_refresh_count :8;
+  uint32_t boot_count                :24;
+} boot_count_t;
+
 // Fields for each of the 32-bit fields in RTC Memory
 enum rtc_mem_fields_e {
   RTC_MEM_CHECK = 0,       // Magic/Header CRC
-  RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss
-  RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields
+  RTC_MEM_BOOT_COUNT,      // Number of accumulated wakeups since last power loss (boot_count_t)
+  RTC_MEM_FLAGS_TIME,      // Timestamp for start of boot, this is 64-bits so it needs 2 fields (flags_time_t)
   RTC_MEM_FLAGS_TIME_END = RTC_MEM_FLAGS_TIME + NUM_WORDS(flags_time_t) - 1,
   RTC_MEM_DATA_TIMEBASE,   // Timestamp (upper 32 bits) from which sensor readings are stored as offsets
   RTC_MEM_NUM_READINGS,    // Number of occupied slots
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
-  RTC_MEM_TEMP_CAL,        // Store the temperature calibration so we don't have to initialize SPIFFs every time
-  RTC_MEM_HUMIDITY_CAL,    // Store the humidity calibration so we don't have to initialize SPIFFs every time
-  RTC_MEM_SLEEP_PARAMS,    // Store the user's sleep params so we don't have to initialize SPIFFs every time
+  RTC_MEM_TEMP_CAL,        // Store the temperature calibration so we don't have to initialize SPIFFs every time (float)
+  RTC_MEM_HUMIDITY_CAL,    // Store the humidity calibration so we don't have to initialize SPIFFs every time (float)
+  RTC_MEM_SLEEP_PARAMS,    // Store the user's sleep params so we don't have to initialize SPIFFs every time (sleep_params_t)
 
   //array of sensor readings
   RTC_MEM_DATA,

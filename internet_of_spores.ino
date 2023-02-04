@@ -81,6 +81,8 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
   float *rtc_float_ptr;
   float humidity;
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+  boot_count_t *boot_count = (boot_count_t*) &rtc_mem[RTC_MEM_BOOT_COUNT];
+  sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
   uint8_t res;
   bool low_battery;
 
@@ -113,7 +115,20 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
   }
   else
   {
-    EPD_1in9_Clear_Screen();
+    uint64_t templ = boot_count->epd_partial_refresh_count * sleep_params->sleep_time_ms;
+
+    //set to 0 if the time since last full refresh is > 3 minutes
+    if (templ >= EPD_FULL_REFRESH_TIME_MS)
+      boot_count->epd_partial_refresh_count = 0;
+
+    //use 0 as the trigger for a full refresh so that we do this on initial power up
+    //as well as if the refresh counter rolls over from 255 -> 0
+    if (boot_count->epd_partial_refresh_count == 0)
+      EPD_1in9_Clear_Screen();
+
+    //increment the refresh count after making decision
+    //so that we can do a full refresh on initial power up
+    boot_count->epd_partial_refresh_count++;
   }
 
 #if EPD_FAHRENHEIT
@@ -131,7 +146,8 @@ bool check_upload_conditions(void)
 {
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
   sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
-  uint32_t boot_count = rtc_mem[RTC_MEM_BOOT_COUNT];
+  boot_count_t *rtc_boot_count = (boot_count_t*) &rtc_mem[RTC_MEM_BOOT_COUNT];
+  uint32_t boot_count = rtc_boot_count->boot_count;
 
   /*
    * Normal upload condition:
