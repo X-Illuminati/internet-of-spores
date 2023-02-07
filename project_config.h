@@ -34,10 +34,12 @@
 #else
   #define FIRMWARE_NAME         "iotsp-battery"
 #endif
-  #define EPD_FULL_REFRESH_TIME_MS (180000)
-  #define EPD_BUSY_PIN          (D7)
-  #define EPD_RST_PIN           (D6)
-  #define EPD_FAHRENHEIT        (1)
+
+#define EPD_FULL_REFRESH_TIME_MS (180000)
+#define EPD_BUSY_PIN          (D7)
+#define EPD_RST_PIN           (D6)
+#define EPD_RST_POLARITY      (0)
+#define EPD_FAHRENHEIT        (1)
 
 #if DEVELOPMENT_BUILD
   #define EXTRA_DEBUG           (1)

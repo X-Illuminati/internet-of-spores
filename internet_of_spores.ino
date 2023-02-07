@@ -110,7 +110,7 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
   }
 
   if (0 != res) {
-    digitalWrite(EPD_RST_PIN, 0);
+    digitalWrite(EPD_RST_PIN, EPD_RST_POLARITY);
     return;
   }
   else

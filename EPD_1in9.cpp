@@ -33,9 +33,9 @@ void EPD_1in9_Reset(void)
 {
     //digitalWrite(EPD_RST_PIN, 1);
     //delay(50);
-    digitalWrite(EPD_RST_PIN, 0);
+    digitalWrite(EPD_RST_PIN, EPD_RST_POLARITY);
     delay(20);
-    digitalWrite(EPD_RST_PIN, 1);
+    digitalWrite(EPD_RST_PIN, !EPD_RST_POLARITY);
     delay(50);
 }
 
@@ -314,7 +314,7 @@ void EPD_1in9_sleep(void)
 	Wire.endTransmission();
 
 	delay(50);
-	digitalWrite(EPD_RST_PIN, 0);
+	digitalWrite(EPD_RST_PIN, EPD_RST_POLARITY);
 }
 
 void EPD_1in9_Clear_Screen(void)
