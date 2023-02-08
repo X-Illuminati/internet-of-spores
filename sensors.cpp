@@ -18,6 +18,7 @@ Pulse2 pulse;
 #endif
 static float gTemperature=NAN;
 static float gHumidity=NAN;
+static float gBattery=NAN;
 
 /* Functions */
 // setup sensors
@@ -241,12 +242,9 @@ void read_vcc(bool perform_store)
   if (perform_store && num_readings) {
     int32 avgval = readings/num_readings;
     store_reading(SENSOR_BATTERY_VOLTAGE, avgval);
-    if (avgval < LOW_BATTERY_MV) {
-      flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
-      flags->flags |= FLAG_BIT_LOW_BATTERY;
-    }
     num_readings = 0;
     readings = 0;
+    gBattery = avgval/1000.0;
   }
 }
 
@@ -275,4 +273,9 @@ float get_temp(void)
 float get_humidity(void)
 {
   return gHumidity;
+}
+
+float get_battery(void)
+{
+  return gBattery;
 }

@@ -78,13 +78,15 @@ void take_readings(void)
 void disp_readings(bool connectivity=false, bool connection_error=false)
 {
   float temp;
+  float batt;
   float *rtc_float_ptr;
   float humidity;
   flags_time_t *flags = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
   boot_count_t *boot_count = (boot_count_t*) &rtc_mem[RTC_MEM_BOOT_COUNT];
   sleep_params_t *sleep_params = (sleep_params_t*) &rtc_mem[RTC_MEM_SLEEP_PARAMS];
-  uint8_t res;
-  bool low_battery;
+  uint8_t res = 0;
+  bool low_battery = false;
+  bool crit_battery = false;
 
 #if TETHERED_MODE
   // check the PPD42 detection pin before initializing the 1.9" EPD display
@@ -95,14 +97,27 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
 
   // use the current temperature to initialize some display timings
   temp=get_temp();
-
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_TEMP_CAL];
   temp += *rtc_float_ptr;
   if ((!isnan(temp)) && (temp >= 0))
     EPD_1in9_Set_Temp(int(temp));
 
-  // if temperature is below 0 celsius, don't initialize the display
-  if (temp < 0) {
+  // check the current battery voltage and display an error message or avoid updating the display
+  batt=get_battery();
+  if (batt < LOW_BATTERY_VOLTAGE)
+    low_battery = true;
+
+  if (batt < CRIT_BATTERY_VOLTAGE) {
+    crit_battery = true;
+    if (flags->flags & FLAG_BIT_LOW_BATTERY)
+      res = 1; // battery voltage was already critical
+    else
+      flags->flags |= FLAG_BIT_LOW_BATTERY; // transition from non-critical to critical
+  }
+
+  // if temperature is below 0 celsius, or if the battery voltage is
+  // already critical, don't initialize the display
+  if ((0 != res) || (temp < 0)) {
     res = 1;
   } else {
     EPD_1in9_GPIOInit();
@@ -137,8 +152,7 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
   humidity=get_humidity();
   rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
   humidity += *rtc_float_ptr;
-  low_battery = (0 != (flags->flags & FLAG_BIT_LOW_BATTERY));
-  EPD_1in9_Easy_Write_Full_Screen(temp, EPD_FAHRENHEIT, humidity, connectivity, low_battery, connection_error);
+  EPD_1in9_Easy_Write_Full_Screen(temp, humidity, EPD_FAHRENHEIT, connectivity, connection_error, low_battery, crit_battery);
   EPD_1in9_sleep();
 }
 

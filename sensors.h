@@ -30,5 +30,6 @@ void read_vcc(bool perform_store);
 void store_uptime(void);
 float get_temp(void);
 float get_humidity(void);
+float get_battery(void);
 
 #endif /* _SENSORS_H_ */

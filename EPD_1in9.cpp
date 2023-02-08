@@ -339,7 +339,8 @@ void EPD_1in9_Set_Temp(unsigned char temp)
   VAR_Temperature = temp;
 }
 
-void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity, bool connect, bool battery, bool connection_error)
+void EPD_1in9_Easy_Write_Full_Screen(float temp, float humidity, bool fahrenheit, bool connect,
+  bool connection_error, bool low_battery, bool critical_battery)
 {
   unsigned char ram_buffer[15] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   unsigned char i;
@@ -424,31 +425,29 @@ void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity
     ram_buffer[10] = symbols[i][1];
   }
 
-  // add decimal points and % symbol
-  if (!connection_error) {
-    if (!isnan(temp))
-      ram_buffer[4] |= 0x20;
-    if (!isnan(humidity))
-      ram_buffer[8] |= 0x20;
-    ram_buffer[10] |= 0x20;
-  }
-
-  // add other symbols
-  if (!connection_error) {
-    if (fahrenheit)
-      ram_buffer[13] |= 0x06;
-    else
-      ram_buffer[13] |= 0x05;
-  }
-
   if (connect)
     ram_buffer[13] |= 0x08;
   
-  if (battery)
+  if (low_battery)
     ram_buffer[13] |= 0x10;
 
-  // display Con Err (overriding temp and humidity display)
-  if (connection_error) {
+  if (critical_battery) {
+  // display Lo Bat (overriding temp and humidity display)
+    ram_buffer[0]=0;           // 
+    ram_buffer[1]=0b10011111;  // L
+    ram_buffer[2]=0b10000;
+    ram_buffer[3]=0b11001000;  // o
+    ram_buffer[4]=0b01000;
+    ram_buffer[11]=0;          // 
+    ram_buffer[12]=0;
+    ram_buffer[5]=0b11111111;  // B
+    ram_buffer[6]=0b01010;
+    ram_buffer[7]=0b11001000;  // a-ish
+    ram_buffer[8]=0b111000;
+    ram_buffer[9]=0b11001111;  // t
+    ram_buffer[10]=0b10000;
+  } else if (connection_error) {
+    // display Con Err (overriding temp and humidity display)
     ram_buffer[0]=0;           // 
     ram_buffer[1]=0b10101110;  // C
     ram_buffer[2]=0b10001;
@@ -462,6 +461,24 @@ void EPD_1in9_Easy_Write_Full_Screen(float temp, bool fahrenheit, float humidity
     ram_buffer[8]=0b00000;
     ram_buffer[9]=0b00111110;  // r
     ram_buffer[10]=0b00000;
+  } else {
+    // no errors
+    // add decimal points and % symbol
+    if (!connection_error) {
+      if (!isnan(temp))
+        ram_buffer[4] |= 0x20;
+      if (!isnan(humidity))
+        ram_buffer[8] |= 0x20;
+      ram_buffer[10] |= 0x20;
+    }
+
+    // add other symbols
+    if (!connection_error) {
+      if (fahrenheit)
+        ram_buffer[13] |= 0x06;
+      else
+        ram_buffer[13] |= 0x05;
+    }
   }
 
   // ship it
