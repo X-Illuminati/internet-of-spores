@@ -238,8 +238,21 @@ static void wifi_manager_save_config_callback(void)
     persistent_write(PERSISTENT_PRESSURE_CALIB, value);
 
   value = battery_adj->getValue();
-  if (value && value[0])
-    persistent_write(PERSISTENT_BATTERY_CALIB, value);
+  if (value && value[0]) {
+    char* endptr = (char*)value;
+    float tempf;
+
+    //check for valid float
+    tempf = strtof(value, &endptr);
+    if ((0==tempf) && (value==endptr)) {
+      persistent_write(PERSISTENT_BATTERY_CALIB, ""); //erase existing battery calibration
+      tempf = DEFAULT_BATTERY_CALIB;
+      rtc_mem[RTC_MEM_BATTERY_CAL] = *((uint32_t*)&tempf);
+    } else {
+      if (persistent_write(PERSISTENT_BATTERY_CALIB, value))
+        rtc_mem[RTC_MEM_BATTERY_CAL] = *((uint32_t*)&tempf);
+    }
+  }
 
   value = custom_sleep_time_ms->getValue();
   if (value && value[0]) {
@@ -725,6 +738,21 @@ static bool update_config(WiFiClient& client)
               tempf = DEFAULT_HUMIDITY_CALIB;
             }
             rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+          }
+
+          // special handling to update the RTC mem value for battery calib
+          if (7==i) {
+            float tempf;
+            const char* nptr = (const char*)buffer;
+            char* endptr = (char*)nptr;
+
+            //check for valid float
+            tempf = strtof(nptr, &endptr);
+            if ((0==tempf) && (nptr==endptr)) {
+              persistent_write(filenames[i], ""); //erase existing file
+              tempf = DEFAULT_BATTERY_CALIB;
+            }
+            rtc_mem[RTC_MEM_BATTERY_CAL] = *((uint32_t*)&tempf);
           }
 
           // special handling to update the RTC mem value for custom sleep time

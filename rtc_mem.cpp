@@ -37,6 +37,8 @@ bool load_rtc_memory(void)
     rtc_mem[RTC_MEM_TEMP_CAL] = *((uint32_t*)&tempf);
     tempf = persistent_read(PERSISTENT_HUMIDITY_CALIB, DEFAULT_HUMIDITY_CALIB);
     rtc_mem[RTC_MEM_HUMIDITY_CAL] = *((uint32_t*)&tempf);
+    tempf = persistent_read(PERSISTENT_BATTERY_CALIB, DEFAULT_BATTERY_CALIB);
+    rtc_mem[RTC_MEM_BATTERY_CAL] = *((uint32_t*)&tempf);
 
     temp = persistent_read(PERSISTENT_HIGH_WATER_SLOT, DEFAULT_HIGH_WATER_SLOT);
     if (temp <= 0)
@@ -86,6 +88,9 @@ bool load_rtc_memory(void)
     Serial.print(*rtc_float_ptr);
     Serial.print(", humidity cal=");
     rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_HUMIDITY_CAL];
+    Serial.print(*rtc_float_ptr);
+    Serial.print(", battery cal=");
+    rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_BATTERY_CAL];
     Serial.print(*rtc_float_ptr);
     Serial.print(", sleep time=");
     Serial.print(sleep_params->sleep_time_ms);

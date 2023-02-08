@@ -58,7 +58,7 @@
   #define DISABLE_FW_UPDATE     (0)
   #define SIMULATE_GOOD_CONNECTION (0)
   #define SLEEP_TIME_US         (60000000ULL)
-  #define NUM_STORAGE_SLOTS     (118)
+  #define NUM_STORAGE_SLOTS     (117)
   #if TETHERED_MODE
     #define HIGH_WATER_SLOT     (1)
   #else

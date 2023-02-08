@@ -57,6 +57,7 @@ enum rtc_mem_fields_e {
   RTC_MEM_FIRST_READING,   // Slot that has the oldest reading
   RTC_MEM_TEMP_CAL,        // Store the temperature calibration so we don't have to initialize SPIFFs every time (float)
   RTC_MEM_HUMIDITY_CAL,    // Store the humidity calibration so we don't have to initialize SPIFFs every time (float)
+  RTC_MEM_BATTERY_CAL,     // Store the battery calibration so we don't have to initialize SPIFFs every time (float)
   RTC_MEM_SLEEP_PARAMS,    // Store the user's sleep params so we don't have to initialize SPIFFs every time (sleep_params_t)
 
   //array of sensor readings

@@ -104,15 +104,21 @@ void disp_readings(bool connectivity=false, bool connection_error=false)
 
   // check the current battery voltage and display an error message or avoid updating the display
   batt=get_battery();
+  rtc_float_ptr = (float*)&rtc_mem[RTC_MEM_BATTERY_CAL];
+  batt += *rtc_float_ptr;
+
   if (batt < LOW_BATTERY_VOLTAGE)
     low_battery = true;
 
+  if (flags->flags & FLAG_BIT_LOW_BATTERY)
+    res = 1; // battery voltage was already critical, don't initialize display
+
   if (batt < CRIT_BATTERY_VOLTAGE) {
     crit_battery = true;
-    if (flags->flags & FLAG_BIT_LOW_BATTERY)
-      res = 1; // battery voltage was already critical
-    else
-      flags->flags |= FLAG_BIT_LOW_BATTERY; // transition from non-critical to critical
+    flags->flags |= FLAG_BIT_LOW_BATTERY;
+  } else if (!isnan(batt)) {
+    crit_battery = false;
+    flags->flags &= ~FLAG_BIT_LOW_BATTERY;
   }
 
   // if temperature is below 0 celsius, or if the battery voltage is
