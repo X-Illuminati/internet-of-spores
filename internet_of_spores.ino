@@ -231,6 +231,9 @@ void battery_sleep(bool connect_failed=false)
     flags->fail_count = 0;
   }
 
+  if (flags->flags & FLAG_BIT_LOW_BATTERY)
+    sleep_delta_ms = MAX_ESP_SLEEP_TIME_MS; // battery voltage is critical, sleep forever
+
   deep_sleep(sleep_delta_ms*1000);
 }
 #endif /* !TETHERED_MODE */

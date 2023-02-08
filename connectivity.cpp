@@ -269,8 +269,8 @@ static void wifi_manager_save_config_callback(void)
       if (persistent_write(PERSISTENT_SLEEP_TIME_MS, value)) {
         if (temp < 200)
           temp = 200;
-        if (temp > 11200000)
-          temp = 11200000;
+        if (temp > MAX_ESP_SLEEP_TIME_MS)
+          temp = MAX_ESP_SLEEP_TIME_MS;
         sleep_params->sleep_time_ms = temp;
       }
     }
@@ -770,8 +770,8 @@ static bool update_config(WiFiClient& client)
             } else {
               if (temp < 200)
                 temp = 200;
-              if (temp > 11200000)
-                temp = 11200000;
+              if (temp > MAX_ESP_SLEEP_TIME_MS)
+                temp = MAX_ESP_SLEEP_TIME_MS;
               sleep_params->sleep_time_ms = temp;
             }
           }

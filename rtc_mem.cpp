@@ -50,8 +50,8 @@ bool load_rtc_memory(void)
     temp = persistent_read(PERSISTENT_SLEEP_TIME_MS, (int)DEFAULT_SLEEP_TIME_MS);
     if (temp < 200)
       temp = 200;
-    if (temp > 11200000)
-      temp = 11200000;
+    if (temp > MAX_ESP_SLEEP_TIME_MS)
+      temp = MAX_ESP_SLEEP_TIME_MS;
     sleep_params->sleep_time_ms = temp;
   }
   boot_count->boot_count++;
@@ -158,6 +158,10 @@ void save_rtc(uint64_t sleep_time_us)
 void deep_sleep(uint64_t time_us)
 {
   flags_time_t *timestruct = (flags_time_t*) &rtc_mem[RTC_MEM_FLAGS_TIME];
+
+  if (time_us > (MAX_ESP_SLEEP_TIME_MS*1000))
+    time_us = (MAX_ESP_SLEEP_TIME_MS*1000);
+
   save_rtc(time_us);
 
 #if TETHERED_MODE

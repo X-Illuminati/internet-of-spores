@@ -26,6 +26,10 @@
    ready to transmit and the next display update will come in 8xSLEEP_TIME_US
    at which point the current display will be very out-of-date */
 #define DISP_CONNECT_FAIL_COUNT (3)
+/* since ESP.deepSleepMax() doesn't work properly, just hard-code a value
+   that will work over a typical temperature range and clamp any sleep
+   period to this value */
+#define MAX_ESP_SLEEP_TIME_MS   (9180000ULL)
 
 #if TETHERED_MODE
   #define PPD42_PIN_DET         (D5)
