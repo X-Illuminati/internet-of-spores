@@ -42,7 +42,7 @@
 
 #define EPD_FULL_REFRESH_TIME_MS (180000)
 #define EPD_BUSY_PIN          (D7)
-#define EPD_RST_PIN           (D6)
+#define EPD_RST_PIN           (D8 /*note: remove R9 pullup on waveshare board */)
 #define EPD_RST_POLARITY      (0)
 #define EPD_FAHRENHEIT        (1)
 
