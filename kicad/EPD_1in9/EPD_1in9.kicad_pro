@@ -31,8 +31,8 @@
   },
   "erc": {
     "erc_exclusions": [
-      "multiple_net_names|1130300|609600|f5d7efa8-6fb1-42e6-8429-03ced6e17407|50446658-c261-4b5f-9fac-23b9cdc90958",
-      "multiple_net_names|1130300|635000|a482c4d6-6282-4ecb-b3b5-d5a6cc4209d1|12f34d9f-b7e2-4b01-a9a7-6b5850cb5485"
+      "multiple_net_names|1130300|609600|a193c10b-4a4d-47b3-9338-862e5b1d5bda|50446658-c261-4b5f-9fac-23b9cdc90958",
+      "multiple_net_names|635000|609600|f56742d2-13cc-49e2-9027-e9e581412b51|b8c81cab-bf23-4b7d-893e-962d22fcbb1b"
     ],
     "meta": {
       "version": 0
