@@ -1,3 +1,4 @@
 (fp_lib_table
-  (lib (name "Connector")(type "KiCad")(uri "${KIPRJMOD}/Connector.pretty")(options "")(descr ""))
+  (lib (name "Connector_local")(type "KiCad")(uri "${KIPRJMOD}/Connector_local.pretty")(options "")(descr ""))
+  (lib (name "Display_local")(type "KiCad")(uri "${KIPRJMOD}/Display_local.pretty")(options "")(descr ""))
 )
