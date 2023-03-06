@@ -821,10 +821,10 @@
     (uuid 7b5a8b59-0c35-47e6-9253-96dbcd2c4ab5)
     (property "Reference" "J4" (id 0) (at 124.46 44.45 0))
     (property "Value" "Conn_01x08" (id 1) (at 124.46 46.99 0))
-    (property "Footprint" "Connector:CivLux_CF35_1x08-1MP_P0.50mm_Horizontal" (id 2) (at 124.46 60.96 0)
+    (property "Footprint" "Connector_local:CivLux_CF3527S_1x08-1MP_P0.50mm_Horizontal" (id 2) (at 124.46 60.96 0)
       (effects (font (size 1.27 1.27)) hide)
     )
-    (property "Datasheet" "~" (id 3) (at 124.46 60.96 0)
+    (property "Datasheet" "https://www.cvilux.com/uploads/spec/101/681/SPCF053.pdf" (id 3) (at 124.46 60.96 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (pin "1" (uuid 5cc9e272-f072-4cbb-833d-b3d9fbf32458))
@@ -1129,7 +1129,7 @@
       (reference "J3") (unit 1) (value "Conn_01x08") (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical")
     )
     (path "/7b5a8b59-0c35-47e6-9253-96dbcd2c4ab5"
-      (reference "J4") (unit 1) (value "Conn_01x08") (footprint "Connector:CivLux_CF35_1x08-1MP_P0.50mm_Horizontal")
+      (reference "J4") (unit 1) (value "Conn_01x08") (footprint "Connector_local:CivLux_CF3527S_1x08-1MP_P0.50mm_Horizontal")
     )
     (path "/9204b8c4-a7e8-40da-90c3-2b7c23d3b503"
       (reference "R1") (unit 1) (value "47k") (footprint "Resistor_SMD:R_1206_3216Metric_Pad1.30x1.75mm_HandSolder")
