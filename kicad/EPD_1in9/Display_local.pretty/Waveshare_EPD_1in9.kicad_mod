@@ -31,7 +31,7 @@
   (fp_line (start 20.2 0.75) (end 25.8 0.75) (layer "F.Fab") (width 0.1) (tstamp a637cb16-389f-4270-b292-ae223b136fff))
   (fp_line (start 0 0) (end 32 0) (layer "F.Fab") (width 0.1) (tstamp cac982bd-aa30-40ac-8acb-9e4147fc718d))
   (fp_line (start 20.2 0) (end 20.2 0.75) (layer "F.Fab") (width 0.1) (tstamp e0bec7fb-d562-49f0-bde7-4eeb49c08f25))
-  (model "/home/cbaker/projects/internet_of_spores/openscad/EPD_1in9.wrl"
+  (model "${KIPRJMOD}/EPD_1in9.wrl"
     (offset (xyz 0 49.35 0))
     (scale (xyz 0.393700787 0.393700787 0.393700787))
     (rotate (xyz 0 0 90))
