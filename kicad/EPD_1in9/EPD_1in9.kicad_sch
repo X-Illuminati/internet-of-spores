@@ -396,7 +396,6 @@
     )
   )
 
-
   (junction (at 71.12 45.72) (diameter 0) (color 0 0 0 0)
     (uuid 0f00d4e1-2db7-42e6-8d33-ad3aa3ab18e6)
   )
@@ -790,7 +789,7 @@
     (uuid 566747db-af3a-40e1-bc0e-48ac499886b5)
     (property "Reference" "J1" (id 0) (at 25.4 19.05 0))
     (property "Value" "Conn_01x02" (id 1) (at 25.4 21.59 0))
-    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Horizontal" (id 2) (at 25.4 27.94 0)
+    (property "Footprint" "Connector_local:PinHeader_1x02_P2.54mm_Horizontal_SMD" (id 2) (at 25.4 27.94 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 25.4 27.94 0)
@@ -918,7 +917,7 @@
     (uuid ae782f28-1c12-4065-a98a-eee05974f10c)
     (property "Reference" "J2" (id 0) (at 25.4 39.37 0))
     (property "Value" "Conn_01x08" (id 1) (at 25.4 41.91 0))
-    (property "Footprint" "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical" (id 2) (at 25.4 53.34 0)
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical_SMD_Pin1Right" (id 2) (at 25.4 53.34 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 25.4 53.34 0)
@@ -974,7 +973,7 @@
     (uuid e226d511-19fc-45da-9fc0-680194ebf1fe)
     (property "Reference" "J3" (id 0) (at 50.8 39.37 0))
     (property "Value" "Conn_01x08" (id 1) (at 50.8 41.91 0))
-    (property "Footprint" "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical" (id 2) (at 50.8 53.34 0)
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical_SMD_Pin1Right" (id 2) (at 50.8 53.34 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 50.8 53.34 0)
@@ -1120,13 +1119,13 @@
       (reference "Disp1") (unit 1) (value "Waveshare_EPD_1in9") (footprint "Display_local:Waveshare_EPD_1in9")
     )
     (path "/566747db-af3a-40e1-bc0e-48ac499886b5"
-      (reference "J1") (unit 1) (value "Conn_01x02") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Horizontal")
+      (reference "J1") (unit 1) (value "Conn_01x02") (footprint "Connector_local:PinHeader_1x02_P2.54mm_Horizontal_SMD")
     )
     (path "/ae782f28-1c12-4065-a98a-eee05974f10c"
-      (reference "J2") (unit 1) (value "Conn_01x08") (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical")
+      (reference "J2") (unit 1) (value "Conn_01x08") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical_SMD_Pin1Right")
     )
     (path "/e226d511-19fc-45da-9fc0-680194ebf1fe"
-      (reference "J3") (unit 1) (value "Conn_01x08") (footprint "Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical")
+      (reference "J3") (unit 1) (value "Conn_01x08") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical_SMD_Pin1Right")
     )
     (path "/7b5a8b59-0c35-47e6-9253-96dbcd2c4ab5"
       (reference "J4") (unit 1) (value "Conn_01x08") (footprint "Connector_local:CivLux_CF3527S_1x08-1MP_P0.50mm_Horizontal")
