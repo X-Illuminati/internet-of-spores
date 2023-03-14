@@ -789,7 +789,7 @@
     (uuid 566747db-af3a-40e1-bc0e-48ac499886b5)
     (property "Reference" "J1" (id 0) (at 25.4 19.05 0))
     (property "Value" "Conn_01x02" (id 1) (at 25.4 21.59 0))
-    (property "Footprint" "Connector_local:PinHeader_1x02_P2.54mm_Horizontal_SMD" (id 2) (at 25.4 27.94 0)
+    (property "Footprint" "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical_SMD_Pin1Right" (id 2) (at 25.4 27.94 0)
       (effects (font (size 1.27 1.27)) hide)
     )
     (property "Datasheet" "~" (id 3) (at 25.4 27.94 0)
@@ -1119,7 +1119,7 @@
       (reference "Disp1") (unit 1) (value "Waveshare_EPD_1in9") (footprint "Display_local:Waveshare_EPD_1in9")
     )
     (path "/566747db-af3a-40e1-bc0e-48ac499886b5"
-      (reference "J1") (unit 1) (value "Conn_01x02") (footprint "Connector_local:PinHeader_1x02_P2.54mm_Horizontal_SMD")
+      (reference "J1") (unit 1) (value "Conn_01x02") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical_SMD_Pin1Right")
     )
     (path "/ae782f28-1c12-4065-a98a-eee05974f10c"
       (reference "J2") (unit 1) (value "Conn_01x08") (footprint "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical_SMD_Pin1Right")
