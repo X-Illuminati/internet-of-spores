@@ -18,7 +18,7 @@
 #define SHT30_ADDR              (0x45)
 #define REPORT_RESPONSE_TIMEOUT (2000)
 #define WIFI_CONNECT_TIMEOUT    (30000)
-#define LOW_BATTERY_VOLTAGE     (2.95f)
+#define LOW_BATTERY_VOLTAGE     (3.14f)
 #define CRIT_BATTERY_VOLTAGE    (2.70f)
 /* num of connection failures after which the next failure will result in
    displaying the connection error message on the EPD_1in9 display
