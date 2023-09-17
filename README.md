@@ -2,6 +2,8 @@
 IOT Sensor Platform for ESP8266 Arduino
 Specifically targeting Lolin D1 Mini.
 ![D1 mini board stackup](doc/stackup.png)
+![Waveshare 1.9 in segmented E-Paper Display](doc/EPD_1in9.png)
+![Grafana Dashboard](doc/grafana.png)
 
 ## Supported Sensors
 * Temperature
