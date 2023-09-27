@@ -16,6 +16,10 @@ Specifically targeting Lolin D1 Mini.
 * Dust/Particle
   * PPD42NS
 
+## Documentation (work-in-progress)
+* [Developer Documentation](doc/README.md)
+* [User Guide](doc/user_guide.md)
+
 ## Toolchain Setup and Library Dependencies
 
 ### ESP8266 Arduino
