@@ -22,6 +22,7 @@
   * [doc/](../doc/) - Documentation for the project
     * [README.md](README.md) - Documentation overview
     * [user_guide.md](user_guide.md) - Usage instructions
+    * [drawio/](drawio/) - Draw.io Diagram Files
   * [firmware/](../firmware/) - Firmware images for the sensor nodes
     * ...-iotsp-tethered.bin - Firmware image for USB powered sensor nodes
     * ...-iotsp-battery.bin - Firmware image for battery-powered sensor nodes

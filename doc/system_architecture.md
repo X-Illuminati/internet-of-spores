@@ -2,8 +2,7 @@
 This outline is currently a work-in-progress.
 
 ## Block Diagram
-Describe relationship between sensors and server (including WiFi AP).
-Describe relationship between server components -- node-red, influxdb, and grafana.
+![System Architecture Block Diagram](drawio/sysarch_block_diagram.png)
 
 ## Features
 ### Sensor Measurements
