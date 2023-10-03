@@ -3,50 +3,151 @@ This outline is currently a work-in-progress.
 
 ## Block Diagram
 ![System Architecture Block Diagram](drawio/sysarch_block_diagram.png)
+TODO: Add SPI NOR Flash, PPD42 is powered from 5V, "Node-RED", node-red flows
+
+Distributed sensor nodes are powered either by battery or by a USB power supply and communicate with a central server via WiFi.  
+Sensor nodes act as WiFi stations and connect to a pre-configured access point. Sensors nodes are pre-configured with a DNS or IP address for the server on the local network.  
+The server is running a [Node-RED](https://nodered.org/) instance which is listening for incoming connections. The Node-RED instance will parse out the sensor readings and store them in a time-series database like [InfluxDB](https://www.influxdata.com/).  
+[Grafana](https://grafana.com/) can be used to provide a user-friendly interface to view the data. The Grafana instance could run on the same server or on a different server. Grafana provides an HTTP portal to view the data, so users can connect to it from other computers or smartphones that are connected to the network.
 
 ## Features
 ### Sensor Measurements
+The following types of sensor measurement can be collected by the sensor nodes:
 - Humidity
 - Temperature
 - Pressure
 - Particle Counts
 - Battery Level
 - Uptime
-- Calibration (single point offset calibration)
-- Filtering
+
+Sensor nodes support a single point offset calibration for the different types of measurement that they can make. (Except for uptime.)  
+A more advanced linear or quadratic calibration would be better, but it would require more burden for the end-user to perform the calibration and would not be likely to improve the overall experience since the sensor ICs have their own internal calibration depending on temperature that would conflict with the user calibration.
+
+There is also a special timing constant that represents untracked time spent while entering and exiting deep-sleep. If necessary, this can also be calibrated.
+
+The sensor nodes perform limited filtering in the form of averaging several measurements.  
+This is necessary because the sensor ICs used are inexpensive and very noisy and because they are powered down in deep-sleep mode and don't have a lot of time to stabilize when the sensor node wakes up to take the measurement.
+
+Additional filtering can be applied post-facto in Grafana.
 
 ### Persistent Storage
+
+The following types of data are stored persistently within the sensor node's NOR Flash:
 - Calibration values
 - WiFi Credentials
 - Configuration
   - Sensor Node Name
-  - Node-red server address and port
+  - Node-RED server address and port
   - Celsius vs Fahrenheit display
-  - Sleep time
-- InfluxDB (Sensor Readings)
+  - Sleep time (time between sensor readings)
 
-### Sensor Power Management
-- Battery Power (LiFePO4)
-- Deep Sleep
-- USB Power
-- Reset Button
+These configuration and calibration values can be modified over-the-air (see [FW Update](#fw-update) chapter) or by entering configuration mode (see [Connectivity](#configuration-mode) chapter).
+
+Sensor readings are not stored in NOR flash and will be lost if power is removed from the unit.  
+Sensor readings are stored in RTC RAM that is persistent through deep-sleep and only uploaded to the server occasionally (about every 20-30 minutes).
+
+The sensor readings collected are stored in an InfluxDB time-series database.
+
+### Sensor Node Power Management
+Sensor nodes are primarily powered by battery.  
+A LiFePO₄ battery can be use without any additional regulator circuitry as all components are tolerant of voltage between 2.9V - 3.6V.
+
+No battery charging capability is offered. Batteries should be removable so they can be replaced and recharged separately.
+
+Sensor nodes can also be powered from a USB power supply.
+The ME6211 LDO linear regulator on the Lolin D1 Mini board will step the voltage down to 3.3V.
+
+It is not recommended to power the board from USB while a battery is connected as it is likely that the LDO will attempt to "charge" the battery. This could overload the current capabilities of the LDO or could damage the battery.
+
+Two types of firmware are supported:
+1) Battery-powered - intended to use with a battery
+2) Tethered - intended to use with an unlimited USB power source
+
+#### Battery-powered
+The battery-powered firmware will spend most of its time in deep sleep. Only waking up once per minute (configurable) to take sensor readings.
+
+The sensor readings are stored in RTC RAM until the memory is full. This reduces the frequency of connecting to WiFi and allows sensor readings to be batched together to reduce transmission overhead.
+
+When the battery is initially connected, it is often desirable to the user that they be able to see sensor readings updating immediately in their dashboard.  
+To support this, the sensor node will transmit the first readings after one sleep period, the next batch after two sleep periods, then 4, 8, and so forth.
+
+Pressing the reset button will cause the sensor node to immediately wake from deep-sleep and collect another sensor reading.  
+The sensor node has no mechanism to know how long it slept for, so waking it this way will cause inaccuracy in the measurement timestamps.
+
+When the battery reaches a critically low voltage, the sensor node will enter deep-sleep permanently to avoid spurious sensor readings as the sensor ICs are only rated to work at 2.9V and above.  
+This will also help to prevent under-voltage damage to the battery -- though, LiFePO₄ are relatively resistant to damage in this way.
+
+#### Tethered
+The tethered firmware supports the PPD42 particle sensor, which must remain powered (from 5V USB) to support proper airflow convection through the sensor.
+
+The sensor node will connect to the WiFi and upload sensor readings immediately.  
+The readings will only be stored in RTC RAM in case of connectivity issues that prevent uploading.
+
+The sensor node will still use deep-sleep to implement a delay of 1 minute between readings (configurable).
 
 ### Connectivity
-- WiFi Setup (Soft AP) with WiFi Manager
-- WiFi STA
-- Sensor to Node-red connectivity (including port #)
-- Node-red to InfluxDB
-- Grafana to InfluxDB
+#### Configuration Mode
+Pressing the reset button when the sensor node is not in deep-sleep will cause it to reboot into configuration mode.  
+This is most effectively done by double-pressing the reset button since the sensor node is usually in deep-sleep.
+
+In configuration mode, the sensor node will act as a soft access point and a WiFi connection can be made to it from a smartphone, tablet, or laptop computer.
+Once connected, a "WiFi Manager" captive portal will be presented or will be accessible from the user's web browser by navigating to [http://192.168.4.1](http://192.168.4.1).
+
+The captive portal will allow modification of the configuration parameters and will allow the user to configure the SSID and password of the access point that the sensor node will use to upload sensor readings.
+
+Connectivity to the access point will be tested before returning to normal mode.  
+A failsafe timeout will cause the sensor node to return to normal mode without saving the settings.
+
+#### Normal Mode
+In normal mode, the sensor node will periodically configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
+
+The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.
+
+The sensor readings are uploaded as a json string that the Node-RED flows know how to parse.
+
+The Node-RED instance will reply with a simple status string indicating how many sensor readings were received and whether there are any firmware or configuration updates available for the sensor node. (See [FW Update](#fw-update) chapter below.)
+
+The Node-RED instance will parse the sensor readings and format them for injection into the [InfluxDB](https://www.influxdata.com/) instance.  
+In particular, it will compute the absolute timestamp for each sensor reading from the sensor node's provided delta timestamps.
+
+The Node-RED instance will connect to InfluxDB on localhost port 8086 to store the sensor readings.
+
+The Node-RED instance provides a web UI for configuration and programming via a web browser on port 1880.
+
+#### Grafana
+[Grafana](https://grafana.com/) can be used to connect to the InfluxDB instance, either locally or remotely, using port 8086.
+
+Grafana provides a web UI for a user to configure or view dashboards via a web browser on a configurable port (usually 80 or 8000).
 
 ### Presentation
-- Grafana Dashboard
-  - Node Names
-- E-Paper Display
-  - Connectivity
-  - Celsius vs Fahrenheit
-  - Low Battery
-  - Connection Failure
-  - Low Temperature
+#### Grafana
+The primary means of presentation for the sensor readings is via a [Grafana](https://grafana.com/) dashboard, presented in the user's web browser.
+
+Grafana is highly configurable and has several pre-defined widgets available for charting time-series data, performing calculations with the data, and providing alerts.
+
+The charts in Grafana are configurable, which provides a mechanism for giving friendly names to the individual sensor nodes.  
+The sensor nodes have their own configurable name stored persistently, but this name is a key into the time-series database and changing it will break the continuity of the data over time.  
+Additionally, it is simply easier to change the label in the Grafana dashboard as desired.
+
+#### E-Paper Display
+A Waveshare 1.9" Segmented E-Paper Display (EPD) is supported for live display of temperature and humidity readings and overall status.
+
+The display can be configured to display temperature readings in Celsius or Fahrenheit.
+
+The following status indications can be displayed:
+- Connectivity
+- Low Battery
+- Critically Low Batery
+- Connection Failure
+- Low Temperature
+
+The EPD consumes no power when held in reset.
+
+The EPD takes considerable time to refresh, especially at lower temperatures. Overall, it will reduce battery lifetime to approximately ⅓ of normal.
+
+The EPD is not designed to work below 0°C. When a temperature below 0°C is detected, a final update to the display will be made to display a low temperature warning. After that, the display will be held in reset until temperatures rise above 0°C again.
+
+When the battery voltage drops below a critical threshold, a final update to the display will be made to display a low battery message. After that the sensor node will enter deep-sleep until the battery is replaced.
 
 ### FW Update
 - USB Update
@@ -58,14 +159,14 @@ This outline is currently a work-in-progress.
 - Sensor Upload
 - OTA Reception
 - Grafana Sensor Alert (monitoring)
-- Node-red packet parsing
-- Node-red SOH monitoring
+- Node-RED packet parsing
+- Node-RED SOH monitoring
 
 ## Cybersecurity
 - WiFi Credential Storage (insecure)
 - InfluxDB Security (??, not explored)
 - Grafana Security (login, not explored)
-- Node-red Security (none, even for FW OTA)
-- Note about PII (many sensors act as effective human presense detectors)
+- Node-RED Security (none, even for FW OTA)
+- Note about PII (many sensors act as effective human presence detectors)
 - Note about leaving sensors outside (or the evil gardener attack)
 
