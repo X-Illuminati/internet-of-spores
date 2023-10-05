@@ -149,10 +149,47 @@ The EPD is not designed to work below 0°C. When a temperature below 0°C is det
 
 When the battery voltage drops below a critical threshold, a final update to the display will be made to display a low battery message. After that the sensor node will enter deep-sleep until the battery is replaced.
 
+#### UART Logging
+The USB port is connected to a CH340 USB-to-UART ASIC. This allows UART communication between a PC and the sensor node.
+
+In the standard firmware, only a bare minimum of information is transmitted from the sensor node via UART. However, the software can be compiled with extra logging enabled, which will transmit the uncalibrated sensor readings along with information about WiFi connectivity.
+
+> Caution: This additional logging will also expose the WiFi password.
+
+The monitor.sh script can be used to easily monitor the sensor node UART from a typical PC shell.
+
+The sensor node firmware ignores any received characters.
+
+The UART is configured for 115200 baud, no parity, 1 stop bit.
+
 ### FW Update
-- USB Update
-- OTA FW Update
-- OTA Calibration (configuration?) Update
+#### USB Firmware Programming
+Firmware in the sensor nodes can be updated via the USB port.  
+The CH340 USB-to-UART ASIC has RTS and DTR signals that can be set by the PC terminal interface. These are used to hold GPIO0 low while toggling the ESP8266's reset pin, which causes it to enter UART boot mode.
+
+The ESP8266 toolchain includes an esptool.py script to support reprogramming part or all of the SPI flash via this USB-to-UART interface.  
+The flash.sh script in this project makes this easier by supplying many of the esoteric command line options necessary to use esptool.py properly.
+
+#### Over-the-Air Firmware Programming
+The sensor nodes support over-the-air (OTA) programming via special Node-RED flows.
+
+Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings. Node-RED can compare this fingerprint to the filenames in its "firmware/" directory. If the sensor node is not reporting a valid software fingerprint, the Node-RED flows will transmit a valid firmware image along with its MD5 hash to the sensor node.  
+The sensor node will verify the MD5 hash and program the firmware image into its NOR flash memory.
+
+> Note: The Node-RED flows will not update the firmware if there is a matching firmware binary present in the firmware/ directory. Old firmware images must be removed in order for the update process to be triggered.
+
+> Note: The fingerprint used does not provide a deterministic ordering. If multiple firmware images are present, the one that is uploaded to the sensor node will essentially be determined at random.
+
+> Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
+
+#### Over-the-Air Configuration
+The sensor nodes support over-the-air (OTA) configuration updates via special Node-RED flows.
+
+A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. The Node-RED flows can check for configuration files for that sensor node in the "sensor-cfg/" directory. These files will be transmitted to the sensor node along with an MD5 hash  
+The sensor node will verify the MD5 hash and then update the configuration value in its NOR flash memory.  
+After the sensor node confirms that the update has been received, Node-RED will delete the configuration file.
+
+> Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
 
 ## Failure Modes
 - Server Connectivity
