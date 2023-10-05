@@ -191,12 +191,90 @@ After the sensor node confirms that the update has been received, Node-RED will 
 > Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
 
 ## Failure Modes
-- Server Connectivity
-- Sensor Upload
-- OTA Reception
-- Grafana Sensor Alert (monitoring)
-- Node-RED packet parsing
-- Node-RED SOH monitoring
+### Server Connectivity Failure
+The sensor node may fail to connect to the network or Node-RED server.
+
+Impact:  
+Sensor reading will not get uploaded and the sensor node's RTC memory may overrun.
+
+Mitigation:  
+The sensor node will replace the oldest sensor readings in its RTC memory when it overflows. Additionally, after 2 consecutive connection failures, it will begin doubling its sleep time with each consecutive failure.
+
+This serves two purposes when faced with an extended connectivity outage:
+1) It will preserve the battery life as repeated connection attempts (and associated retries) would otherwise drain the battery rapidly.
+2) It will extend coverage of the fixed quantity of sensor readings stored in RTC memory over a longer period by increasing the time between readings.
+
+### Sensor Upload Failure
+It is possible that the sensor node will connect to the Node-RED server but fail to upload all of its readings.
+
+Impact:  
+Sensor readings may get lost.
+
+Mitigation:  
+The sensor node will retain any readings that weren't successfully acknowledged by the server and attempt to upload them again later.
+
+The reaction process from [above](#server-connectivity-failure) continues to apply, which is important if a connection to the server is made but repeatedly fail to transmit any readings successfully.
+
+### Network Packet Corruption
+#### Sensor Packet Corruption
+The sensor readings could get corrupted when transmitting to the Node-RED server.
+
+Impact:  
+Sensor readings may get lost or be recorded incorrectly.
+
+Mitigation:  
+TCP checksum is generally considered sufficient to protect the sensor data packets.  
+In case the packet is dropped, a timeout will allow the sensor to go back to sleep and retry the transmission later.  
+In case the packet is received but fails to parse properly, the Node-RED server will reply with a NACK instead of an ACK. The sensor node will only clear readings that are acknowledged; other readings will be retained and retransmission will be attempted later.
+
+#### Over-the-Air Update Failure
+The update file transmitted from the Node-RED server may be corrupted in transmission.
+
+Impact:  
+Accepting a corrupted file could result in the sensor node crashing or behaving incorrectly.
+
+Mitigation:  
+The sensor node will verify the MD5 hash that is transmitted with the file before accepting it.
+
+### Software Version Mismatch
+The sensor nodes may have a version of software that is incompatible with the Node-RED server.
+
+Impact:  
+Server will not be able to parse the packets or may misinterpret them.
+
+Mitigation:  
+The sensor readings have an API version that the server can use to maintain backward-compatible message parsing and detect messages that it doesn't know how to interpret.  
+The server will reply with a NACK response.
+
+### Low Battery Failure
+When the battery voltage drops it may go below the allowable range for proper operation.
+
+Impact:  
+There may not be enough power to properly connect to the WiFi network or refresh the E-Paper Display (EPD).
+The sensor ICs may misbehave and record spurious readings.
+
+Mitigation:  
+Battery voltage is monitored and reported to the server.  
+When battery drops to low levels, this can be monitored in the Grafana dashboard and alerts can also be configured to highlight the need for replacement. A low battery indicator will be enabled on the EPD.  
+When battery drops to critical levels, a more obvious low battery warning will be displayed on the EPD and the sensor will enter a permanent deep-sleep.
+
+### Failure to Report
+Some unknown failure may occur or the sensor node could stop reporting due to low battery or other failure.
+
+Impact:  
+Extended periods without sensor readings may elapse before the user notices.
+
+Mitigation:  
+The Grafana server can be configured with alerts when no readings are received for a period of time.
+
+### Node-RED Server Failure
+The Node-RED server may freeze, crash, or get stuck in a busy-loop.
+
+Impact:  
+The server will not be able to accept incoming connections.
+
+Mitigation:  
+The Node-RED flows include a periodic state-of-health message that is printed to the console. The provided soh-monitor.sh script can monitor the systemd journal for these state-of-health messages and restart the Node-RED server if a timeout is exceeded.
 
 ## Cybersecurity
 - WiFi Credential Storage (insecure)
