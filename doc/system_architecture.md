@@ -3,7 +3,6 @@ This outline is currently a work-in-progress.
 
 ## Block Diagram
 ![System Architecture Block Diagram](drawio/sysarch_block_diagram.png)
-TODO: Add SPI NOR Flash, PPD42 is powered from 5V, "Node-RED", node-red flows
 
 Distributed sensor nodes are powered either by battery or by a USB power supply and communicate with a central server via WiFi.  
 Sensor nodes act as WiFi stations and connect to a pre-configured access point. Sensors nodes are pre-configured with a DNS or IP address for the server on the local network.  
