@@ -277,10 +277,66 @@ Mitigation:
 The Node-RED flows include a periodic state-of-health message that is printed to the console. The provided soh-monitor.sh script can monitor the systemd journal for these state-of-health messages and restart the Node-RED server if a timeout is exceeded.
 
 ## Cybersecurity
-- WiFi Credential Storage (insecure)
-- InfluxDB Security (??, not explored)
-- Grafana Security (login, not explored)
-- Node-RED Security (none, even for FW OTA)
-- Note about PII (many sensors act as effective human presence detectors)
-- Note about leaving sensors outside (or the evil gardener attack)
+> Caution: Very little attention has been paid to cybersecurity implications of this system.  
+> It is strongly encouraged to only run it on a local network and preferably only give the sensor nodes access to a "guest" WiFi AP which has restricted access to the rest of your network.  
+> While the Grafana dashboard supports login credentials, it is unknown to this author whether Grafana's security is adequate for exposure to the public internet.
 
+### WiFi Credential Storage on Sensor Nodes
+The ESP8266 does not have any security for the storage of WiFi credentials. Anyone with physical access to the sensor nodes can trivially read out the WiFi SSID and password. These credentials are stored in external SPI flash memory, which can be easily dumped with low cost tools. Additionally, the firmware can be easily replaced via USB [see above](#usb-firmware-programming), so a program can be loaded to simply print out the stored credentials.
+> Caution: Don't leave sensor nodes outdoors where physical access is available to the public who can trivially dump your WiFi credentials and gain access to your internal network.  
+> **I call this "the evil gardener" attack.**
+
+### Security of Sensor Readings
+#### Insecurity of Transmitted Sensor Readings
+The sensor readings are transmitted from the sensor nodes in cleartext without authentication of the server.
+
+Anyone with access to the network can sniff the network traffic and observe the sensor readings.
+
+It is probably also easy to get the sensor nodes to connect to an attacker-controlled Node-RED server, either by intercepting and redirecting the traffic, by subverting the hostname lookup, or by providing a WiFi AP with the same SSID that the server may connect to preferentially.
+
+The default Node-RED configuration allows anyone to log in to the flow editor (on port 1880) and view the debug information, which includes raw sensor readings.
+
+> Caution: Only run Node-RED in a trusted local network environment.
+
+#### Personal Implications of Insecure Sensor Readings
+It may seem that the availability of sensor readings do not pose a serious concern. However, in many cases the sensor readings can serve as an effective human presence detector. With even limited knowledge, an attacker may be able to identify and track individuals based on the sensor readings.  
+Further, access to the InfluxDB or Grafana dashboard could provide extensive historical data that could be mined to understand individual behavior patterns.
+
+Individuals or organizations intending to deploy sensors of this type will need to perform their own threat analysis and risk assessment.
+
+> Caution: In situations where knowledge of the movement or presence of personnel could pose a threat to operational security, these sensors should not be used.
+
+> Note: Persons or organizations that have restrictions regarding the storage of personally-identifiable-information should conduct an assessment of whether the transmission or storage of sensor readings will violate any data privacy laws.
+
+### Node-RED Security
+By default, the Node-RED flow editor is unsecured. Anyone with access to the network can modify its behavior and responses to the sensor nodes. As mentioned [above](#insecurity-of-transmitted-sensor-readings), anyone with access can trivially monitor the incoming sensor readings.
+
+> Caution: Only run Node-RED in a trusted local network environment.
+
+This page, [Securing Node-RED](https://nodered.org/docs/user-guide/runtime/securing-node-red), provides some information on how to improve the security of Node-RED and add user-authentication. However, it is still probably unwise to expose Node-RED to the public internet.
+
+> Corollary: Without implementing the mentioned additional security, it is advisable to only run Node-RED on a separate network from the WiFi AP that the sensor nodes connect to. The use of a network tunnel can still allow the sensor nodes to upload their readings without exposing the admin interface on the high-risk WiFi network.
+
+The TCP connection on port 2880 between the sensor nodes and Node-RED is unauthenticated. The sensor nodes will connect to any server and believe that it is the correct destination.  
+Further, the sensor nodes will obey any response received from the Node-RED server -- including [firmware updates](#over-the-air-firmware-programming). This makes it relatively trivial for an attacker with access to the WiFi network (or who can spoof the network) to upload arbitrary firmware to the sensor nodes.  
+The implications of this threat are unexplored by the author of this document.
+
+> Note: It is probably advisable to regularly audit the firmware loaded on each sensor node and to regularly change the WiFi credentials.  
+> Where possible, use a "guest" WiFi AP to isolate the sensor nodes from the rest of your internal network and only allow them access to port 2880 of the Node-RED server.
+
+### InfluxDB Security
+By default, the InfluxDB instance is listening on TCP port 8086 for incoming connections without any authentication. An attacker could issue arbitrary queries or inject their own data.
+
+If Node-RED and Grafana are running locally, InfluxDB could be configured to only listen on localhost or an appropriate firewall configuration could prevent access from outside network interfaces.
+
+This page, [Manage security and authorization](https://docs.influxdata.com/influxdb/v2/security/), may provide tips for setting up authentication within InfluxDB. However, it is still probably unwise to expose InfluxDB to the public internet.
+
+> Corollary: Without implementing the mentioned additional security, it is advisable to only run InfluxDB on a separate network from the WiFi AP that the sensor nodes connect to.
+
+### Grafana Security
+By default, the Grafana server does not require user authentication. Anyone with access to the local network can view the sensor readings.  
+Typically, users can also create their own dashboards to execute arbitrary queries to the InfluxDB database. The implications of this threat are unexplored by the author of this document.
+
+This page, [Configure security](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/), provides some information about securing a Grafana instance. However, it is probably unwise to expose Grafana to the public internet.
+
+> Corollary: Without implementing the mentioned additional security, it is advisable to only run Grafana on a separate network from the WiFi AP that the sensor nodes connect to.
