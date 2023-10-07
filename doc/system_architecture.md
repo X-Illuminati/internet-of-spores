@@ -1,5 +1,16 @@
 # System Architecture
-This outline is currently a work-in-progress.
+
+## Table of Contents
+* [Block Diagram](#block-diagrm)
+* [Features](#features)
+  - [Sensor Measurements](#sensor-measurements)
+  - [Persistent Storage](#persistent-storage)
+  - [Sensor Node Power Management](#sensor-node-power-management)
+  - [Connectivity](#connectivity)
+  - [Presentation](#presentation)
+  - [FW Update](#fw-update)
+* [Failure Moes](#failure-modes)
+* [Cybersecurity](#cybersecurity)
 
 ## Block Diagram
 ![System Architecture Block Diagram](drawio/sysarch_block_diagram.png)
