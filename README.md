@@ -1,9 +1,9 @@
 # Internet of Spores
 IOT Sensor Platform for ESP8266 Arduino
-Specifically targeting Lolin D1 Mini.
-![D1 mini board stackup](doc/stackup.png)
-![Waveshare 1.9 in segmented E-Paper Display](doc/stackup_with_EPD_1in9.png)
-![Grafana Dashboard](doc/grafana.png)
+Specifically targeting Lolin D1 Mini.  
+![D1 mini board stackup](doc/stackup.png)  
+![Waveshare 1.9 in segmented E-Paper Display](doc/stackup_with_EPD_1in9.png)  
+![Grafana Dashboard](doc/screenshots/grafana_dashboard.png)
 
 ## Supported Sensors
 * Temperature
