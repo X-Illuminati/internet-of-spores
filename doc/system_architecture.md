@@ -9,6 +9,13 @@
   - [Connectivity](#connectivity)
   - [Presentation](#presentation)
   - [FW Update](#fw-update)
+* [System Modes](#system-modes)
+  - [Reprogramming Mode](#reprogramming-mode)
+  - [Configuration Mode](#configuration-mode)
+  - [Normal Mode](#normal-mode)
+  - [Deep Sleep](#deep-sleep)
+  - [Upload Mode](#upload-mode)
+  - [Download Mode](#download-mode)
 * [Failure Modes](#failure-modes)
 * [Cybersecurity](#cybersecurity)
 
@@ -44,7 +51,6 @@ This is necessary because the sensor ICs used are inexpensive and very noisy and
 Additional filtering can be applied post-facto in Grafana.
 
 ### Persistent Storage
-
 The following types of data are stored persistently within the sensor node's NOR Flash:
 - Calibration values
 - WiFi Credentials
@@ -105,29 +111,26 @@ The readings will only be stored in RTC RAM in case of connectivity issues that 
 The sensor node will still use deep-sleep to implement a delay of 1 minute between readings (configurable).
 
 ### Connectivity
-#### Configuration Mode
-Pressing the reset button when the sensor node is not in deep-sleep will cause it to reboot into configuration mode.  
-This is most effectively done by double-pressing the reset button since the sensor node is usually in deep-sleep.
-
-In configuration mode, the sensor node will act as a soft access point and a WiFi connection can be made to it from a smartphone, tablet, or laptop computer.
+#### WiFi Manager Configuration
+In [configuration mode](#configuration-mode), the sensor node will act as a soft access point and a WiFi connection can be made to it from a smartphone, tablet, or laptop computer.
 Once connected, a "WiFi Manager" captive portal will be presented or will be accessible from the user's web browser by navigating to [http://192.168.4.1](http://192.168.4.1).
 
-The captive portal will allow modification of the configuration parameters and will allow the user to configure the SSID and password of the access point that the sensor node will use to upload sensor readings.
 
-Connectivity to the access point will be tested before returning to normal mode.  
-A failsafe timeout will cause the sensor node to return to normal mode without saving the settings.
+The captive portal allows configuration of the parameters for upload of the sensor readings.
+- WiFi SSID
+- WiFi password
+- Node-RED server hostname
+- Node-RED port
 
-#### Normal Mode
-In normal mode, the sensor node will periodically configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
+Connectivity to the access point will be tested before returning to normal mode.
+
+#### Uploading Sensor Readings
+The sensor node will periodically switch to [upload mode](#upload-mode) where it will configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
+
 
 The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.
 
-The sensor readings are uploaded as a json string that the Node-RED flows know how to parse.
-
-The Node-RED instance will reply with a simple status string indicating how many sensor readings were received and whether there are any firmware or configuration updates available for the sensor node. (See [FW Update](#fw-update) chapter below.)
-
-The Node-RED instance will parse the sensor readings and format them for injection into the [InfluxDB](https://www.influxdata.com/) instance.  
-In particular, it will compute the absolute timestamp for each sensor reading from the sensor node's provided delta timestamps.
+The Node-RED instance will reply with a status response including whether there are any firmware or configuration updates available for the sensor node. (See [FW Update](#fw-update) chapter below.)
 
 The Node-RED instance will connect to InfluxDB on localhost port 8086 to store the sensor readings.
 
@@ -190,15 +193,67 @@ The UART is configured for 115200 baud, no parity, 1 stop bit.
 ### FW Update
 #### USB Firmware Programming
 Firmware in the sensor nodes can be updated via the USB port.  
+See [reporgramming mode](#reprogramming-mode) for more details.
+
+The flash.sh script can be used to program the firmware, as can the Arduino IDE.
+
+#### Over-the-Air Firmware Programming
+The sensor nodes support over-the-air (OTA) programming via special Node-RED flows.  
+See [firmware download](#firmware-download) for more details.
+
+Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings. This fingerprint is checked to see if any firmware updates are available.
+
+An MD5 hash will be transmitted to the sensor node along with the firmware image. The sensor node will verify the hash and then program the firmware image into its NOR flash.
+
+> Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
+
+#### Over-the-Air Configuration
+The sensor nodes support over-the-air (OTA) configuration updates via special Node-RED flows.
+See [configuration download](#configuration-download) for more details.
+
+A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. Node-RED will check to see if there are any configuration files available for that sensor node.
+
+An MD5 hash will be transmitted to the sensor node along with the configuration file. The sensor node will verify the hash and then program the firmware image into its SPI Flash File System (SPIFFS).
+
+> Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
+
+## System Modes
+
+### Reprogramming Mode
 The CH340 USB-to-UART ASIC has RTS and DTR signals that can be set by the PC terminal interface. These are used to hold GPIO0 low while toggling the ESP8266's reset pin, which causes it to enter UART boot mode.
 
 The ESP8266 toolchain includes an esptool.py script to support reprogramming part or all of the SPI flash via this USB-to-UART interface.  
 The flash.sh script in this project makes this easier by supplying many of the esoteric command line options necessary to use esptool.py properly.
 
-#### Over-the-Air Firmware Programming
-The sensor nodes support over-the-air (OTA) programming via special Node-RED flows.
+### Configuration Mode
+Pressing the reset button when the sensor node is not in deep-sleep will cause it to reboot into configuration mode.  
+This is most effectively done by double-pressing the reset button since the sensor node is usually in deep-sleep.
 
-Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings. Node-RED can compare this fingerprint to the filenames in its "firmware/" directory. If the sensor node is not reporting a valid software fingerprint, the Node-RED flows will transmit a valid firmware image along with its MD5 hash to the sensor node.  
+The captive portal will allow modification of the configuration parameters.
+
+Connectivity to the access point will be tested before returning to normal mode.  
+A failsafe timeout will cause the sensor node to return to normal mode without saving the settings.
+
+### Normal Mode
+
+### Deep Sleep
+
+### Upload Mode
+The sensor node will periodically configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
+
+The sensor readings are uploaded as a json string that the Node-RED flows know how to parse.
+
+The Node-RED instance will reply with a simple status string indicating how many sensor readings were received and whether there are any firmware or configuration updates available for the sensor node.
+
+The Node-RED instance will parse the sensor readings and format them for injection into the [InfluxDB](https://www.influxdata.com/) instance.  
+In particular, it will compute the absolute timestamp for each sensor reading from the sensor node's provided delta timestamps.
+
+### Download Mode
+
+#### Firmware Download
+Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings.
+
+Node-RED can compare the software fingerprint to the filenames in its "firmware/" directory. If the sensor node is not reporting a valid software fingerprint, the Node-RED flows will transmit a valid firmware image along with its MD5 hash to the sensor node.  
 The sensor node will verify the MD5 hash and program the firmware image into its NOR flash memory.
 
 > Note: The Node-RED flows will not update the firmware if there is a matching firmware binary present in the firmware/ directory. Old firmware images must be removed in order for the update process to be triggered.
@@ -207,8 +262,8 @@ The sensor node will verify the MD5 hash and program the firmware image into its
 
 > Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
 
-#### Over-the-Air Configuration
-The sensor nodes support over-the-air (OTA) configuration updates via special Node-RED flows.
+#### Configuration Download
+(TODO: flow chart of OTA configuration)
 
 A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. The Node-RED flows can check for configuration files for that sensor node in the "sensor-cfg/" directory. These files will be transmitted to the sensor node along with an MD5 hash  
 The sensor node will verify the MD5 hash and then update the configuration value in its NOR flash memory.  
