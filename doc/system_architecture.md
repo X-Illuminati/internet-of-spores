@@ -9,7 +9,7 @@
   - [Connectivity](#connectivity)
   - [Presentation](#presentation)
   - [FW Update](#fw-update)
-* [Failure Moes](#failure-modes)
+* [Failure Modes](#failure-modes)
 * [Cybersecurity](#cybersecurity)
 
 ## Block Diagram
@@ -24,9 +24,12 @@ The server is running a [Node-RED](https://nodered.org/) instance which is liste
 ### Sensor Measurements
 The following types of sensor measurement can be collected by the sensor nodes:
 - Humidity
+  + ![SHT30](SHT30.jpg)
 - Temperature
 - Pressure
+  + ![HP303B](HP303B.jpg)
 - Particle Counts
+  + ![PPD42NS](PPD42NS.png)
 - Battery Level
 - Uptime
 
@@ -51,6 +54,8 @@ The following types of data are stored persistently within the sensor node's NOR
   - Celsius vs Fahrenheit display
   - Sleep time (time between sensor readings)
 
+![SPI NOR Flash Memory](SPI_NOR_flash.jpg)
+
 These configuration and calibration values can be modified over-the-air (see [FW Update](#fw-update) chapter) or by entering configuration mode (see [Connectivity](#configuration-mode) chapter).
 
 Sensor readings are not stored in NOR flash and will be lost if power is removed from the unit.  
@@ -62,10 +67,14 @@ The sensor readings collected are stored in an InfluxDB time-series database.
 Sensor nodes are primarily powered by battery.  
 A LiFePO₄ battery can be use without any additional regulator circuitry as all components are tolerant of voltage between 2.9V - 3.6V.
 
+![LiFePO₄ Battery](LiFePO₄.jpg)
+
 No battery charging capability is offered. Batteries should be removable so they can be replaced and recharged separately.
 
 Sensor nodes can also be powered from a USB power supply.
 The ME6211 LDO linear regulator on the Lolin D1 Mini board will step the voltage down to 3.3V.
+
+![ME6211 LDO](ME6211.jpg)
 
 It is not recommended to power the board from USB while a battery is connected as it is likely that the LDO will attempt to "charge" the battery. This could overload the current capabilities of the LDO or could damage the battery.
 
@@ -142,11 +151,14 @@ Additionally, it is simply easier to change the label in the Grafana dashboard a
 #### E-Paper Display
 A Waveshare 1.9" Segmented E-Paper Display (EPD) is supported for live display of temperature and humidity readings and overall status.
 
+![1.9in E-Paper Display](EPD_1in9.jpg)
+
 The display can be configured to display temperature readings in Celsius or Fahrenheit.
 
 The following status indications can be displayed:
 - Connectivity
 - Low Battery
+- °C/°F
 - Critically Low Batery
 - Connection Failure
 - Low Temperature
@@ -162,11 +174,14 @@ When the battery voltage drops below a critical threshold, a final update to the
 #### UART Logging
 The USB port is connected to a CH340 USB-to-UART ASIC. This allows UART communication between a PC and the sensor node.
 
+![CH340 USB-to-Uart IC](CH340.jpg)
+
 In the standard firmware, only a bare minimum of information is transmitted from the sensor node via UART. However, the software can be compiled with extra logging enabled, which will transmit the uncalibrated sensor readings along with information about WiFi connectivity.
 
 > Caution: This additional logging will also expose the WiFi password.
 
-The monitor.sh script can be used to easily monitor the sensor node UART from a typical PC shell.
+The monitor.sh script can be used to easily monitor the sensor node UART from a typical PC shell.  
+Alternately, there is a UART monitor built-in to the Arduino IDE.
 
 The sensor node firmware ignores any received characters.
 
