@@ -126,13 +126,16 @@ Connectivity to the access point will be tested before returning to normal mode.
 The sensor node will periodically switch to [upload mode](#upload-mode) where it will configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
 
 
-The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.
+The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.  
+![Node-RED tcp:2880](screenshots/nodered_tcp_2880.png)
 
 The Node-RED instance will reply with a status response including whether there are any firmware or configuration updates available for the sensor node. (See [FW Update](#fw-update) chapter below.)
 
-The Node-RED instance will connect to InfluxDB on localhost port 8086 to store the sensor readings.
+The Node-RED instance will connect to InfluxDB on localhost port 8086 to store the sensor readings.  
+![Node-RED Influxdb Config](screenshots/nodered_influxdb_config.png)
 
-The Node-RED instance provides a web UI for configuration and programming via a web browser on port 1880.
+The Node-RED instance provides a web UI for configuration and programming via a web browser on port 1880.  
+![Node-RED](screenshots/nodered.png)
 
 #### Grafana
 [Grafana](https://grafana.com/) can be used to connect to the InfluxDB instance, either locally or remotely, using port 8086.
@@ -141,7 +144,8 @@ Grafana provides a web UI for a user to configure or view dashboards via a web b
 
 ### Presentation
 #### Grafana
-The primary means of presentation for the sensor readings is via a [Grafana](https://grafana.com/) dashboard, presented in the user's web browser.
+The primary means of presentation for the sensor readings is via a [Grafana](https://grafana.com/) dashboard, presented in the user's web browser.  
+![Grafana Dashboard](screenshots/grafana_dashboard.png)
 
 Grafana is highly configurable and has several pre-defined widgets available for charting time-series data, performing calculations with the data, and providing alerts.
 
