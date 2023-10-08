@@ -30,13 +30,13 @@ The server is running a [Node-RED](https://nodered.org/) instance which is liste
 ## Features
 ### Sensor Measurements
 The following types of sensor measurement can be collected by the sensor nodes:
-- Humidity
-  + ![SHT30](SHT30.jpg)
+- Humidity  
+  ![SHT30](SHT30.jpg)
 - Temperature
-- Pressure
-  + ![HP303B](HP303B.jpg)
-- Particle Counts
-  + ![PPD42NS](PPD42NS.png)
+- Pressure  
+  ![HP303B](HP303B.jpg)
+- Particle Counts  
+  ![PPD42NS](PPD42NS.png)
 - Battery Level
 - Uptime
 
@@ -71,15 +71,13 @@ The sensor readings collected are stored in an InfluxDB time-series database.
 
 ### Sensor Node Power Management
 Sensor nodes are primarily powered by battery.  
-A LiFePO₄ battery can be use without any additional regulator circuitry as all components are tolerant of voltage between 2.9V - 3.6V.
-
+A LiFePO₄ battery can be use without any additional regulator circuitry as all components are tolerant of voltage between 2.9V - 3.6V.  
 ![LiFePO₄ Battery](LiFePO₄.jpg)
 
 No battery charging capability is offered. Batteries should be removable so they can be replaced and recharged separately.
 
 Sensor nodes can also be powered from a USB power supply.
-The ME6211 LDO linear regulator on the Lolin D1 Mini board will step the voltage down to 3.3V.
-
+The ME6211 LDO linear regulator on the Lolin D1 Mini board will step the voltage down to 3.3V.  
 ![ME6211 LDO](ME6211.jpg)
 
 It is not recommended to power the board from USB while a battery is connected as it is likely that the LDO will attempt to "charge" the battery. This could overload the current capabilities of the LDO or could damage the battery.
@@ -226,7 +224,8 @@ The ESP8266 toolchain includes an esptool.py script to support reprogramming par
 The flash.sh script in this project makes this easier by supplying many of the esoteric command line options necessary to use esptool.py properly.
 
 ### Configuration Mode
-Pressing the reset button when the sensor node is not in deep-sleep will cause it to reboot into configuration mode.  
+Pressing the reset button when the sensor node is not in deep-sleep will cause it to reboot into configuration mode.
+![Reset Button](reset_switch.jpg)
 This is most effectively done by double-pressing the reset button since the sensor node is usually in deep-sleep.
 
 The captive portal will allow modification of the configuration parameters.
@@ -263,8 +262,6 @@ The sensor node will verify the MD5 hash and program the firmware image into its
 > Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
 
 #### Configuration Download
-(TODO: flow chart of OTA configuration)
-
 A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. The Node-RED flows can check for configuration files for that sensor node in the "sensor-cfg/" directory. These files will be transmitted to the sensor node along with an MD5 hash  
 The sensor node will verify the MD5 hash and then update the configuration value in its NOR flash memory.  
 After the sensor node confirms that the update has been received, Node-RED will delete the configuration file.
