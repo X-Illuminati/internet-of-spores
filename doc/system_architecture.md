@@ -353,7 +353,18 @@ Impact:
 Extended periods without sensor readings may elapse before the user notices.
 
 Mitigation:  
-The Grafana server can be configured with alerts when no readings are received for a period of time.
+The Grafana server can be configured with alerts when no readings are received for a period of time.  
+![Grafana Battery Alerts](screenshots/grafana_battery_alerts.png)
+
+### Failure to Wake
+If the RTC is unable to pull GPIO16 low or if some problem causes the alarm to fail, the processor will sleep indefinitely. The most common cause is corrosion on the reset and GPIO16 pins. I suspect that the use case here accelerates this corrosion, especially in humid environments. Possibly some units have abnormally high leakage currents in sleep mode that cause this corrosion.
+
+Impact:  
+The sensor node will not report in and the reset button will have to be pressed manually to wake it.
+
+Mitigation:  
+The situation is handled much the same as [Failure to Report](#failure-to-report) above. Monitoring in the dashboard can catch nodes that haven't reported recently and a pattern of failures may indicate hardware replacement.  
+Cleaning with 99% isopropyl alcohol can remove the corrosion and restore service temporarily. A conformal coating or non-conductive lacquer may prevent corrosion.
 
 ### Node-RED Server Failure
 The Node-RED server may freeze, crash, or get stuck in a busy-loop.
