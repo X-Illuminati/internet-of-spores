@@ -19,6 +19,8 @@
 * [Failure Modes](#failure-modes)
 * [Cybersecurity](#cybersecurity)
 
+---
+
 ## Block Diagram
 ![System Architecture Block Diagram](drawio/sysarch_block_diagram.png)
 
@@ -26,6 +28,8 @@ Distributed sensor nodes are powered either by battery or by a USB power supply 
 Sensor nodes act as WiFi stations and connect to a pre-configured access point. Sensors nodes are pre-configured with a DNS or IP address for the server on the local network.  
 The server is running a [Node-RED](https://nodered.org/) instance which is listening for incoming connections. The Node-RED instance will parse out the sensor readings and store them in a time-series database like [InfluxDB](https://www.influxdata.com/).  
 [Grafana](https://grafana.com/) can be used to provide a user-friendly interface to view the data. The Grafana instance could run on the same server or on a different server. Grafana provides an HTTP portal to view the data, so users can connect to it from other computers or smartphones that are connected to the network.
+
+---
 
 ## Features
 ### Sensor Measurements
@@ -92,7 +96,17 @@ The battery-powered firmware will spend most of its time in deep sleep. Only wak
 The sensor readings are stored in RTC RAM until the memory is full. This reduces the frequency of connecting to WiFi and allows sensor readings to be batched together to reduce transmission overhead.
 
 When the battery is initially connected, it is often desirable to the user that they be able to see sensor readings updating immediately in their dashboard.  
-To support this, the sensor node will transmit the first readings after one sleep period, the next batch after two sleep periods, then 4, 8, and so forth.
+To support this, the sensor node will transmit the first readings after one sleep period, the next batch after two sleep periods, then 4, 8, and so forth. Usually, the RTC memory will fill with readings once it exceeds 20-30 sleep periods and that becomes the limit for the delta time between uploads.
+
+~Time (T) | ΔT     | #readings (ΣR)
+----------|--------|---------------
+T+1 min   | 1 min  | 2
+T+2 min   | 1 min  | 3
+T+4 min   | 2 min  | 5
+T+8 min   | 4 min  | 9
+T+16 min  | 8 min  | 17
+T+32 min  | 16 min | 33
+T+64 min  | 32 min | 65
 
 Pressing the reset button will cause the sensor node to immediately wake from deep-sleep and collect another sensor reading.  
 The sensor node has no mechanism to know how long it slept for, so waking it this way will cause inaccuracy in the measurement timestamps.
@@ -225,6 +239,8 @@ An MD5 hash will be transmitted to the sensor node along with the configuration 
 
 > Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
 
+---
+
 ## System Modes
 
 ### Reprogramming Mode
@@ -244,8 +260,22 @@ Connectivity to the access point will be tested before returning to normal mode.
 A failsafe timeout will cause the sensor node to return to normal mode without saving the settings.
 
 ### Normal Mode
+In normal mode, the sensor node reads and filters its sensors, stores the sensor readings in RTC RAM, and then enters deep sleep mode.  
+During this time, some additional activities can happen:
+* If it determines it is time to upload readings, it will enter upload mode.  
+  This determination is made when the RTC RAM is sufficiently full or based on other factors described in [Sensor Node Power Management](#sensor-node-power-management)
+* If the server reports that there are firmware updates or configuration updates available, it will enter download mode.
+* If the RTC RAM is determined to be corrupted, it will be re-initialized.  
+  This happens when power is first applied to the ESP8266 or after installing a firmware update.
 
 ### Deep Sleep
+The sensor node spends most of its time in deep sleep mode.  
+In this mode, the processor is in its lowest power state with most peripherals disabled. Extra care is taken to disable the WiFi radio, even though this will result in extra time spent waking up and calibrating the radio when the next upload cycle is reached. The main processor peripheral still running is the RTC module.
+
+This RTC module has a simple alarm timer and control of GPIO16, which it will pull low when the alarm expires. By connecting the link between GPIO16 and the reset pin, this will cause the processor to wake.
+> Note: on the D1 Mini, a suitable resistor or Schottky diode should be used to link GPIO16 and RST or else the CH340 will not be able to pull the reset pin low and enter reprogramming mode automatically.
+
+Upon waking, the processor will have gone through a reset. Only the RTC RAM is retained uninitialized, and this is used to maintain application state through the deep sleep mode.
 
 ### Upload Mode
 The sensor node will periodically configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
@@ -258,6 +288,10 @@ The Node-RED instance will parse the sensor readings and format them for injecti
 In particular, it will compute the absolute timestamp for each sensor reading from the sensor node's provided delta timestamps.
 
 ### Download Mode
+The Node-RED server can respond with status strings that inform the sensor node that there are updates available for it. The sensor will then request these updates and apply them.  
+There are 2 types of update:
+1) [Firmware Updates](#firmware-download)
+2) [Configuration Updates](#configuration-download)
 
 #### Firmware Download
 Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings.
@@ -277,6 +311,8 @@ The sensor node will verify the MD5 hash and then update the configuration value
 After the sensor node confirms that the update has been received, Node-RED will delete the configuration file.
 
 > Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
+
+---
 
 ## Failure Modes
 ### Server Connectivity Failure
@@ -374,6 +410,8 @@ The server will not be able to accept incoming connections.
 
 Mitigation:  
 The Node-RED flows include a periodic state-of-health message that is printed to the console. The provided soh-monitor.sh script can monitor the systemd journal for these state-of-health messages and restart the Node-RED server if a timeout is exceeded.
+
+---
 
 ## Cybersecurity
 > Caution: Very little attention has been paid to cybersecurity implications of this system.  
