@@ -161,9 +161,12 @@ A Waveshare 1.9" Segmented E-Paper Display (EPD) is supported for live display o
 The display can be configured to display temperature readings in Celsius or Fahrenheit.
 
 The following status indications can be displayed:
-- Connectivity
-- Low Battery
-- °C/°F
+- Connectivity  
+  ![Connection Icon](photos/EPD_1in9_connection.jpg)
+- Low Battery  
+  ![Low Battery Icon](photos/EPD_1in9_battery.jpg)
+- °C/°F  
+  ![Fahrenheit Icon](photos/EPD_1in9_fahrenheit.jpg)
 - Critically Low Batery
 - Connection Failure
 - Low Temperature
@@ -174,7 +177,10 @@ The EPD takes considerable time to refresh, especially at lower temperatures. Ov
 
 The EPD is not designed to work below 0°C. When a temperature below 0°C is detected, a final update to the display will be made to display a low temperature warning. After that, the display will be held in reset until temperatures rise above 0°C again.
 
-When the battery voltage drops below a critical threshold, a final update to the display will be made to display a low battery message. After that the sensor node will enter deep-sleep until the battery is replaced.
+(TODO: Photo of EPD)
+
+When the battery voltage drops below a critical threshold, a final update to the display will be made to display a low battery message. After that the sensor node will enter deep-sleep until the battery is replaced.  
+![Low Battery Message](photos/EPD_1in9_low_battery.jpg)
 
 #### UART Logging
 The USB port is connected to a CH340 USB-to-UART ASIC. This allows UART communication between a PC and the sensor node.
