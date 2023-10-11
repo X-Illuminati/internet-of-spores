@@ -203,7 +203,7 @@ The USB port is connected to a CH340 USB-to-UART ASIC. This allows UART communic
 
 In the standard firmware, only a bare minimum of information is transmitted from the sensor node via UART. However, the software can be compiled with extra logging enabled, which will transmit the uncalibrated sensor readings along with information about WiFi connectivity.
 
-> Caution: This additional logging will also expose the WiFi password.
+> ⚠️ Caution: This additional logging will also expose the WiFi password.
 
 The monitor.sh script can be used to easily monitor the sensor node UART from a typical PC shell.  
 Alternately, there is a UART monitor built-in to the Arduino IDE.
@@ -227,7 +227,8 @@ Each build of the software includes a software fingerprint which is reported to 
 
 An MD5 hash will be transmitted to the sensor node along with the firmware image. The sensor node will verify the hash and then program the firmware image into its NOR flash.
 
-> Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
+> ⚠️ Caution:  
+> There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
 
 #### Over-the-Air Configuration
 The sensor nodes support over-the-air (OTA) configuration updates via special Node-RED flows.
@@ -237,7 +238,8 @@ A unique sensor node name (based on the ESP8266  serial number) is reported to N
 
 An MD5 hash will be transmitted to the sensor node along with the configuration file. The sensor node will verify the hash and then program the firmware image into its SPI Flash File System (SPIFFS).
 
-> Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
+> ⚠️ Caution:  
+> The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
 
 ---
 
@@ -273,7 +275,8 @@ The sensor node spends most of its time in deep sleep mode.
 In this mode, the processor is in its lowest power state with most peripherals disabled. Extra care is taken to disable the WiFi radio, even though this will result in extra time spent waking up and calibrating the radio when the next upload cycle is reached. The main processor peripheral still running is the RTC module.
 
 This RTC module has a simple alarm timer and control of GPIO16, which it will pull low when the alarm expires. By connecting the link between GPIO16 and the reset pin, this will cause the processor to wake.
-> Note: on the D1 Mini, a suitable resistor or Schottky diode should be used to link GPIO16 and RST or else the CH340 will not be able to pull the reset pin low and enter reprogramming mode automatically.
+> 🪧 Note:  
+> On the D1 Mini, a suitable resistor or Schottky diode should be used to link GPIO16 and RST or else the CH340 will not be able to pull the reset pin low and enter reprogramming mode automatically.
 
 Upon waking, the processor will have gone through a reset. Only the RTC RAM is retained uninitialized, and this is used to maintain application state through the deep sleep mode.
 
@@ -299,18 +302,22 @@ Each build of the software includes a software fingerprint which is reported to 
 Node-RED can compare the software fingerprint to the filenames in its "firmware/" directory. If the sensor node is not reporting a valid software fingerprint, the Node-RED flows will transmit a valid firmware image along with its MD5 hash to the sensor node.  
 The sensor node will verify the MD5 hash and program the firmware image into its NOR flash memory.
 
-> Note: The Node-RED flows will not update the firmware if there is a matching firmware binary present in the firmware/ directory. Old firmware images must be removed in order for the update process to be triggered.
+> 🪧 Note:  
+> The Node-RED flows will not update the firmware if there is a matching firmware binary present in the firmware/ directory. Old firmware images must be removed in order for the update process to be triggered.
 
-> Note: The fingerprint used does not provide a deterministic ordering. If multiple firmware images are present, the one that is uploaded to the sensor node will essentially be determined at random.
+> 🪧 Note:  
+> The fingerprint used does not provide a deterministic ordering. If multiple firmware images are present, the one that is uploaded to the sensor node will essentially be determined at random.
 
-> Caution: There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
+> ⚠️ Caution:  
+> There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
 
 #### Configuration Download
 A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. The Node-RED flows can check for configuration files for that sensor node in the "sensor-cfg/" directory. These files will be transmitted to the sensor node along with an MD5 hash  
 The sensor node will verify the MD5 hash and then update the configuration value in its NOR flash memory.  
 After the sensor node confirms that the update has been received, Node-RED will delete the configuration file.
 
-> Caution: The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
+> ⚠️ Caution:  
+> The sensor node name is also configurable. Care must be taken to ensure that it remains unique.
 
 ---
 
@@ -414,13 +421,15 @@ The Node-RED flows include a periodic state-of-health message that is printed to
 ---
 
 ## Cybersecurity
-> Caution: Very little attention has been paid to cybersecurity implications of this system.  
+> ⚠️ Caution:  
+> Very little attention has been paid to cybersecurity implications of this system.  
 > It is strongly encouraged to only run it on a local network and preferably only give the sensor nodes access to a "guest" WiFi AP which has restricted access to the rest of your network.  
 > While the Grafana dashboard supports login credentials, it is unknown to this author whether Grafana's security is adequate for exposure to the public internet.
 
 ### WiFi Credential Storage on Sensor Nodes
 The ESP8266 does not have any security for the storage of WiFi credentials. Anyone with physical access to the sensor nodes can trivially read out the WiFi SSID and password. These credentials are stored in external SPI flash memory, which can be easily dumped with low cost tools. Additionally, the firmware can be easily replaced via USB [see above](#usb-firmware-programming), so a program can be loaded to simply print out the stored credentials.
-> Caution: Don't leave sensor nodes outdoors where physical access is available to the public who can trivially dump your WiFi credentials and gain access to your internal network.  
+> ⚠️ Caution:  
+> Don't leave sensor nodes outdoors where physical access is available to the public who can trivially dump your WiFi credentials and gain access to your internal network.  
 > **I call this "the evil gardener" attack.**
 
 ### Security of Sensor Readings
@@ -433,7 +442,7 @@ It is probably also easy to get the sensor nodes to connect to an attacker-contr
 
 The default Node-RED configuration allows anyone to log in to the flow editor (on port 1880) and view the debug information, which includes raw sensor readings.
 
-> Caution: Only run Node-RED in a trusted local network environment.
+> ⚠️ Caution: Only run Node-RED in a trusted local network environment.
 
 #### Personal Implications of Insecure Sensor Readings
 It may seem that the availability of sensor readings do not pose a serious concern. However, in many cases the sensor readings can serve as an effective human presence detector. With even limited knowledge, an attacker may be able to identify and track individuals based on the sensor readings.  
@@ -441,24 +450,28 @@ Further, access to the InfluxDB or Grafana dashboard could provide extensive his
 
 Individuals or organizations intending to deploy sensors of this type will need to perform their own threat analysis and risk assessment.
 
-> Caution: In situations where knowledge of the movement or presence of personnel could pose a threat to operational security, these sensors should not be used.
+> ⚠️ Caution:  
+> In situations where knowledge of the movement or presence of personnel could pose a threat to operational security, these sensors should not be used.
 
-> Note: Persons or organizations that have restrictions regarding the storage of personally-identifiable-information should conduct an assessment of whether the transmission or storage of sensor readings will violate any data privacy laws.
+> 🪧 Note:  
+> Persons or organizations that have restrictions regarding the storage of personally-identifiable-information should conduct an assessment of whether the transmission or storage of sensor readings will violate any data privacy laws.
 
 ### Node-RED Security
 By default, the Node-RED flow editor is unsecured. Anyone with access to the network can modify its behavior and responses to the sensor nodes. As mentioned [above](#insecurity-of-transmitted-sensor-readings), anyone with access can trivially monitor the incoming sensor readings.
 
-> Caution: Only run Node-RED in a trusted local network environment.
+> ⚠️ Caution: Only run Node-RED in a trusted local network environment.
 
 This page, [Securing Node-RED](https://nodered.org/docs/user-guide/runtime/securing-node-red), provides some information on how to improve the security of Node-RED and add user-authentication. However, it is still probably unwise to expose Node-RED to the public internet.
 
-> Corollary: Without implementing the mentioned additional security, it is advisable to only run Node-RED on a separate network from the WiFi AP that the sensor nodes connect to. The use of a network tunnel can still allow the sensor nodes to upload their readings without exposing the admin interface on the high-risk WiFi network.
+> 🪧 Corollary:  
+> Without implementing the mentioned additional security, it is advisable to only run Node-RED on a separate network from the WiFi AP that the sensor nodes connect to. The use of a network tunnel can still allow the sensor nodes to upload their readings without exposing the admin interface on the high-risk WiFi network.
 
 The TCP connection on port 2880 between the sensor nodes and Node-RED is unauthenticated. The sensor nodes will connect to any server and believe that it is the correct destination.  
 Further, the sensor nodes will obey any response received from the Node-RED server -- including [firmware updates](#over-the-air-firmware-programming). This makes it relatively trivial for an attacker with access to the WiFi network (or who can spoof the network) to upload arbitrary firmware to the sensor nodes.  
 The implications of this threat are unexplored by the author of this document.
 
-> Note: It is probably advisable to regularly audit the firmware loaded on each sensor node and to regularly change the WiFi credentials.  
+> 🪧 Note:  
+> It is probably advisable to regularly audit the firmware loaded on each sensor node and to regularly change the WiFi credentials.  
 > Where possible, use a "guest" WiFi AP to isolate the sensor nodes from the rest of your internal network and only allow them access to port 2880 of the Node-RED server.
 
 ### InfluxDB Security
@@ -468,7 +481,8 @@ If Node-RED and Grafana are running locally, InfluxDB could be configured to onl
 
 This page, [Manage security and authorization](https://docs.influxdata.com/influxdb/v2/security/), may provide tips for setting up authentication within InfluxDB. However, it is still probably unwise to expose InfluxDB to the public internet.
 
-> Corollary: Without implementing the mentioned additional security, it is advisable to only run InfluxDB on a separate network from the WiFi AP that the sensor nodes connect to.
+> 🪧 Corollary:  
+> Without implementing the mentioned additional security, it is advisable to only run InfluxDB on a separate network from the WiFi AP that the sensor nodes connect to.
 
 ### Grafana Security
 By default, the Grafana server does not require user authentication. Anyone with access to the local network can view the sensor readings.  
@@ -476,4 +490,5 @@ Typically, users can also create their own dashboards to execute arbitrary queri
 
 This page, [Configure security](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/), provides some information about securing a Grafana instance. However, it is probably unwise to expose Grafana to the public internet.
 
-> Corollary: Without implementing the mentioned additional security, it is advisable to only run Grafana on a separate network from the WiFi AP that the sensor nodes connect to.
+> 🪧 Corollary:  
+> Without implementing the mentioned additional security, it is advisable to only run Grafana on a separate network from the WiFi AP that the sensor nodes connect to.
