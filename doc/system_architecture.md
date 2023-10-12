@@ -139,6 +139,7 @@ Connectivity to the access point will be tested before returning to normal mode.
 #### Uploading Sensor Readings
 The sensor node will periodically switch to [upload mode](#upload-mode) where it will configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
 
+![Connection and Upload Flow Chart](drawio/sysarch_connection_flow_chart.png)
 
 The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.  
 ![Node-RED tcp:2880](screenshots/nodered_tcp_2880.png)
