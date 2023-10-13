@@ -245,6 +245,7 @@ An MD5 hash will be transmitted to the sensor node along with the configuration 
 ---
 
 ## System Modes
+![Sensor Node System Modes](drawio/sysarch_system_modes.png)
 
 ### Reprogramming Mode
 The CH340 USB-to-UART ASIC has RTS and DTR signals that can be set by the PC terminal interface. These are used to hold GPIO0 low while toggling the ESP8266's reset pin, which causes it to enter UART boot mode.
