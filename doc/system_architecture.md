@@ -249,7 +249,12 @@ An MD5 hash will be transmitted to the sensor node along with the configuration 
 ![Sensor Node System Modes](drawio/sysarch_system_modes.png)
 
 ### Reprogramming Mode
-The CH340 USB-to-UART ASIC has RTS and DTR signals that can be set by the PC terminal interface. These are used to hold GPIO0 low while toggling the ESP8266's reset pin, which causes it to enter UART boot mode.
+The CH340 USB-to-UART ASIC has RTS and DTR signals that can be set by the PC terminal interface. These are used to hold GPIO0 low while toggling the ESP8266's reset pin, which [causes it to enter UART boot mode](https://docs.espressif.com/projects/esptool/en/latest/esp8266/esptool/entering-bootloader.html).
+
+![Reprogramming Mode Sequence](drawio/sysarch_reprogramming_mode_sequence_diagram.png)
+
+In the UART boot mode, [a SLIP-based protocol](https://docs.espressif.com/projects/esptool/en/latest/esp8266/advanced-topics/serial-protocol.html) is used to communicate with the ROM firmware and update the flash memory.  
+In principle, 921600 baud is possible, but this seems to be buggy and most tools use 460800 baud.
 
 The ESP8266 toolchain includes an esptool.py script to support reprogramming part or all of the SPI flash via this USB-to-UART interface.  
 The flash.sh script in this project makes this easier by supplying many of the esoteric command line options necessary to use esptool.py properly.
