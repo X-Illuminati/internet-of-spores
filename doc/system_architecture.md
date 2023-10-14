@@ -337,6 +337,10 @@ This serves two purposes when faced with an extended connectivity outage:
 1) It will preserve the battery life as repeated connection attempts (and associated retries) would otherwise drain the battery rapidly.
 2) It will extend coverage of the fixed quantity of sensor readings stored in RTC memory over a longer period by increasing the time between readings.
 
+Example:  
+![Grafana Screenshot showing sparse data points after several hours without an upload](screenshots/grafana_sparse_data.png)  
+(Note the circled readings spreading out over longer periods of time in order to maximize the RTC buffer in the face of several hours of connection failure.)
+
 ### Sensor Upload Failure
 It is possible that the sensor node will connect to the Node-RED server but fail to upload all of its readings.
 
