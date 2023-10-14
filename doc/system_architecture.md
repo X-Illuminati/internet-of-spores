@@ -183,7 +183,8 @@ The following status indications can be displayed:
 - °C/°F  
   ![Fahrenheit Icon](photos/EPD_1in9_fahrenheit.jpg)
 - Critically Low Batery
-- Connection Failure
+- Connection Failure  
+  ![Connection Failure Message](photos/EPD_1in9_connection_failure.jpg)
 - Low Temperature
 
 The EPD consumes no power when held in reset.
