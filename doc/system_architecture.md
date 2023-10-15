@@ -61,7 +61,7 @@ The following types of data are stored persistently within the sensor node's NOR
 - Configuration
   - Sensor Node Name
   - Node-RED server address and port
-  - Celsius vs Fahrenheit display
+  - Upload interval (#of measurements to collect before uploading)
   - Sleep time (time between sensor readings)
 
 ![SPI NOR Flash Memory](SPI_NOR_flash.jpg)
@@ -173,7 +173,7 @@ A Waveshare 1.9" Segmented E-Paper Display (EPD) is supported for live display o
 
 ![1.9in E-Paper Display](EPD_1in9.jpg)
 
-The display can be configured to display temperature readings in Celsius or Fahrenheit.
+The display can be configured to display temperature readings in Celsius or Fahrenheit. This is currently a compile-time configuration.
 
 The following status indications can be displayed:
 - Connectivity  
@@ -264,10 +264,13 @@ Pressing the reset button when the sensor node is not in deep-sleep will cause i
 ![Reset Button](reset_switch.jpg)
 This is most effectively done by double-pressing the reset button since the sensor node is usually in deep-sleep.
 
+In this mode, the sensor node is configured as a "Soft-AP" and will allow other devices to connect to it. Once connected, a "WiFi Manager" captive portal will be presented or will be accessible from the user's web browser by navigating to [http://192.168.4.1](http://192.168.4.1).  
 The captive portal will allow modification of the configuration parameters.
 
-Connectivity to the access point will be tested before returning to normal mode.  
+Connectivity to the configured access point will be tested before returning to normal mode.  
 A failsafe timeout will cause the sensor node to return to normal mode without saving the settings.
+
+![Configuration Mode Flow Chart](drawio/sysarch_configuration_mode_flow_chart.png)
 
 ### Normal Mode
 In normal mode, the sensor node reads and filters its sensors, stores the sensor readings in RTC RAM, and then enters deep sleep mode.  
