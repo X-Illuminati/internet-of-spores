@@ -139,8 +139,6 @@ Connectivity to the access point will be tested before returning to normal mode.
 #### Uploading Sensor Readings
 The sensor node will periodically switch to [upload mode](#upload-mode) where it will configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
 
-![Connection and Upload Flow Chart](drawio/sysarch_connection_flow_chart.png)
-
 The [Node-RED](https://nodered.org/) instance on the server is configured to listen for incoming connections on port 2880.  
 ![Node-RED tcp:2880](screenshots/nodered_tcp_2880.png)
 
@@ -281,6 +279,8 @@ During this time, some additional activities can happen:
 * If the RTC RAM is determined to be corrupted, it will be re-initialized.  
   This happens when power is first applied to the ESP8266 or after installing a firmware update.
 
+![Normal Mode Flow Chart](drawio/sysarch_normal_mode_flow_chart.png)
+
 ### Deep Sleep
 The sensor node spends most of its time in deep sleep mode.  
 In this mode, the processor is in its lowest power state with most peripherals disabled. Extra care is taken to disable the WiFi radio, even though this will result in extra time spent waking up and calibrating the radio when the next upload cycle is reached. The main processor peripheral still running is the RTC module.
@@ -293,6 +293,8 @@ Upon waking, the processor will have gone through a reset. Only the RTC RAM is r
 
 ### Upload Mode
 The sensor node will periodically configure itself as a WiFi station and connect to the configured access point. It will then create a TCP connection to the configured server and upload its readings.
+
+![Connection and Upload Flow Chart](drawio/sysarch_connection_flow_chart.png)
 
 The sensor readings are uploaded as a json string that the Node-RED flows know how to parse.
 
