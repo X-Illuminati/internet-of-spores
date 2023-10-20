@@ -312,6 +312,8 @@ There are 2 types of update:
 2) [Configuration Updates](#configuration-download)
 
 #### Firmware Download
+![Firmware Update Flow Chart](drawio/sysarch_firmware_update_flow_chart.png)
+
 Each build of the software includes a software fingerprint which is reported to Node-RED along with the sensor readings.
 
 Node-RED can compare the software fingerprint to the filenames in its "firmware/" directory. If the sensor node is not reporting a valid software fingerprint, the Node-RED flows will transmit a valid firmware image along with its MD5 hash to the sensor node.  
