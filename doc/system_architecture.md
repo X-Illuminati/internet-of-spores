@@ -298,10 +298,12 @@ The sensor node will periodically configure itself as a WiFi station and connect
 
 The sensor readings are uploaded as a json string that the Node-RED flows know how to parse.
 
-The Node-RED instance will reply with a simple status string indicating how many sensor readings were received and whether there are any firmware or configuration updates available for the sensor node.
+The Node-RED instance will reply with a simple status string indicating whether each batch of sensor readings was received correctly and whether there are any firmware or configuration updates available for the sensor node.
 
 The Node-RED instance will parse the sensor readings and format them for injection into the [InfluxDB](https://www.influxdata.com/) instance.  
 In particular, it will compute the absolute timestamp for each sensor reading from the sensor node's provided delta timestamps.
+
+![Upload Mode Sequence Diagram](drawio/sysarch_upload_mode_sequence_diagram.png)
 
 ### Download Mode
 The Node-RED server can respond with status strings that inform the sensor node that there are updates available for it. The sensor will then request these updates and apply them.  
