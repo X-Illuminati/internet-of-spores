@@ -329,6 +329,8 @@ The sensor node will verify the MD5 hash and program the firmware image into its
 > There is no authentication performed on the firmware images by the sensor node. An attacker with access to your WiFi network can trivially upload arbitrary firmware to the sensor nodes.
 
 #### Configuration Download
+![Configuration Update Flow Chart](drawio/sysarch_configuration_update_flow_chart.png)
+
 A unique sensor node name (based on the ESP8266  serial number) is reported to Node-RED along with the sensor readings. The Node-RED flows can check for configuration files for that sensor node in the "sensor-cfg/" directory. These files will be transmitted to the sensor node along with an MD5 hash  
 The sensor node will verify the MD5 hash and then update the configuration value in its NOR flash memory.  
 After the sensor node confirms that the update has been received, Node-RED will delete the configuration file.
