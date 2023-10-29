@@ -1,7 +1,7 @@
 # System Architecture
 
 ## Table of Contents
-* [Block Diagram](#block-diagrm)
+* [Block Diagram](#block-diagram)
 * [Features](#features)
   - [Sensor Measurements](#sensor-measurements)
   - [Persistent Storage](#persistent-storage)

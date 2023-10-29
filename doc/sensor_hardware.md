@@ -1,6 +1,18 @@
 # Sensor Electronic Architecture
 This outline is currently a work-in-progress.
 
+## Table of Contents
+* [Overview](#overview)
+  - [Block Diagram](#block-diagram)
+  - [Description](#description)
+  - [Restrictions](#restrictions)
+  - [Communication Interfaces](#communication-interfaces)
+  - [Power Management](#power-management)
+* [Schematic](#schematic)
+* [Bill of Material](#bill-of-material)
+
+---
+
 ## Overview
 ### Block Diagram
 ![Sensor HW Bloack Diagram](drawio/sensorhw_block_diagram.png)
@@ -69,10 +81,14 @@ This is used for debugging, troubleshooting, and uploading new firmware.
 - LiFePO4 Suitability Analysis
 - E-Paper Display Power Draw
 
+---
+
 ## Schematic
 - Link to Lolin schematics
 - Link to Particle Counter datasheet?
 - E-Paper Board Schematic
+
+---
 
 ## Bill of Material
 - Link to AliExpress for Lolin components
