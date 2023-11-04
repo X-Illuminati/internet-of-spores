@@ -45,7 +45,7 @@ Additional devices outside of Lolin's system are supported:
 * Waveshare 1.9" E-Paper Display (EPD)  
   ![1.9in EPD](photos/EPD_1in9.jpg)
   - The display has an on-glass IST7134 120-segment EPD Driver
-  - This display is available with or without a PCB and pin-header. A custom PCB described in this project can adapt it to the D1 Mini standard header. If purchased with a PCB, the following notes apply:
+  - This display is available with or without a PCB and pin-header. A custom PCB [described in this project](../kicad/EPD_1in9/README.md) can adapt it to the D1 Mini standard header. If purchased with a PCB, the following notes apply:
     + Wire the Reset signal to D8 and the Busy signal to D7
     + Remove the R9 pullup from the Waveshare PCB (see [Usage Restrictions](#usage-restrictions) below)
 
@@ -63,48 +63,38 @@ Location of R9 Resistor (after removal)
 > * In case of contact with electrophoretic material, wash with water and soap.
 
 #### Operating Restrictions
-* Waveshare 1.9" EPD
-  - Operating Temperature range: 0..50 °C
-  - Maximum Relative Humidity: 70%
-* ESP8266
-  - Operating Temperature range: -40..125 °C
-  - IO Pin Maximum Current: 12 mA
-* ME6211
-  - Operating Temperature range: -40..85 °C
-* CH340
-  - Operating Temperature range: -20..70 °C
-  - Maximum Voltage on Any Pin: VCC+0.5V
-* P25Q32SH
-  - Operating Temperature range: -40..85 °C
-  - Maximum Voltage on Any Pin: 4.1V
-* SHT30
-  - Operating Temperature range: -40..125 °C
-  - Recommended Operating Temp: 5..60 °C
-  - Recommended Operating Humidity: 20..80%
-  - Maximum Voltage on Any Pin: VDD+0.5V
-* HP303B
-  - Operating Temperature range: -40..85 °C
-  - Operating Pressure range: 300..1200 hPa
-  - Maximum Voltage on Any Pin: 4V
-* PPD42NS
-  - Operating Voltage Ripple: < 30mV
-  - Operating Temperature range: 0..45 °C
-  - Maximum Relative Humidity: 95%
+| Device             | Property                 | Min | Max     | Units
+|--------------------|--------------------------|-----|---------|------
+| ESP8266            | Operating Temperature    | -40 | 125     | °C
+|                    | IO Pin Current           |     | 12      | mA
+| ME6211             | Operating Temperature    | -40 | 85      | °C
+| CH340              | Operating Temperature    | -20 | 70      | °C
+|                    | Voltage on Any Pin       |     | VCC+0.5 | V
+| P25Q32SH           | Operating Temperature    | -40 | 85      | °C
+|                    | Voltage on Any Pin       |     | 4.1     | V
+| SHT30              | Operating Temperature    | -40 | 125     | °C
+|                    | Recommended Temperature  | 5   | 60      | °C
+|                    | Recommended Humidity     | 20  | 80      | %RH
+|                    | Voltage on Any Pin       |     | VDD+0.5 | V
+| HP303B             | Operating Temperature    | -40 | 85      | °C
+|                    | Operating Pressure       | 300 | 1200    | hPa
+|                    | Voltage on Any Pin       |     | 4       | V
+| PPD42NS            | Operating Temperature    | 0   | 45      | °C
+|                    | Operating Humidity       |     | 95      | %RH
+|                    | Operating Voltage Ripple |     | 30      | mV
+| Waveshare 1.9" EPD | Operating Temperature    | 0   | 50      | °C
+|                    | Operating Humidity       |     | 70      | %RH
 
 #### Storage Restrictions
-* ME6211
-  - Storage Temperature range: -55..125 °C
-* CH340
-  - Storage Temperature range: -55..125 °C
-* P25Q32SH
-  - Storage Temperature range: -65..150 °C
-* Waveshare 1.9" EPD
-  - Storage Temperature range: 0..50 °C
-  - Maximum Relative Humidity: 70%
-* HP303B
-  - Storage Temperature range: -40..125 °C
-* PPD42NS
-  - Storage Temperature range: -30..60 °C
+| Device             | Property               | Min | Max | Units
+|--------------------|------------------------|-----|-----|------
+| ME6211             | Storage Temperature    | -55 | 125 | °C
+| CH340              | Storage Temperature    | -55 | 125 | °C
+| P25Q32SH           | Storage Temperature    | -65 | 150 | °C
+| HP303B             | Storage Temperature    | -40 | 125 | °C
+| PPD42NS            | Storage Temperature    | -30 | 60  | °C
+| Waveshare 1.9" EPD | Storage Temperature    | 0   | 50  | °C
+|                    | Storage Humidity       |     | 70  | %RH
 
 ### Communication Interfaces
 #### GPIO
