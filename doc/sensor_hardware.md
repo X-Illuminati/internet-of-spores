@@ -1,4 +1,4 @@
-# Sensor Electronic Architecture and Design
+# Sensor Electronic Architecture, Design, and Bill of Material
 
 ## Table of Contents
 * [Overview](#overview)
@@ -194,12 +194,40 @@ Waveshare recommend doing a full refresh of the display every 3 minutes, so the 
   - [Seeed Studio Overview Brochure (PDF)](https://files.seeedstudio.com/wiki/Grove_Dust_Sensor/resource/Grove_-_Dust_sensor.pdf)
   - [Reverse Engineering by Tracy Allen (PDF)](https://web.archive.org/web/20141215160540/http://takingspace.org/wp-content/uploads/ShinyeiPPD42NS_Deconstruction_TracyAllen.pdf)
   - [PPD42NJ Product Specifications (PDF)](https://storage.googleapis.com/publiclab-production/public/system/images/photos/000/010/161/original/Spec_PPD42NJ_Eng_SPP13001V00_20130319.pdf)
-* EPD
-  - [Waveshare 1.9" EPD (PDF)](https://files.waveshare.com/upload/5/53/1.9inch_Segment_e-Paper_Specification.pdf)
-  - [Integrated Solutions Technology IST7134 (PDF)](https://www.waveshare.com/w/upload/b/bd/IST7134.pdf)
+* Waveshare 1.9" EPD
+  - Waveshare Documentation
+    + [Waveshare 1.9" EPD Specification (PDF)](https://files.waveshare.com/upload/5/53/1.9inch_Segment_e-Paper_Specification.pdf)
+    + [Waveshare 1.9" EPD Wiki](https://www.waveshare.com/wiki/1.9inch_Segment_e-Paper_Module)
+    + [Integrated Solutions Technology IST7134 (PDF)](https://www.waveshare.com/w/upload/b/bd/IST7134.pdf)
+  - D1 Mini Adapter Board
+    + [Civlux CF3527S (PDF)](https://www.cvilux.com/uploads/spec/101/681/SPCF053.pdf)
 
 ### Bill of Material
-- Link to wemos.cc for Lolin components
-- Link to seed/aliexpress for PPD42NS/Waveshare display
-- Table of E-Paper Board BOM
+> 🪧 Note: Prices do not include shipping, assembly, or other ancillary costs.
 
+#### Lolin Components
+* Link to [Lolin Website](https://www.wemos.cc/en/latest/)
+  - [D1 Mini](https://www.wemos.cc/en/latest/d1/d1_mini.html)
+  - [SHT30 Shield](https://www.wemos.cc/en/latest/d1_mini_shield/sht30.html)
+  - [HP303B Shield](https://www.wemos.cc/en/latest/d1_mini_shield/barometric_pressure.html)
+* Link to [Lolin Store on Aliexpress](https://www.aliexpress.com/store/1100907255)
+  - [D1 Mini](https://www.aliexpress.com/item/32529101036.html) - $3.70
+  - [SHT30 Shield](https://www.aliexpress.com/item/2251832575822188.html) - $2.30
+  - [HP303B Shield](https://www.aliexpress.us/item/2251832760893152.html) - $1.50
+
+#### PPD42NS at Seeed Studio
+* Link to [Seeed Studio Product Page](https://www.seeedstudio.com/Grove-Dust-Sensor-PPD42NS.html) - ~$10
+
+#### EPD Adapter Board for D1 Mini
+
+| Item                           | Count | ~Cost | ~Total | URL
+|--------------------------------|-------|-------|--------|----
+| PCB                            | 1     | $5    | $5     |
+| PCB Solder Stencil (5mil)      | 1     | $2.50 | $2.50  |
+| Waveshare 1.9" EPD Bare Screen | 1     | $7    | $7     | [Waveshare](https://www.waveshare.com/product/1.9inch-segment-e-paper.htm) / [AliExpress](https://www.aliexpress.us/item/3256804409831796.html)
+| Civlux CF3527S                 | 1     | $0.30 | $0.30  | [Digikey CF3508WD0RM-NH](https://www.digikey.com/en/products/detail/cvilux-usa/CF3508WD0RM-NH/15792941)
+| Capacitor SMD 0805 1000nF      | 1     | $0.10 | $0.10  | [Digikey CL21B105KBFNNNE](https://www.digikey.com/en/products/detail/samsung-electro-mechanics/CL21B105KBFNNNE/3886687)
+| Capacitor SMD 1206 100nF 50V   | 2     | $0.10 | $0.20  | [Digikey C1206C104K5RAC7800](https://www.digikey.com/en/products/detail/kemet/C1206C104K5RAC7800/411248)
+| Resistor SMD 1206 47kΩ         | 3     | $0.02 | $0.06  | Generic [Digikey Search](https://www.digikey.com/short/rm3qtzzb)
+| Pinheader 0.1" Male            | 2     | $0.10 | $0.20  | Generic [Digikey Search](https://www.digikey.com/short/p78njrqb)
+| **Total**                      |       |       | $15.40 |
