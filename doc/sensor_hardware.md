@@ -7,8 +7,10 @@
   - [Restrictions](#restrictions)
   - [Communication Interfaces](#communication-interfaces)
   - [Power Management](#power-management)
-* [Schematic](#schematic)
-* [Bill of Material](#bill-of-material)
+* [Supporting Documentation](#supporting-documentation)
+  - [Schematics](#schematics)
+  - [Datasheets](#datasheets)
+  - [Bill of Material](#bill-of-material)
 
 ---
 
@@ -101,7 +103,9 @@ Location of R9 Resistor (after removal)
 * Inputs
   - D5 (GPIO14) - Presence Detection (PPD42)
   - D6 (GPIO12) - PM2.5 LPO (PPD42)
-  - D7 (GPIO13) - Busy (EPD) / PM1.0 LPO (PPD42)
+  - D7 (GPIO13)
+    + Busy (EPD)
+    + PM1.0 LPO (PPD42)
 * Outputs
   - D8 (GPIO15) - Reset (EPD)
 
@@ -156,7 +160,7 @@ HP303B                 | 1.7 | 3.3 | 3.6
 PPD42NS                | 4.5 | 5.0 | 5.5
  
 #### EPD Power Consumption
-The Waveshare 1.9" EPD supports partial updates as long as it has not been reset. If it is reset however, updates to the display will involve a full refresh.  
+The Waveshare 1.9" EPD supports partial updates as long as it has not been reset. However, if it is reset, the first update to the display after re-initializing it will trigger a full refresh.  
 Leaving the display running while the ESP8266 is in deep sleep results in a noticeable power draw (~310 μA). There is therefore a trade-off between the extra time taken to refresh the display with the 310 μA continuous current draw.
 
 Note that a full display refresh causes a double impact -- not only does it consume a large amount of current (mA), it takes several seconds (2-6 s depending on temperature). During this time, everything on the sensor node is drawing power, not just the display. So, this actively inhibits the sensor node from getting to sleep quickly.
@@ -165,23 +169,37 @@ Waveshare recommend doing a full refresh of the display every 3 minutes, so the 
 
 ---
 
-## Schematic
-- Link to Lolin schematics
-- Link to Particle Counter datasheet?
-- E-Paper Board Schematic
+## Supporting Documentation
+### Schematics
+* [Lolin D1 Mini (PDF)](https://www.wemos.cc/en/latest/_static/files/sch_d1_mini_v4.0.0.pdf)
+* [Lolin SHT30 Shield (PDF)](https://www.wemos.cc/en/latest/_static/files/sch_sht30_v2.1.0.pdf)
+* [Lolin HP303B Shield (PDF)](https://www.wemos.cc/en/latest/_static/files/sch_hp303b_v1.0.0.pdf)
+* Waveshare 1.9" EPD
+  - [D1 Mini Adapter PCB (PDF)](../kicad/EPD_1in9/EPD_1in9_schematic.pdf)
+  - [Waveshare Driver Board (PDF)](https://www.waveshare.com/w/upload/3/35/1.9inch_Segment_e-Paper_Module01.pdf)
 
----
+### Datasheets
+* D1 Mini
+  - [Espressif ESP8266 (PDF)](https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf)
+  - SPI Flash - [Puya Semi P25Q32SH (PDF)](https://www.puyasemi.com/uploadfiles/2021/08/202108231525172517.pdf)
+  - LDO
+    + [MicrOne ME6211 (HTTP)](http://www.microne.com.cn/ProductDetail.aspx?id=4)
+    + [LCSC Backup Link (PDF)](https://datasheet.lcsc.com/lcsc/1811131510_MICRONE-Nanjing-Micro-One-Elec-ME6211C33M5G-N_C82942.pdf)
+  - USB-to-UART
+    + [WinChipHead CH340](https://www.wch-ic.com/downloads/file/79.html)
+    + [Mouser Backup Link (PDF)](https://www.mouser.com/datasheet/2/813/DS-16278-CH340E-1826268.pdf)
+* [Sensiron SHT30 (PDF)](https://www.sensirion.com/resource/datasheet/sht3x-d)
+* [HOPERF HP303B (PDF)](https://www.hoperf.com/api/downfile?title=&path=/uploads/HP303BDatasheet_1695352825.pdf)
+* PPD42NS
+  - [Seeed Studio Overview Brochure (PDF)](https://files.seeedstudio.com/wiki/Grove_Dust_Sensor/resource/Grove_-_Dust_sensor.pdf)
+  - [Reverse Engineering by Tracy Allen (PDF)](https://web.archive.org/web/20141215160540/http://takingspace.org/wp-content/uploads/ShinyeiPPD42NS_Deconstruction_TracyAllen.pdf)
+  - [PPD42NJ Product Specifications (PDF)](https://storage.googleapis.com/publiclab-production/public/system/images/photos/000/010/161/original/Spec_PPD42NJ_Eng_SPP13001V00_20130319.pdf)
+* EPD
+  - [Waveshare 1.9" EPD (PDF)](https://files.waveshare.com/upload/5/53/1.9inch_Segment_e-Paper_Specification.pdf)
+  - [Integrated Solutions Technology IST7134 (PDF)](https://www.waveshare.com/w/upload/b/bd/IST7134.pdf)
 
-## Bill of Material
-- Link to AliExpress for Lolin components
-- Link any datasheets
-  + SPI Flash - Puya Semi P25Q32SH - https://www.puyasemi.com/uploadfiles/2021/08/202108231525172517.pdf
-  + Espressif ESP8266 - https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf
-  + MicrOne ME6211 - https://datasheet.lcsc.com/lcsc/1811131510_MICRONE-Nanjing-Micro-One-Elec-ME6211C33M5G-N_C82942.pdf  
-    http://www.microne.com.cn/ProductDetail.aspx?id=4
-  + WinChipHead CH340 - https://www.wch-ic.com/downloads/file/79.html
-    https://www.mouser.com/datasheet/2/813/DS-16278-CH340E-1826268.pdf
-- Link to datasheet for Particle Counter
-- Link to datasheet for Waveshare display
+### Bill of Material
+- Link to wemos.cc for Lolin components
+- Link to seed/aliexpress for PPD42NS/Waveshare display
 - Table of E-Paper Board BOM
 
