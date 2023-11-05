@@ -71,7 +71,8 @@ These configuration and calibration values can be modified over-the-air (see [FW
 Sensor readings are not stored in NOR flash and will be lost if power is removed from the unit.  
 Sensor readings are stored in RTC RAM that is persistent through deep-sleep and only uploaded to the server occasionally (about every 20-30 minutes).
 
-The sensor readings collected are stored in an InfluxDB time-series database.
+The sensor readings collected are stored in an InfluxDB time-series database.  
+Sensor readings are stored in UTC and no special interaction is needed during daylight-savings-time adjustments.
 
 ### Sensor Node Power Management
 Sensor nodes are primarily powered by battery.  
@@ -165,6 +166,9 @@ Grafana is highly configurable and has several pre-defined widgets available for
 The charts in Grafana are configurable, which provides a mechanism for giving friendly names to the individual sensor nodes.  
 The sensor nodes have their own configurable name stored persistently, but this name is a key into the time-series database and changing it will break the continuity of the data over time.  
 Additionally, it is simply easier to change the label in the Grafana dashboard as desired.
+
+Grafana handles daylight-savings-time adjustments gracefully with no additional input needed from the user.  
+![Grafana Screenshot During Fall DST Adjustment](screenshots/grafana_daylight_time_adjustment.png)
 
 #### E-Paper Display
 A Waveshare 1.9" Segmented E-Paper Display (EPD) is supported for live display of temperature and humidity readings and overall status.
