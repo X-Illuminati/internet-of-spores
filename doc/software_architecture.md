@@ -190,6 +190,94 @@ get_battery
 > |               | return    | float         | The current battery voltage
 
 #### SHT30
+##### Description
+![Sensors Component Overview](drawio/sensorsw_sht30_overview.png)  
+The SHT30 driver provides a simple interface to retrieve sensor readings from one or more SHT30 sensors and helper functions for parsing the data returned.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| Wiring                | function           | delay API
+| TwoWire               | class              | I2C API
+| lwip                  | preprocessor macro | ntohs
+
+##### Configuration
+There is no static configuration for this component.
+
+##### Public API
+
+###### Types and Enums
+sht30_repeatability_t
+> This enum provides options for the single-shot capture mode of the sensor.
+> Higher repeatability will result in longer duration spent capturing the measurement.
+>
+> Enumerations:
+> * SHT30_RPT_LOW
+> * SHT30_RPT_MED
+> * SHT30_RPT_HIGH
+
+
+sht30_data_t
+> This structure represents the data format returned by the sensor.
+>
+> Fields:
+> * uint16_t temp
+> * uint8_t temp_check
+> * uint16_t humidity
+> * uint8_t humidity_check
+
+
+###### Functions
+sht30_get
+> Retrieve a measurement in single-shot mode.
+>
+> | Parameter | Direction | Type                  | description
+> |-----------|-----------|-----------------------|-------------
+> |           | return    | int                   | 0 for success, non-0 for failure
+> | addr      | in        | uint8_t               | I2C Address for the sensor
+> | type      | in        | sht30_repeatability_t | Measurement type
+> | data_out  | out       | sht30_data_t*         | Data structure to return the measurement in - won't be modified on failure
+
+sht30_parse_temp_c
+> Convert the data reading into a float temperature value (°C)
+> 
+> | Parameter | Direction | Type         | description
+> |-----------|-----------|--------------|-------------
+> |           | return    | float        | Temperature in °C
+> | data      | in        | sht30_data_t | Data structure with the measurement to convert
+
+sht30_parse_temp_f
+> Convert the data reading into a float temperature value (°F)
+> 
+> | Parameter | Direction | Type         | description
+> |-----------|-----------|--------------|-------------
+> |           | return    | float        | Temperature in °F
+> | data      | in        | sht30_data_t | Data structure with the measurement to convert
+
+sht30_parse_humidity
+> Convert the data reading into a float humidity value (RH%)
+> 
+> | Parameter | Direction | Type         | description
+> |-----------|-----------|--------------|-------------
+> |           | return    | float        | Relative humidity
+> | data      | in        | sht30_data_t | Data structure with the measurement to convert
+
+sht30_check_temp
+> Check the data reading temperature CRC
+> 
+> | Parameter | Direction | Type         | description
+> |-----------|-----------|--------------|-------------
+> |           | return    | bool         | True if CRC OK
+> | data      | in        | sht30_data_t | Data structure with the measurement to check
+
+sht30_check_humidity
+> Check the data reading humidity CRC
+> 
+> | Parameter | Direction | Type         | description
+> |-----------|-----------|--------------|-------------
+> |           | return    | bool         | True if CRC OK
+> | data      | in        | sht30_data_t | Data structure with the measurement to check
+
 #### HP303B
 #### Pulse2
 ### RTC Mem
