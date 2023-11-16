@@ -79,7 +79,7 @@ Additionally, the pseudo-sensor type SENSOR_TIMESTAMP_OFFS, is used to store a c
 | TwoWire               | class              | I2C initialization
 | ADC_VCC               | function           | VCC (battery) Voltage sensor HAL
 | Project Configuration | preprocessor macro | Configuration settings
-| Serial                | function           | Logging printf
+| Serial                | class              | Logging printf
 
 ##### Configuration
 Configuration of this component is done through preprocessor defines set in project_config.h.
@@ -89,98 +89,105 @@ Configuration of this component is done through preprocessor defines set in proj
 | EXTRA_DEBUG   | bool    | Enables additional debug logging
 | TETHERED_MODE | bool    | Enables PPD42 sensor
 | SHT30_ADDR    | uint8_t | I2C Address for the SHT30 sensor
-| PPD42_PIN_DET | uint8_t | Pin used to detect presence of PPD42 sensor
-| PPD42_PIN_1_0 | uint8_t | Pin used as LPO output of PPD42 sensor for PM1.0 detections
-| PPD42_PIN_2_5 | uint8_t | Pin used as LPO output of PPD42 sensor for PM2.5 detections
+| PPD42_PIN_DET | uint8_t | Pin # used to detect presence of PPD42 sensor
+| PPD42_PIN_1_0 | uint8_t | Pin # used as LPO output of PPD42 sensor for PM1.0 detections
+| PPD42_PIN_2_5 | uint8_t | Pin # used as LPO output of PPD42 sensor for PM2.5 detections
 
 ##### Public API
 
 ###### Types and Enums
-| Name          | Base Type | Description
-|---------------|-----------|-------------
-| sensor_type_t | enum      | Labels for the different types of sensor readings
+sensor_type_t
+> This enum provides labels for the different types of sensor readings.
+>
+> Enumerations:
+> * SENSOR_UNKNOWN
+> * SENSOR_TEMPERATURE
+> * SENSOR_HUMIDITY
+> * SENSOR_PRESSURE
+> * SENSOR_PARTICLE_1_0
+> * SENSOR_PARTICLE_2_5
+> * SENSOR_BATTERY_VOLTAGE
+> * SENSOR_TIMESTAMP_OFFS
 
 ###### Functions
-sensors_init -  
-Initialize module.
+sensors_init
+> Initialize module. 
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
 
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
+read_ppd42
+> Read and store values from the PPD42 particle sensor.
+> This measurement is recommended to take 30 seconds.
+>
+> 🪧 Note: The sensor requires a 3 minute warm-up time so this function is only available in tethered mode
+> 
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+> | sampletime_us | in        | unsigned long | measurement time for the sensor in μs
 
+read_sht30
+> Read and store values from the SHT30 temperature and humidity sensor.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+> | perform_store | in        | bool          | If true, the average of the sensor readings collected so far will be stored to RTC memory
 
-read_ppd42 -  
-Read and store values from the PPD42 particle sensor
-this measurement is recommended to take 30 seconds.
+read_hp303b
+>Read and store values from the HP303B barometric pressure sensor.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+> | measure_temp  | in        | bool          | If true, the temperature will also be measured using this sensor and stored
 
-> 🪧 Note: The sensor requires a 3 minute warm-up time
-so this function is only available in tethered mode.
+read_vcc
+> Read and store the ESP VCC voltage level (battery).
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+> | perform_store | in        | bool          | If true, the average of the voltage readings collected so far will be stored to RTC memory
 
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
-| sampletime_us | in        | unsigned long | measurement time for the sensor in μs
+store_uptime
+> Store the current uptime as an offset from RTC_MEM_DATA_TIMEBASE.
+> 
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
 
-read_sht30 -  
-Read and store values from the SHT30 temperature and humidity sensor.
-
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
-| perform_store | in        | bool          | If true, the average of the sensor readings collected so far will be stored to RTC memory
-
-read_hp303b -  
-Read and store values from the HP303B barometric pressure sensor.
-
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
-| measure_temp  | in        | bool          | If true, the temperature will also be measured using this sensor and stored
-
-read_vcc -  
-Read and store the ESP VCC voltage level (battery).
-
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
-| perform_store | in        | bool          | If true, the average of the voltage readings collected so far will be stored to RTC memory
-
-store_uptime -  
-Store the current uptime as an offset from RTC_MEM_DATA_TIMEBASE.
-
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | void          |
-
-get_temp -  
-Return the current temperature.
-
+get_temp
+> Return the current temperature.
+>
 > 🪧 Note: The temperature must have already been stored by calling read_sht30 or read_hp303b.  
 > Otherwise, NAN will be returned.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | float         | The current temperature (°C)
 
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | float         | The current temperature (°C)
-
-get_humidity -  
-Return the current relative humidity.
-
+get_humidity
+> Return the current relative humidity.
+>
 > 🪧 Note: The humidity must have already been stored by calling read_sht30.  
 > Otherwise, NAN will be returned.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | float         | The current relative humidity (%)
 
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | float         | The current relative humidity (%)
-
-get_battery -  
-Return the current battery voltage.
-
+get_battery
+> Return the current battery voltage.
+>
 > 🪧 Note: The battery voltage must have already been stored by calling read_vcc.  
 > Otherwise, NAN will be returned.
-
-| Parameter     | Direction | Type          | description
-|---------------|-----------|---------------|-------------
-|               | return    | float         | The current battery voltage
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | float         | The current battery voltage
 
 #### SHT30
 #### HP303B
