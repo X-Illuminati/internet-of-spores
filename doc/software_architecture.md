@@ -279,6 +279,70 @@ sht30_check_humidity
 > | data      | in        | sht30_data_t | Data structure with the measurement to check
 
 #### HP303B
+##### Description
+![Sensors Component Overview](drawio/sensorsw_hp303b_overview.png)  
+The HP303B driver provides a class object to interface with an HP303B sensors via I2C or SPI.  
+This component is provided as an external dependency developed by Lolin.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| Wiring                | function           | delay API (and GPIO for SPI chipselect)
+| TwoWire               | class              | I2C API
+| SPI                   | class              | SPI API (unused in this project)
+
+##### Configuration
+There is no static configuration for this component.
+
+##### Public API
+
+###### Types and Enums
+LOLIN_HP303B
+> This class provides public interfaces for accessing the sensor.
+
+###### Functions
+> 🪧 Note: For brevity only used interfaces are shown here. For the complete API see https://github.com/wemos/LOLIN_HP303B_Library/blob/master/src/LOLIN_HP303B.h.
+
+LOLIN_HP303B::LOLIN_HP303B
+> Void Constructor
+
+LOLIN_HP303B::~LOLIN_HP303B
+> Destructor
+
+LOLIN_HP303B::begin
+> Function to initialize the sensor using default I2C interface.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+> | slaveAddress | in        | uint8_t | I2C Address for the sensor (defaults to 0x77U)
+
+
+LOLIN_HP303B::end
+> Function to return the sensor to standby.
+>
+> | Parameter        | Direction | Type     | description
+> |------------------|-----------|----------|-------------
+> |                  | return    | void     |
+
+LOLIN_HP303B::measureTempOnce
+> Function to measure the temperature in one-shot mode with selected oversampling (2^n averages).
+>
+> | Parameter        | Direction | Type     | description
+> |------------------|-----------|----------|-------------
+> |                  | return    | int16_t  | 0 for success, non-0 for failure
+> | result           | out       | int32_t& | Temperature result (°C)
+> | oversamplingRate | in        | uint8_t  | Selected oversampling level 
+
+LOLIN_HP303B::measurePressureOnce
+> Function to measure the pressure in one-shot mode with selected oversampling (2^n averages).
+>
+> | Parameter        | Direction | Type     | description
+> |------------------|-----------|----------|-------------
+> |                  | return    | int16_t  | 0 for success, non-0 for failure
+> | result           | out       | int32_t& | Pressure result (pascal)
+> | oversamplingRate | in        | uint8_t  | Selected oversampling level 
+
 #### Pulse2
 ### RTC Mem
 ### Persistent Storage
