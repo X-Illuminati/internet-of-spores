@@ -189,6 +189,11 @@ get_battery
 > |---------------|-----------|---------------|-------------
 > |               | return    | float         | The current battery voltage
 
+##### Critical Sections
+None
+
+> 🪧 Note: Many of the functions in this component use static data and are not reentrant.
+
 #### SHT30
 ##### Description
 ![Sensors Component Overview](drawio/sensorsw_sht30_overview.png)  
@@ -278,6 +283,12 @@ sht30_check_humidity
 > |           | return    | bool         | True if CRC OK
 > | data      | in        | sht30_data_t | Data structure with the measurement to check
 
+##### Critical Sections
+None
+
+> 🪧 Note: It isn't recommended to call sht30_get from different CPU cores simultaneously.
+> The behavior of the underlying TwoWire library is likely to be undefined in this situation.
+
 #### HP303B
 ##### Description
 ![Sensors Component Overview](drawio/sensorsw_hp303b_overview.png)  
@@ -343,12 +354,93 @@ LOLIN_HP303B::measurePressureOnce
 > | result           | out       | int32_t& | Pressure result (pascal)
 > | oversamplingRate | in        | uint8_t  | Selected oversampling level 
 
+##### Critical Sections
+None
+
 #### Pulse2
+##### Description
+![Sensors Component Overview](drawio/sensorsw_pulse2_overview.png)  
+The Pulse2 driver provides a class object to monitor multiple GPIO pins and accurately measure their pulse-width.  
+In this project, the Pulse2 driver is used to monitor the LPO output pins of the PPD42 particle sensor.
+
+> 🪧 Note: This class is only used in the project when it is configured for tethered mode.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| Wiring                | function           | Interrupt, IO, and timing API
+| ESP Intrinsics        | function           | Enable/Disable Interrupts
+| libstdc++             | function,class     | bind API
+
+##### Configuration
+The following static configuration parameters can be modified in the pulse2.h header file:
+
+| Configuration      | Type   | Description 
+|--------------------|--------|-------------
+| PULSE2_MAX_PINS    | size_t | max number of pins that can be watched
+| PULSE2_WATCH_DEPTH | size_t | max number of pulses that can be stored for each pin
+
+##### Public API
+
+###### Types and Enums
+Pulse2
+> This class provides public interfaces for registering and monitoring input pins.
+
+###### Functions
+Pulse2::Pulse2
+> Void Constructor
+
+Pulse2::~Pulse2
+> Destructor - automatically deregisters any pins
+
+Pulse2::register_pin
+> Function to add (or overwrite) a monitor activity for a particular pin to pulse in a given direction.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | bool    | Returns false if PULSE2_MAX_PINS have already been registered
+> | pin          | in        | uint8_t | GPIO pin identifier
+> | direction    | in        | uint8_t | Direction of pulse to monitor for
+
+Pulse2::unregister_pin
+> Function to add (or overwrite) a monitor activity for a particular pin to pulse in a given direction.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+> | pin          | in        | uint8_t | GPIO pin identifier
+
+Pulse2::watch
+> Block (with timeout) until one of the pins is triggered.
+>
+> | Parameter | Direction | Type           | description
+> |-----------|-----------|----------------|-------------
+> |           | return    | uint8_t        | Returns pin number on success or PULSE2_NO_PIN if the timeout is reached
+> | result    | out       | unsigned long* | On success, pulse length is stored in this variable
+> | timeout   | in        | unsigned long  | Max time to monitor for in μsec (default is 1000000L == 1 second)
+
+Pulse2::reset
+> Function to reset the state machines and throw out any existing results.
+> Does not unregister any pins.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+
+##### Critical Sections
+While monitoring the pins in the Pulse2::watch function, the GPIO interrupts are periodically disabled to check the results stored by the interrupt handlers.
+
+> 🪧 Note: The use of the class object from multiple CPU cores is not threadsafe.
+> No attempt is made to protect the data structures during register/unregister operations and it would certainly be problematic to call Pulse2::watch on multiple cores simultaneously.  
+> It is also recommended to unregister pins before re-registering them with a different pin direction.
+
 ### RTC Mem
 ### Persistent Storage
 ### E-Paper Display
 
 ## Dynamic Behavior
+### Interrupts
+
 ### Modes of Operation
 - Static Modes
   - Development Mode
