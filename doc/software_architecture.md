@@ -435,6 +435,208 @@ While monitoring the pins in the Pulse2::watch function, the GPIO interrupts are
 > It is also recommended to unregister pins before re-registering them with a different pin direction.
 
 ### RTC Mem
+
+##### Description
+![Sensors Component Overview](drawio/sensorsw_rtc_mem_overview.png)  
+The rtc_mem driver provides an interface to the RTC User Memory and Deep Sleep functionalities of the ESP8266.  
+It provides several helper functions for managing the sensor readings in the RTC User Memory and entering deep sleep; and is the source of truth for the uptime of the system.
+
+> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored - ideally as a C++ class.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| Sensors               | type definition    | sensor_type_t
+| Persistent Storage    | function           | Initialization from NVM parameters
+| Wiring                | function           | millis API
+| ResetInfo             | function           | getResetReason API
+| Deep Sleep            | function           | deepSleepInstant API
+| rtcUserMemory         | function           | RTC User Memory read/write API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+Configuration of this component is done through preprocessor defines set in project_config.h.
+
+| Configuration              | Type               | Description
+|----------------------------|--------------------|-------------
+| EXTRA_DEBUG                | bool               | Enables additional debug logging
+| TETHERED_MODE              | bool               | Leaves RF Block powered during deep sleep
+| MAX_ESP_SLEEP_TIME_MS      | unsigned long long | Clamps requested sleep time since there is a bug if the value is too large
+| NUM_STORAGE_SLOTS          | size_t             | Maximum number of sensor readings that can be stored in RTC Memory
+| PERSISTENT_CLOCK_CALIB     | const char*        | Filename where the clock calibration (bootup time and sleep drift correction) is stored in SPIFFS
+| PERSISTENT_TEMP_CALIB      | const char*        | Filename where the temperature calibration is stored in SPIFFS
+| PERSISTENT_HUMIDITY_CALIB  | const char*        | Filename where the humidity calibration is stored in SPIFFS
+| PERSISTENT_BATTERY_CALIB   | const char*        | Filename where the battery (VCC ADC) calibration is stored in SPIFFS
+| PERSISTENT_SLEEP_TIME_MS   | const char*        | Filename where the sleep time configuration is stored in SPIFFS
+| PERSISTENT_HIGH_WATER_SLOT | const char*        | Filename where the high water slot (upload trigger) configuration is stored in SPIFFS
+| DEFAULT_SLEEP_CLOCK_ADJ    | int                | Default clock calibration if no value stored in SPIFFS
+| DEFAULT_TEMP_CALIB         | float              | Default temperature calibration if no value stored in SPIFFS
+| DEFAULT_HUMIDITY_CALIB     | float              | Default humidity calibration if no value stored in SPIFFS
+| DEFAULT_BATTERY_CALIB      | float              | Default battery calibration (VCC ADC) if no value stored in SPIFFS
+| DEFAULT_SLEEP_TIME_MS      | unsigned long long | Default sleep time if no value stored in SPIFFS
+| DEFAULT_HIGH_WATER_SLOT    | size_t             | Default high water slot (upload trigger) if no value stored in SPIFFS
+
+##### Public API
+
+###### Global Externs
+rtc_mem
+> Array with RTC memory contents (shadow copy of ESP RTC User Memory)
+>
+> Type: uint32_t[RTC_MEM_MAX]
+
+preinit_magic
+> Firmware fingerprint used to detect if RTC memory is inconsistent with the software version.
+> Changes each time the software is built.
+>
+> Type: const uint32_t
+
+###### Types and Enums
+RTC_DATA_TIMEBASE_SHIFT
+> Preprocessor define indicating how much to shift the data timebase from which
+> sensor readings are offset (each sensor reading can only store a 24-bit timestamp
+> (~4.5 hours)).
+> It represents a tradeoff between maximum timestamp that can be represented and
+> sensor timestamp accuracy. A value of 8 represents approximately 0.250 second
+> precision in the measurements (which directly impacts measurement
+> accuracy). Conversely, it allows an uptime of nearly 35 years rather than less
+> than 50 days.
+>
+> Usage:
+> ```
+> uint64_t millis = ((uint64_t)rtc_mem[RTC_MEM_DATA_TIMEBASE] << RTC_DATA_TIMEBASE_SHIFT);
+> ```
+
+flags_time_t
+> Structure that combines various flags with the device uptime into 2 32-bit RTC memory entries.
+>
+> Fields:
+> * uint64_t flags :5 - various condition flags (see below)
+> * uint64_t fail_count :3 - keep track of wifi connection failures
+> * uint64_t clock_cal :16 - calibration for clock drift during suspend in ms
+> * uint64_t millis :40 - uptime in ms tracked over suspend cycles
+>
+> Currently 3 flags are defined:
+> * FLAG_BIT_CONNECT_NEXT_WAKE - bit 0
+> * FLAG_BIT_NORMAL_UPLOAD_COND - bit 1
+> * FLAG_BIT_LOW_BATTERY - bit 2
+
+sensor_reading_t
+> Structure of a sensor reading.
+>
+> Fields:
+> * sensor_type_t type :8 - type of sensor reading
+> * int32_t value :24 - value of the sensor reading
+
+sleep_params_t
+> Structure to combine custom sleep time and high-water slot into a single 32-bit RTC memory entry.
+>
+> Fields:
+> * uint32_t high_water_slot :8 - configuration for upload threshold
+> * uint32_t sleep_time_ms :24 - configuration for sleep duration
+
+boot_count_t
+> Structure to combine boot count and E-Paper Display refresh cycle count
+> into a single 32-bit RTC memory entry.
+>
+> Fields:
+> * uint32_t epd_partial_refresh_count :8
+> * uint32_t boot_count :24
+
+rtc_mem_fields_e
+> Enum to provide field names for each of the positions in the RTC memory array.
+>
+> Enumerations:
+> * RTC_MEM_CHECK - Magic value/Header checksum (see preinit_magic)
+> * RTC_MEM_BOOT_COUNT - boot_count_t
+> * RTC_MEM_FLAGS_TIME - flags_time_t
+> * RTC_MEM_FLAGS_TIME_END - flags_time_t
+> * RTC_MEM_DATA_TIMEBASE - Timestamp (upper 32 bits) from which sensor readings are stored as offsets
+> * RTC_MEM_NUM_READINGS - Number of occupied slots
+> * RTC_MEM_FIRST_READING - Slot that has the oldest reading
+> * RTC_MEM_TEMP_CAL - (float) Store the temperature calibration
+> * RTC_MEM_HUMIDITY_CAL - (float) Store the humidity calibration
+> * RTC_MEM_BATTERY_CAL - (float) Store the battery (VCC ADC) calibration
+> * RTC_MEM_SLEEP_PARAMS - (sleep_params_t) Store the user's sleep configuration
+> * RTC_MEM_DATA - (sensor_reading_t) Beginning of the circular buffer of sensor readings
+> * RTC_MEM_DATA_END (sensor_reading_t) End of the array of sensor readings
+> * RTC_MEM_MAX - Total number of elements in the RTC memory (not to exceed 128)
+
+###### Functions
+load_rtc_memory
+> Function to load RTC User Memory into the shadow copy (rtc_mem) at startup.
+> Performs some housekeeping and prints some debug.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | bool    | Returns false if RTC memory had to be reformatted (see preinit_magic)
+
+invalidate_rtc
+> Clear and RTC User Memory and re-initialize the shadow copy (rtc_mem).
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+
+uptime
+> Return the system uptime, which is tracked across sleep cycles (unlike millis).
+>
+> | Parameter    | Direction | Type     | description
+> |--------------|-----------|----------|-------------
+> |              | return    | uint64_t | System uptime in ms
+
+save_rtc
+> Helper for storing the shadow copy (rtc_mem) back to RTC User Memory before entering sleep.
+> Updates checksum in RTC_MEM_CHECK and stores increments the uptime.
+>
+> | Parameter     | Direction | Type     | description
+> |---------------|-----------|----------|-------------
+> |               | return    | void     |
+> | sleep_time_us | in        | uint64_t | Optional sleep time (in μs) to add to the uptime. Defaults to 0 in case of saving without entering sleep.
+
+deep_sleep
+> Helper for entering sleep.
+> Calls save_rtc to store the RTC memory.
+>
+> | Parameter     | Direction | Type     | description
+> |---------------|-----------|----------|-------------
+> |               | return    | void     |
+> | time_us       | in        | uint64_t | Desired sleep duration (in μs)
+
+store_reading
+> Helper for storing a sensor reading in the RTC_MEM_DATA circular buffer.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+> | type      | in        | sensor_type_t | Type of the sensor reading
+> | val       | in        | in32_t        | Value of the sensor reading
+
+clear_readings
+> Helper for removing readings from the RTC_MEM_DATA circular buffer.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+> | num       | in        | unsigned int  | Optional number of readings to remove (oldest first), defaults to all readings
+
+dump_readings
+> Prints out all the sensor readings in the circular buffer
+>
+> 🪧 Note: only functions if EXTRA_DEBUG is enabled.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+
+##### Critical Sections
+None
+
+> ⚠️ Caution: This component is not threadsafe.  
+> The functions of this component are not reentrant.  
+> Accessing rtc_mem from a context that might be preempted by callers of this
+> component could result in reading inconsistent values.
+
 ### Persistent Storage
 ### E-Paper Display
 
