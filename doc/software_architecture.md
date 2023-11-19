@@ -638,6 +638,106 @@ None
 > component could result in reading inconsistent values.
 
 ### Persistent Storage
+
+
+##### Description
+![Sensors Component Overview](drawio/sensorsw_persistent_storage_overview.png)  
+The Persistent Storage driver provides an interface for reading and writing key-value pairs in the SPI Flash File System (SPIFFS).  
+It abstracts the interface of working with POSIX-style file handles and allows SPIFFS initialization to be performed on-demand.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| libstdc++             | class              | String class
+| SPIFFS                | class              | SPI Flash File System API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+Configuration of this component is done through preprocessor defines set in project_config.h.
+
+| Configuration              | Type               | Description
+|----------------------------|--------------------|-------------
+| EXTRA_DEBUG                | bool               | Enables additional debug logging
+
+##### Public API
+
+###### Types and Enums
+None
+
+###### Functions
+persistent_init
+> Function to initialize SPIFFS.  
+> Normally, SPIFFS will be initialized on-demand. However, it can be
+> initialized manually by calling this function. This may be useful if
+> you want your first call to the other API functions to run more quickly.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+
+persistent_read
+> Function to read a value from a particular file.  
+> Values are stored as strings. However, the function is overloaded to
+> provide automatic conversion to int or float.
+>
+> 1) Fundamental Prototype:
+>
+> | Parameter    | Direction | Type        | description
+> |--------------|-----------|-------------|-------------
+> |              | return    | String      | Returns a String object representing the contents of the file or ""
+> | filename     | in        | const char* | The filename to read from
+>
+> 2) Default String Prototype:
+>
+> | Parameter     | Direction | Type        | description
+> |---------------|-----------|-------------|-------------
+> |               | return    | String      | Returns a String object representing the contents of the file or the provided default_value
+> | filename      | in        | const char* | The filename to read from
+> | default_value | in        | String      | The default value to return if the file does not exist or if the contents of the file are "", " ", or "default"
+>
+> 3) Default int Prototype:
+>
+> | Parameter     | Direction | Type        | description
+> |---------------|-----------|-------------|-------------
+> |               | return    | int         | Returns the contents of the file after integer conversion or the provided default_value
+> | filename      | in        | const char* | The filename to read from
+> | default_value | in        | int         | The default value to return if the file does not exist or if integer conversion fails
+>
+> 4) Default float Prototype:
+>
+> | Parameter     | Direction | Type        | description
+> |---------------|-----------|-------------|-------------
+> |               | return    | float       | Returns the contents of the file after float conversion or the provided default_value
+> | filename      | in        | const char* | The filename to read from
+> | default_value | in        | float       | The default value to return if the file does not exist or if float conversion fails
+
+persistent_write
+> Function to store a string to a particular file.  
+> It is overloaded to provide storage for strings or arbitrary byte arrays.
+>
+> 1) String Prototype:
+>
+> | Parameter     | Direction | Type        | description
+> |---------------|-----------|-------------|-------------
+> |               | return    | bool        | Returns false if the data is not properly stored in the file
+> | filename      | in        | const char* | The filename to write to
+> | data          | in        | String      | The value to be written
+>
+> 2) Byte Array Prototype:
+>
+> | Parameter | Direction | Type           | description
+> |-----------|-----------|----------------|-------------
+> |           | return    | bool           | Returns false if the data is not properly stored in the file
+> | filename  | in        | const char*    | The filename to write to
+> | buf       | in        | const uint8_t* | The data buffer to be written
+> | size      | in        | size_t         | The size of the data buffer
+
+##### Critical Sections
+None
+
+> 🪧 Note: One assumes that the underlying SPIFFS SDK is written in a thread-safe way, but I have not investigated this detail myself.
+
 ### E-Paper Display
 
 ## Dynamic Behavior
