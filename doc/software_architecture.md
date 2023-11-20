@@ -43,10 +43,91 @@ The SDK layer provides Arduino HAL functionalities as well as ESP8266-specific l
 ---
 
 ## Component Description
- (description, dependencies, configuration, public API)
+
 ### Main
 
+##### Description
+![Sensors Component Overview](drawio/sensorsw_main_overview.png)  
+The Main component provides the familiar entry point functions for the Arduino framework, setup and loop.  
+It orchestrates the sensor collection and display of sensor readings as well as changes between modes of operation for the sensor node.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| Connection Manager    | function           | Connectivity API
+| Sensors               | function           | Sensor readings API
+| RTC Mem               | function, global   | Sleep API, RTC Memory API
+| EPD_1in9              | function           | E-Paper Display API
+| ResetInfo             | function           | Reset reason detects double-press of reset button
+| Waveform              | function           | Blink LED at constant rate
+| Wiring                | function           | GPIO API, delay API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+Configuration of this component is done through preprocessor defines set in project_config.h.
+
+| Configuration            | Type          | Description
+|--------------------------|---------------|-------------
+| EXTRA_DEBUG              | bool          | Enables additional debug logging
+| TETHERED_MODE            | bool          | Enables PPD42 sensor
+| VCC_CAL_MODE             | bool          | Builds for VCC Calibration mode (allows quick reading of VCC ADC to assist with calibration)
+| SERIAL_SPEED             | unsigned long | Baud rate for the logging serial port
+| LOW_BATTERY_VOLTAGE      | float         | Voltage level at which the low battery icon will be set on the display
+| CRIT_BATTERY_VOLTAGE     | float         | Voltage level at which the critically low battery message will be displayed
+| DISP_CONNECT_FAIL_COUNT  | unsigned int  | Number of failed connections that will trigger the connection error message to be displayed
+| MAX_ESP_SLEEP_TIME_MS    | uint64_t      | Value that represents an "infinite" sleep time
+| PPD42_PIN_DET            | uint8_t       | Pin # used to detect presence of PPD42 sensor
+| EPD_FULL_REFRESH_TIME_MS | uint64_t      | Period between full display refreshes in milliseconds
+| EPD_RST_PIN              | uint8_t       | Pin number for the EPD reset pin
+| EPD_RST_POLARITY         | bool          | Indicates whether reset pin is active high or low
+| EPD_FAHRENHEIT           | bool          | Indicates whether display temp is in °F rather than °C
+| SIMULATE_GOOD_CONNECTION | bool          | Enables debug mode where upload is not actually performed
+
+##### Public API
+
+###### Types and Enums
+None
+
+###### Functions
+preinit
+> Called before global class instances are initialized.  
+> Calls connectivity_preinit to disable the modem before it gets initialized.
+>
+> 🪧 Note: This function is only used in non-tethered mode.
+> In tethered mode, the WiFi radio is left active permanently.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+setup
+> Called before the main processing loop starts.  
+> Initializes the Serial port and RTC Memory.  
+> Checks the reset reason and decides whether to start WiFi Manager or
+> run the normal sensor processing.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+loop
+> Executes the normal sensor processing.  
+> Despite the name, this function normally does not loop.
+> In battery mode, it always ends in a deep sleep.
+> In tethered mode, it may or may not enter deep sleep depending on how long
+> the sensor processing and upload process took.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+##### Critical Sections
+None
+
 ### Project Configuration
+
+PREINIT_MAGIC description
 
 ### Connectivity
 #### Connection Manager
