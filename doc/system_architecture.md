@@ -187,15 +187,12 @@ The following status indications can be displayed:
 - Critically Low Batery
 - Connection Failure  
   ![Connection Failure Message](photos/EPD_1in9_connection_failure.jpg)
-- Low Temperature
 
 The EPD consumes no power when held in reset.
 
 The EPD takes considerable time to refresh, especially at lower temperatures. Overall, it will reduce battery lifetime to approximately ⅓ of normal.
 
-The EPD is not designed to work below 0°C. When a temperature below 0°C is detected, a final update to the display will be made to display a low temperature warning. After that, the display will be held in reset until temperatures rise above 0°C again.
-
-(TODO: Photo of EPD)
+The EPD is not designed to work below 0°C. When a temperature below 0°C is detected, the display will be held in reset until temperatures rise above 0°C again.
 
 When the battery voltage drops below a critical threshold, a final update to the display will be made to display a low battery message. After that the sensor node will enter deep-sleep until the battery is replaced.  
 ![Low Battery Message](photos/EPD_1in9_low_battery.jpg)
