@@ -739,6 +739,115 @@ None
 > 🪧 Note: One assumes that the underlying SPIFFS SDK is written in a thread-safe way, but I have not investigated this detail myself.
 
 ### E-Paper Display
+![Sensors Component Overview](drawio/sensorsw_epd_1in9_overview.png)  
+The E-Paper Display (EPD) driver controls the Waveshare 1.9" E-Paper Display via I2C.
+
+The driver comes from https://www.waveshare.com/w/upload/f/f8/E-Paper-Segment-Code2.zip, but some modifications have been made.
+
+##### Dependencies
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| TwoWire               | class              | I2C API
+| Wiring                | function           | GPIO and delay API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+Configuration of this component is done through preprocessor defines set in project_config.h.
+
+| Configuration      | Type    | Description
+|--------------------|---------|-------------
+| EPD_BUSY_PIN       | uint8_t | Pin number for the EPD busy pin
+| EPD_RST_PIN        | uint8_t | Pin number for the EPD reset pin
+| EPD_RST_POLARITY   | bool    | Indicates whether reset pin is active high or low
+
+Additional static configuration is possible by modifying EPD_1in9.h, but not expected to be useful.
+
+| Configuration      | Type    | Description
+|--------------------|---------|-------------
+| adds_com           | uint8_t | I2C address for display commands
+| adds_data          | uint8_t | I2C address for display data
+
+##### Public API
+
+###### Types and Enums
+None
+
+###### Functions
+
+> 🪧 Note: The driver code exports all of its functions.
+> For brevity only used interfaces are shown here.  
+> For the complete API see [EPD_1in9.h](../EPD_1in9.h), though it is poorly documented.
+
+EPD_1in9_GPIOInit
+> Initialize GPIO pins.  
+> Should be called before EPD_1in9_init.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | void    |
+
+EPD_1in9_init
+> Initialize the display via I2C.  
+> This function also calls EPD_1in9_Temperature.  
+> Should be called after EPD_1in9_GPIOInit.
+>
+> | Parameter    | Direction | Type    | description
+> |--------------|-----------|---------|-------------
+> |              | return    | uint8_t | Returns any error result from the I2C
+
+EPD_1in9_Set_Temp
+> Store the current temperature.  
+> 🪧 Note: This function has no immediate side effects. It is safe to
+> call it before EPD_1in9_init. The stored temperature is used by
+> EPD_1in9_Temperature (and, indirectly, by EPD_1in9_init).
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+> | temp      | in        | unsigned char | Temperature in °C
+
+EPD_1in9_Temperature
+> Update the display refresh timings based on the stored temperature.  
+> The stored temperature can be updated by calling EPD_1in9_Set_Temp  
+> This function is called by EPD_1in9_init.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+
+EPD_1in9_Clear_Screen
+> Performs a full clear of the screen.  
+> It is recommended to perform this action periodically.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+
+EPD_1in9_Easy_Write_Full_Screen
+> Helper function to build up a full buffer from individual parameters
+> and write it to the display.
+>
+> | Parameter        | Direction | Type  | description
+> |------------------|-----------|-------|-------------
+> |                  | return    | void  |
+> | temp             | in        | float | Temperature to display
+> | humidity         | in        | float | Humidity to display
+> | fahrenheit       | in        | bool  | True to indicate °F rather than °C
+> | connect          | in        | bool  | True to light the Bluetooth icon
+> | connection_error | in        | bool  | True to display "Conn Err" rather than the temperature and humidity
+> | low_battery      | in        | bool  | True to display the empty battery icon
+> | critical_battery | in        | bool  | True to display "Lo Bat" rather than the temperature and humidity
+
+EPD_1in9_sleep
+> Command the display to enter deep sleep and also assert the reset pin.
+>
+> | Parameter | Direction | Type          | description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+
+##### Critical Sections
+None
 
 ## Dynamic Behavior
 ### Interrupts
