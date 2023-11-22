@@ -47,7 +47,7 @@ The SDK layer provides Arduino HAL functionalities as well as ESP8266-specific l
 ### Main
 
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_main_overview.png)  
+![Main Component Overview](drawio/sensorsw_main_overview.png)  
 The Main component provides the familiar entry point functions for the Arduino framework, setup and loop.  
 It orchestrates the sensor collection and display of sensor readings as well as changes between modes of operation for the sensor node.
 
@@ -277,7 +277,7 @@ None
 
 #### SHT30
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_sht30_overview.png)  
+![SHT30 Component Overview](drawio/sensorsw_sht30_overview.png)  
 The SHT30 driver provides a simple interface to retrieve sensor readings from one or more SHT30 sensors and helper functions for parsing the data returned.
 
 ##### Dependencies
@@ -372,7 +372,7 @@ None
 
 #### HP303B
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_hp303b_overview.png)  
+![HP303B Component Overview](drawio/sensorsw_hp303b_overview.png)  
 The HP303B driver provides a class object to interface with an HP303B sensors via I2C or SPI.  
 This component is provided as an external dependency developed by Lolin.
 
@@ -440,7 +440,7 @@ None
 
 #### Pulse2
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_pulse2_overview.png)  
+![Pulse2 Component Overview](drawio/sensorsw_pulse2_overview.png)  
 The Pulse2 driver provides a class object to monitor multiple GPIO pins and accurately measure their pulse-width.  
 In this project, the Pulse2 driver is used to monitor the LPO output pins of the PPD42 particle sensor.
 
@@ -518,7 +518,7 @@ While monitoring the pins in the Pulse2::watch function, the GPIO interrupts are
 ### RTC Mem
 
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_rtc_mem_overview.png)  
+![RTC Mem Component Overview](drawio/sensorsw_rtc_mem_overview.png)  
 The rtc_mem driver provides an interface to the RTC User Memory and Deep Sleep functionalities of the ESP8266.  
 It provides several helper functions for managing the sensor readings in the RTC User Memory and entering deep sleep; and is the source of truth for the uptime of the system.
 
@@ -722,7 +722,7 @@ None
 
 
 ##### Description
-![Sensors Component Overview](drawio/sensorsw_persistent_storage_overview.png)  
+![Persistent Storage Component Overview](drawio/sensorsw_persistent_storage_overview.png)  
 The Persistent Storage driver provides an interface for reading and writing key-value pairs in the SPI Flash File System (SPIFFS).  
 It abstracts the interface of working with POSIX-style file handles and allows SPIFFS initialization to be performed on-demand.
 
@@ -820,7 +820,7 @@ None
 > 🪧 Note: One assumes that the underlying SPIFFS SDK is written in a thread-safe way, but I have not investigated this detail myself.
 
 ### E-Paper Display
-![Sensors Component Overview](drawio/sensorsw_epd_1in9_overview.png)  
+![EPD_1in9 Component Overview](drawio/sensorsw_epd_1in9_overview.png)  
 The E-Paper Display (EPD) driver controls the Waveshare 1.9" E-Paper Display via I2C.
 
 The driver comes from https://www.waveshare.com/w/upload/f/f8/E-Paper-Segment-Code2.zip, but some modifications have been made.
