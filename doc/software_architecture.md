@@ -126,8 +126,106 @@ loop
 None
 
 ### Project Configuration
+![Project Confguration Overview](drawio/sensorsw_project_config_overview.png)  
+The Project Configuration header provides a central location for configuring the behavior of the sensor node.
 
-PREINIT_MAGIC description
+##### Dependencies
+None
+
+##### Configuratoin
+
+There are 4 main configurations that can be set in this file to control high-
+level behavior of the sensor node:
+| Configuration     | Type | Description
+|-------------------|------|-------------
+| EXTRA_DEBUG       | bool | Enables additional debug logging
+| TETHERED_MODE     | bool | Configures the Sensor to run from an unlimited power supply -- enables PPD42 sensor and uploads sensor readings to the server every cycle
+| DEVELOPMENT_BUILD | bool | Enables settings helpful for the developer or for debugging -- enables EXTRA_DEBUG, reduces sleep time and number of storage slots, and disables remote firmware updates
+| VCC_CAL_MODE      | bool | Enables a mode for calibrating the VCC ADC -- this combines DEVELOPMENT_BUILD with TETHERED_MODE to provide rapid feedback about the battery voltage
+
+There are additional configurations that may be changed based on user preferrence:
+| Configuration           | Type          | Description
+|-------------------------|---------------|-------------
+| SERIAL_SPEED            | unsigned long | Baud rate for the logging serial port
+| REPORT_RESPONSE_TIMEOUT | unsigned long | Timeout period (in milliseconds) to wait for a response from the Node-RED server
+| LOW_BATTERY_VOLTAGE     | float         | Voltage level at which the low battery icon will be set on the display
+| DISP_CONNECT_FAIL_COUNT | unsigned int  | Number of failed connections that will trigger the connection error message to be displayed
+| FIRMWARE_NAME           | const char*   | Prefix for the firmware file name that will be communicated to the Node-RED server (must match the filename of the firmware files stored on the server)
+| EPD_FAHRENHEIT          | bool          | Indicates whether display temp is in °F rather than °C
+| SLEEP_TIME_MS           | int           | Default time to sleep between sensor readings in milliseconds (note: configurable through WiFi Manager)
+
+The remaining configurations in this file are mostly things that you would not have a need to change.
+
+There are several hardware-specific configurations that would need to be changed if different or modified hardware was used:
+| Configuration    | Type    | Description
+|------------------|---------|-------------
+| SHT30_ADDR       | uint8_t | I2C Address for the SHT30 sensor
+| PPD42_PIN_DET    | uint8_t | Pin # used to detect presence of PPD42 sensor
+| PPD42_PIN_1_0    | uint8_t | Pin # used as LPO output of PPD42 sensor for PM1.0 detections
+| PPD42_PIN_2_5    | uint8_t | Pin # used as LPO output of PPD42 sensor for PM2.5 detections
+| EPD_BUSY_PIN     | uint8_t | Pin number for the EPD busy pin
+| EPD_RST_PIN      | uint8_t | Pin number for the EPD reset pin
+| EPD_RST_POLARITY | bool    | Indicates whether reset pin is active high or low
+
+The file names and default values used in persistent storage are configurable, but you would mostly not want to change these as the values are intended to be updated through WiFi Manager as an end-user setup step:
+| Configuration               | Type        | Description
+|-----------------------------|-------------|-------------
+| PERSISTENT_NODE_NAME        | const char* | Filename where the node name is stored in SPIFFS
+| PERSISTENT_REPORT_HOST_NAME | const char* | Filename where the Node-RED server hostname is stored in SPIFFS
+| PERSISTENT_REPORT_HOST_PORT | const char* | Filename where the Node-RED server port number is stored in SPIFFS
+| PERSISTENT_CLOCK_CALIB      | const char* | Filename where the clock calibration (bootup time and sleep drift correction) is stored in SPIFFS
+| PERSISTENT_TEMP_CALIB       | const char* | Filename where the temperature calibration is stored in SPIFFS
+| PERSISTENT_HUMIDITY_CALIB   | const char* | Filename where the humidity calibration is stored in SPIFFS
+| PERSISTENT_PRESSURE_CALIB   | const char* | Filename where the pressure calibration is stored in SPIFFS
+| PERSISTENT_BATTERY_CALIB    | const char* | Filename where the battery (VCC ADC) calibration is stored in SPIFFS
+| PERSISTENT_SLEEP_TIME_MS    | const char* | Filename where the sleep time configuration is stored in SPIFFS
+| PERSISTENT_HIGH_WATER_SLOT  | const char* | Filename where the high water slot (upload trigger) configuration is stored in SPIFFS
+| DEFAULT_NODE_BASE_NAME      | const char* | Prefix string for default node name (ESP serial number is appended) if no value stored in SPIFFS
+| DEFAULT_REPORT_HOST_NAME    | const char* | Default hostname for the Node-RED server if no value stored in SPIFFS
+| DEFAULT_REPORT_HOST_PORT    | int         | Default port number for the Node-RED server if no value stored in SPIFFS
+| DEFAULT_SLEEP_CLOCK_ADJ     | int         | Default clock calibration if no value stored in SPIFFS
+| DEFAULT_TEMP_CALIB          | float       | Default temperature calibration if no value stored in SPIFFS
+| DEFAULT_HUMIDITY_CALIB      | float       | Default humidity calibration if no value stored in SPIFFS
+| DEFAULT_PRESSURE_CALIB      | float       | Default pressure calibration if no value stored in SPIFFS
+| DEFAULT_BATTERY_CALIB       | float       | Default battery calibration (VCC ADC) if no value stored in SPIFFS
+| DEFAULT_SLEEP_TIME_MS       | int         | Default sleep time if no value stored in SPIFFS
+| DEFAULT_HIGH_WATER_SLOT     | size_t      | Default high water slot (upload trigger) if no value stored in SPIFFS
+
+The remaining configurations do impact the behavior of the software but the need to change them is dubious (and in some cases would require changes in the software modules that use them):
+| Configuration            | Type               | Description
+|--------------------------|--------------------|-------------
+| CONFIG_SERVER_MAX_TIME   | unsigned long      | Timeout period (in seconds) for the WiFi Manager configuration portal
+| WIFI_CONNECT_TIMEOUT     | unsigned long      | Timeout period (in milliseconds) for connecting to the WiFi
+| CRIT_BATTERY_VOLTAGE     | float              | Voltage level at which the critically low battery message will be displayed
+| DISP_CONNECT_FAIL_COUNT  | unsigned int       | Number of failed connections that will trigger the connection error message to be displayed
+| MAX_ESP_SLEEP_TIME_MS    | unsigned long long | Clamps requested sleep time since there is a bug if the value is too large; represents an "infinite" sleep time
+| DISABLE_FW_UPDATE        | bool               | Ignores firmware update notices from the Node-RED server -- useful for development since you will always have an "unknown" software version (unless debugging the firmware update process is your goal)
+| SIMULATE_GOOD_CONNECTION | bool               | Enables debug mode where upload is not actually performed -- may need to be disabled when debugging connection and upload issues during development
+| NUM_STORAGE_SLOTS        | size_t             | Maximum number of sensor readings that can be stored in RTC Memory
+| HIGH_WATER_SLOT          | size_t             | Determines the threshold for collected sensor readings that triggers an upload process
+
+##### Public API
+
+###### Types and Enums
+
+PREINIT_MAGIC
+> This preprocessor definition is not really configurable, but serves as a
+> "fingerprint" for the software. It is created by hashing the build timestamp
+> with a magic number.  
+> The goal is to be able to provide a software "version" to the Node-RED server
+> without any semantics behind it. The git commit hash would probably be better
+> for this purpose, but the build system in Arduino is not particularly
+> accessible for injecting this kind of information into the preprocessor.  
+> The server will use this fingerprint to determine if an update needs to be
+> sent to the sensor node and will also store it with the sensor readings in
+> the database in case it would be useful for filtering later.
+
+
+###### Functions
+None
+
+##### Critical Sections
+None
 
 ### Connectivity
 #### Connection Manager
@@ -555,7 +653,7 @@ Configuration of this component is done through preprocessor defines set in proj
 | DEFAULT_TEMP_CALIB         | float              | Default temperature calibration if no value stored in SPIFFS
 | DEFAULT_HUMIDITY_CALIB     | float              | Default humidity calibration if no value stored in SPIFFS
 | DEFAULT_BATTERY_CALIB      | float              | Default battery calibration (VCC ADC) if no value stored in SPIFFS
-| DEFAULT_SLEEP_TIME_MS      | unsigned long long | Default sleep time if no value stored in SPIFFS
+| DEFAULT_SLEEP_TIME_MS      | int                | Default sleep time if no value stored in SPIFFS
 | DEFAULT_HIGH_WATER_SLOT    | size_t             | Default high water slot (upload trigger) if no value stored in SPIFFS
 
 ##### Public API
@@ -929,6 +1027,8 @@ EPD_1in9_sleep
 
 ##### Critical Sections
 None
+
+---
 
 ## Dynamic Behavior
 ### Interrupts
