@@ -266,6 +266,8 @@ None
 None
 
 ### Connectivity
+![Connectivity Subsystem Overview](drawio/sensorsw_connectivity_block_diagram.png)
+
 #### Connection Manager
 
 #### Update Parser
