@@ -266,15 +266,173 @@ None
 None
 
 ### Connectivity
+
 ![Connectivity Subsystem Overview](drawio/sensorsw_connectivity_block_diagram.png)
 
+Connection Manager and WiFi Manager are the main components that make up the
+Connectivity Subsystem. These rely on Arduino WiFi APIs and ESP8266
+implementations of WiFiStation and WiFiSoftAP, respectively, to handle WiFi
+connectivity aspects.
+
+Connection Manager is the main entry point to the Connectivity Subsystem
+regardless of the type of activity to be performed. Typically, it is triggered
+to upload sensor readings to the Node-RED server periodically. When starting the
+configuration mode, the Connection Manager configures WiFi Manager and
+establishes various callback functions before handing off control to it to
+create the captive configuration portal. These callback functions will handle
+updates to the configuration by storing the new values in persistent storage.
+
+Update Parser handles interactions with the Node-RED server to update the
+firmware or configurations.
+
 #### Connection Manager
+
+##### Description
+
+![Sensors Component Overview](drawio/sensorsw_connection_manager_overview.png)  
+The Connection Manager component handles the upload of sensor readings to the
+Node-RED server. If there are firmware or configuration updates, it hands the
+connection off to the Update Parser to handle these.  
+When the user requests to enter configuration mode via a double press of the
+reset button, Main informs the Connection Manager and it configures WiFi Manager
+to create a captive configuration portal. WiFi Manager provides results in the
+form of a callback function and Connection Manager implements this callback by
+updating the values in persistent storage.
+
+> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored by
+> splitting-out config-mode handling and update parser functionality.
+
+##### Dependencies
+
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| libstdc++             | class              | `String` class
+| UpdateParser          | function           | Handle firmware and configuration updates from the Node-RED server
+| WiFiManager           | class              | WiFi Manager configuration
+| Persistent Storage    | function           | Read and Write configuration parameters to SPIFFS
+| RTC Mem               | global, function   | Sensor readings management, uptime calculation
+| WiFi                  | class              | High-level WiFi configuration API
+| WiFiClient            | class              | High-level Socket connection API
+| WiFiGenericClass      | class              | `preinitWiFiOff` API
+| WiFiStation           | function           | `station_config` APIs
+| Wiring                | function           | `delay`, `millis` API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+
+Configuration of this component is done through preprocessor defines set in
+[project_config.h](../project_config.h).
+
+| Configuration               | Type          | Description
+|-----------------------------|---------------|-------------
+| EXTRA_DEBUG                 | bool          | Enables additional debug logging
+| TETHERED_MODE               | bool          | Determines whether to auto-enable WiFi at startup
+| REPORT_RESPONSE_TIMEOUT     | unsigned long | Timeout period (in milliseconds) to wait for a response from the Node-RED server after uploading readings
+| WIFI_CONNECT_TIMEOUT        | unsigned long | Timeout period (in milliseconds) for connecting to the WiFi
+| NUM_STORAGE_SLOTS           | size_t        | Maximum number of sensor readings that can be stored in RTC Memory
+| PERSISTENT_NODE_NAME        | const char*   | Used to retreive the sensor node hostname from SPIFFS
+| PERSISTENT_REPORT_HOST_NAME | const char*   | Used to retreive the hostname of the Node-RED server from SPIFFS
+| PERSISTENT_REPORT_HOST_PORT | const char*   | Used to retrieve the port number of the Node-RED server from SPIFFS
+| PERSISTENT_TEMP_CALIB       | const char*   | Used to retrieve the temperature calibration from SPIFFS
+| PERSISTENT_HUMIDITY_CALIB   | const char*   | Used to retrieve the humidity calibration from SPIFFS
+| PERSISTENT_PRESSURE_CALIB   | const char*   | Used to retrieve the pressure calibration from SPIFFS
+| PERSISTENT_BATTERY_CALIB    | const char*   | Used to retrieve the battery calibration from SPIFFS
+| DEFAULT_NODE_BASE_NAME      | const char*   | Prefix string for default node hostname (ESP serial number is appended) if no value stored in SPIFFS
+| DEFAULT_REPORT_HOST_NAME    | const char*   | Default hostname for the Node-RED server if no value stored in SPIFFS
+| DEFAULT_REPORT_HOST_PORT    | int           | Default port number for the Node-RED server if no value stored in SPIFFS
+| DEFAULT_TEMP_CALIB          | float         | Default temperature calibration if no value stored in SPIFFS
+| DEFAULT_HUMIDITY_CALIB      | float         | Default humidity calibration if no value stored in SPIFFS
+| DEFAULT_PRESSURE_CALIB      | float         | Default pressure calibration if no value stored in SPIFFS
+| DEFAULT_BATTERY_CALIB       | float         | Default battery calibration if no value stored in SPIFFS
+
+
+Additionally, the following preprocessor defines are used to modify the configuration of WiFi Manager:
+
+| Configuration            | Type               | Description
+|--------------------------|--------------------|-------------
+| CONFIG_SERVER_MAX_TIME   | unsigned long      | Timeout period (in seconds) for the WiFi Manager configuration portal
+| MAX_ESP_SLEEP_TIME_MS    | unsigned long long | Clamps requested sleep time configuration
+
+Also, each of the PERSISTENT_* and DEFAULT_* persistent storage preprocessor
+defines are used to initialize the current value shown by the WiFi Manager
+configuration page and used by the callback implementation to write the updated
+values back to SPIFFS.
+
+##### Public API
+
+###### Types and Enums
+None
+
+###### Functions
+
+connectivity_preinit
+> Calls `ESP8266WiFiClass::preinitWiFiOff` to disable the modem before it gets
+> initialized.  
+> Expected to be called from the pre-init function before global class instances
+> are initialized.
+>
+> 🪧 Note: This function is only used in non-tethered mode.
+> In tethered mode, the WiFi radio is left active permanently.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+connectivity_init
+> Initializes the Connection Manager
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+connectivity_disable
+> Shuts down WiFi
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+connect_wifi
+> Connects to the stored WiFi Access Point
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | bool          | Returns false if there was a connection error or timeout
+
+enter_config_mode
+> Start the WiFi Manager configuration mode
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+upload_readings
+> Collates and uploads readings to the report server.
+>
+> ☝️‍🎗️ Note: this function exhibits high coupling with the RTC Memory and should
+> be refactored.
+>
+> | Parameter     | Direction | Type          | description
+> |---------------|-----------|---------------|-------------
+> |               | return    | void          |
+
+##### Critical Sections
+
+None
+
+> ⚠️ Caution: This component is not threadsafe.  
+> The functions of this component are not reentrant.  
+> Calling `upload_readings` from a context that might be preempted by callers
+> of the RTC Mem component could result in corruption of the sensor reading
+> circular buffer.
 
 #### Update Parser
 
 #### WiFi Manager
 
 ### Sensors
+
 ##### Description
 
 ![Sensors Component Overview](drawio/sensorsw_sensors_overview.png)  
@@ -701,7 +859,7 @@ are periodically disabled to check the results stored by the interrupt handlers.
 > 🪧 Note: The use of the class object from multiple CPU cores is not
 > threadsafe.  
 > No attempt is made to protect the data structures during register/unregister
-> operations and it would certainly be problematic to call Pulse2::watch on
+> operations and it would certainly be problematic to call `Pulse2::watch` on
 > multiple cores simultaneously.  
 > It is also recommended to unregister pins before re-registering them with a
 > different pin direction.
@@ -928,7 +1086,7 @@ None
 
 > ⚠️ Caution: This component is not threadsafe.  
 > The functions of this component are not reentrant.  
-> Accessing rtc_mem from a context that might be preempted by callers of this
+> Accessing `rtc_mem` from a context that might be preempted by callers of this
 > component could result in reading inconsistent values.
 
 ### Persistent Storage
