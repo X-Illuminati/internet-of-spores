@@ -60,8 +60,8 @@ low-level drivers.
 
 ![Main Component Overview](drawio/sensorsw_main_overview.png)  
 The Main component provides the familiar entry point functions for the Arduino
-framework, setup and loop.  
-It orchestrates the sensor collection and display of sensor readings as well as
+framework (e.g. `setup` and `loop`).  
+It orchestrates the collection and display of sensor readings as well as
 changes between modes of operation for the sensor node.
 
 ##### Dependencies
@@ -114,7 +114,7 @@ preinit
 > 🪧 Note: This function is only used in non-tethered mode.
 > In tethered mode, the WiFi radio is left active permanently.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -124,7 +124,7 @@ setup
 > Checks the reset reason and decides whether to start WiFi Manager or
 > run the normal sensor processing.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -135,7 +135,7 @@ loop
 > In tethered mode, it may or may not enter deep sleep depending on how long
 > the sensor processing and upload process took.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -174,7 +174,7 @@ preferrence:
 | REPORT_RESPONSE_TIMEOUT | unsigned long | Timeout period (in milliseconds) to wait for a response from the Node-RED server
 | LOW_BATTERY_VOLTAGE     | float         | Voltage level at which the low battery icon will be set on the display
 | DISP_CONNECT_FAIL_COUNT | unsigned int  | Number of failed connections that will trigger the connection error message to be displayed
-| FIRMWARE_NAME           | const char*   | Prefix for the firmware file name that will be communicated to the Node-RED server must match the filename of the firmware files stored on the server
+| FIRMWARE_NAME           | const char*   | Prefix for the firmware file name that will be communicated to the Node-RED server (must match the filename of the firmware files stored on the server)
 | EPD_FAHRENHEIT          | bool          | Indicates whether display temp is in °F rather than °C
 | SLEEP_TIME_MS           | int           | Default time to sleep between sensor readings in milliseconds (note: configurable through WiFi Manager)
 
@@ -307,6 +307,7 @@ updating the values in persistent storage.
 | Component             | Interface Type     | Description
 |-----------------------|--------------------|-------------
 | libstdc++             | class              | `String` class
+| ChipId                | function           | API for getting the Chip ID (serial number)
 | UpdateParser          | function           | Handle firmware and configuration updates from the Node-RED server
 | WiFiManager           | class              | WiFi Manager configuration
 | Persistent Storage    | function           | Read and Write configuration parameters to SPIFFS
@@ -375,35 +376,35 @@ connectivity_preinit
 > 🪧 Note: This function is only used in non-tethered mode.
 > In tethered mode, the WiFi radio is left active permanently.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
 connectivity_init
 > Initializes the Connection Manager
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
 connectivity_disable
 > Shuts down WiFi
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
 connect_wifi
 > Connects to the stored WiFi Access Point
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | bool          | Returns false if there was a connection error or timeout
 
 enter_config_mode
 > Start the WiFi Manager configuration mode
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -413,7 +414,7 @@ upload_readings
 > ☝️‍🎗️ Note: this function exhibits high coupling with the RTC Memory and should
 > be refactored.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -453,7 +454,7 @@ correlated timestamp with each batch of readings.
 
 | Component             | Interface Type     | Description
 |-----------------------|--------------------|-------------
-| Pulse2                | class              | GPIO pulse duration measurement for PPD42 LPO sensor
+| Pulse2                | class              | GPIO pulse duration measurement of LPO from PPD42 particle sensor
 | SHT30                 | function           | I2C driver for SHT30 sensor
 | HP303B                | class              | I2C driver for HP303B sensor
 | RTC Mem               | global, function   | Storage for sensor readings, uptime calculation
@@ -499,7 +500,7 @@ sensor_type_t
 sensors_init
 > Initialize module. 
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -510,7 +511,7 @@ read_ppd42
 > 🪧 Note: The sensor requires a 3 minute warm-up time so this function is only
 > available in tethered mode
 > 
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 > | sampletime_us | in        | unsigned long | measurement time for the sensor in μs
@@ -518,7 +519,7 @@ read_ppd42
 read_sht30
 > Read and store values from the SHT30 temperature and humidity sensor.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 > | perform_store | in        | bool          | If true, the average of the sensor readings collected so far will be stored to RTC memory
@@ -526,7 +527,7 @@ read_sht30
 read_hp303b
 >Read and store values from the HP303B barometric pressure sensor.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 > | measure_temp  | in        | bool          | If true, the temperature will also be measured using this sensor and stored
@@ -534,7 +535,7 @@ read_hp303b
 read_vcc
 > Read and store the ESP VCC voltage level (battery).
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 > | perform_store | in        | bool          | If true, the average of the voltage readings collected so far will be stored to RTC memory
@@ -542,7 +543,7 @@ read_vcc
 store_uptime
 > Store the current uptime as an offset from `RTC_MEM_DATA_TIMEBASE`.
 > 
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | void          |
 
@@ -553,7 +554,7 @@ get_temp
 > or `read_hp303b`.  
 > Otherwise, NAN will be returned.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | float         | The current temperature (°C)
 
@@ -563,7 +564,7 @@ get_humidity
 > 🪧 Note: The humidity must have already been stored by calling `read_sht30`.  
 > Otherwise, NAN will be returned.
 >
-> | Parameter     | Direction | Type        | description
+> | Parameter     | Direction | Type        | Description
 > |---------------|-----------|-------------|-------------
 > |               | return    | float       | The current relative humidity (%)
 
@@ -574,7 +575,7 @@ get_battery
 > `read_vcc`.  
 > Otherwise, NAN will be returned.
 >
-> | Parameter     | Direction | Type          | description
+> | Parameter     | Direction | Type          | Description
 > |---------------|-----------|---------------|-------------
 > |               | return    | float         | The current battery voltage
 
@@ -635,7 +636,7 @@ sht30_data_t
 sht30_get
 > Retrieve a measurement in single-shot mode.
 >
-> | Parameter | Direction | Type                  | description
+> | Parameter | Direction | Type                  | Description
 > |-----------|-----------|-----------------------|-------------
 > |           | return    | int                   | 0 for success, non-0 for failure
 > | addr      | in        | uint8_t               | I2C Address for the sensor
@@ -645,7 +646,7 @@ sht30_get
 sht30_parse_temp_c
 > Convert the data reading into a float temperature value (°C)
 > 
-> | Parameter | Direction | Type         | description
+> | Parameter | Direction | Type         | Description
 > |-----------|-----------|--------------|-------------
 > |           | return    | float        | Temperature in °C
 > | data      | in        | sht30_data_t | Data structure with the measurement to convert
@@ -653,7 +654,7 @@ sht30_parse_temp_c
 sht30_parse_temp_f
 > Convert the data reading into a float temperature value (°F)
 > 
-> | Parameter | Direction | Type         | description
+> | Parameter | Direction | Type         | Description
 > |-----------|-----------|--------------|-------------
 > |           | return    | float        | Temperature in °F
 > | data      | in        | sht30_data_t | Data structure with the measurement to convert
@@ -661,7 +662,7 @@ sht30_parse_temp_f
 sht30_parse_humidity
 > Convert the data reading into a float humidity value (RH%)
 > 
-> | Parameter | Direction | Type         | description
+> | Parameter | Direction | Type         | Description
 > |-----------|-----------|--------------|-------------
 > |           | return    | float        | Relative humidity
 > | data      | in        | sht30_data_t | Data structure with the measurement to convert
@@ -669,7 +670,7 @@ sht30_parse_humidity
 sht30_check_temp
 > Check the data reading temperature CRC
 > 
-> | Parameter | Direction | Type         | description
+> | Parameter | Direction | Type         | Description
 > |-----------|-----------|--------------|-------------
 > |           | return    | bool         | True if CRC OK
 > | data      | in        | sht30_data_t | Data structure with the measurement to check
@@ -677,7 +678,7 @@ sht30_check_temp
 sht30_check_humidity
 > Check the data reading humidity CRC
 > 
-> | Parameter | Direction | Type         | description
+> | Parameter | Direction | Type         | Description
 > |-----------|-----------|--------------|-------------
 > |           | return    | bool         | True if CRC OK
 > | data      | in        | sht30_data_t | Data structure with the measurement to check
@@ -732,7 +733,7 @@ LOLIN_HP303B::~LOLIN_HP303B
 LOLIN_HP303B::begin
 > Function to initialize the sensor using default I2C interface.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 > | slaveAddress | in        | uint8_t | I2C Address for the sensor (defaults to 0x77U)
@@ -740,7 +741,7 @@ LOLIN_HP303B::begin
 LOLIN_HP303B::end
 > Function to return the sensor to standby.
 >
-> | Parameter        | Direction | Type     | description
+> | Parameter        | Direction | Type     | Description
 > |------------------|-----------|----------|-------------
 > |                  | return    | void     |
 
@@ -748,7 +749,7 @@ LOLIN_HP303B::measureTempOnce
 > Function to measure the temperature in one-shot mode with selected
 > oversampling (2^n averages).
 >
-> | Parameter        | Direction | Type     | description
+> | Parameter        | Direction | Type     | Description
 > |------------------|-----------|----------|-------------
 > |                  | return    | int16_t  | 0 for success, non-0 for failure
 > | result           | out       | int32_t& | Temperature result (°C)
@@ -758,7 +759,7 @@ LOLIN_HP303B::measurePressureOnce
 > Function to measure the pressure in one-shot mode with selected oversampling
 > (2^n averages).
 >
-> | Parameter        | Direction | Type     | description
+> | Parameter        | Direction | Type     | Description
 > |------------------|-----------|----------|-------------
 > |                  | return    | int16_t  | 0 for success, non-0 for failure
 > | result           | out       | int32_t& | Pressure result (pascal)
@@ -819,7 +820,7 @@ Pulse2::register_pin
 > Function to add (or overwrite) a monitor activity for a particular pin to
 > pulse in a given direction.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | bool    | Returns false if `PULSE2_MAX_PINS` have already been registered
 > | pin          | in        | uint8_t | GPIO pin identifier
@@ -829,7 +830,7 @@ Pulse2::unregister_pin
 > Function to add (or overwrite) a monitor activity for a particular pin to
 > pulse in a given direction.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 > | pin          | in        | uint8_t | GPIO pin identifier
@@ -837,7 +838,7 @@ Pulse2::unregister_pin
 Pulse2::watch
 > Block (with timeout) until one of the pins is triggered.
 >
-> | Parameter | Direction | Type           | description
+> | Parameter | Direction | Type           | Description
 > |-----------|-----------|----------------|-------------
 > |           | return    | uint8_t        | Returns pin number on success or PULSE2_NO_PIN if the timeout is reached
 > | result    | out       | unsigned long* | On success, pulse length is stored in this variable
@@ -847,7 +848,7 @@ Pulse2::reset
 > Function to reset the state machines and throw out any existing results.
 > Does not unregister any pins.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 
@@ -1016,14 +1017,14 @@ load_rtc_memory
 > Function to load RTC User Memory into the shadow copy (`rtc_mem`) at startup.
 > Performs some housekeeping and prints some debug.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | bool    | Returns false if RTC memory had to be reformatted (see preinit_magic)
 
 invalidate_rtc
 > Clear the RTC User Memory and re-initialize the shadow copy (`rtc_mem`).
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 
@@ -1031,7 +1032,7 @@ uptime
 > Return the system uptime, which is tracked across sleep cycles (unlike
 > `millis`).
 >
-> | Parameter    | Direction | Type     | description
+> | Parameter    | Direction | Type     | Description
 > |--------------|-----------|----------|-------------
 > |              | return    | uint64_t | System uptime in ms
 
@@ -1040,7 +1041,7 @@ save_rtc
 > entering sleep.
 > Updates checksum in `RTC_MEM_CHECK` and stores increments the uptime.
 >
-> | Parameter     | Direction | Type     | description
+> | Parameter     | Direction | Type     | Description
 > |---------------|-----------|----------|-------------
 > |               | return    | void     |
 > | sleep_time_us | in        | uint64_t | Optional sleep time (in μs) to add to the uptime. Defaults to 0 in case of saving without entering sleep.
@@ -1049,7 +1050,7 @@ deep_sleep
 > Helper for entering sleep.
 > Calls `save_rtc` to store the RTC memory.
 >
-> | Parameter     | Direction | Type     | description
+> | Parameter     | Direction | Type     | Description
 > |---------------|-----------|----------|-------------
 > |               | return    | void     |
 > | time_us       | in        | uint64_t | Desired sleep duration (in μs)
@@ -1057,7 +1058,7 @@ deep_sleep
 store_reading
 > Helper for storing a sensor reading in the `RTC_MEM_DATA` circular buffer.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 > | type      | in        | sensor_type_t | Type of the sensor reading
@@ -1066,7 +1067,7 @@ store_reading
 clear_readings
 > Helper for removing readings from the `RTC_MEM_DATA` circular buffer.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 > | num       | in        | unsigned int  | Optional number of readings to remove (oldest first), defaults to all readings
@@ -1076,7 +1077,7 @@ dump_readings
 >
 > 🪧 Note: only functions if `EXTRA_DEBUG` is enabled.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 
@@ -1131,7 +1132,7 @@ persistent_init
 > initialized manually by calling this function. This may be useful if
 > you want your first call to the other API functions to run more quickly.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 
@@ -1142,14 +1143,14 @@ persistent_read
 >
 > 1) Fundamental Prototype:
 >
-> | Parameter    | Direction | Type        | description
+> | Parameter    | Direction | Type        | Description
 > |--------------|-----------|-------------|-------------
 > |              | return    | String      | Returns a String object representing the contents of the file or ""
 > | filename     | in        | const char* | The filename to read from
 >
 > 2) Default String Prototype:
 >
-> | Parameter     | Direction | Type        | description
+> | Parameter     | Direction | Type        | Description
 > |---------------|-----------|-------------|-------------
 > |               | return    | String      | Returns a String object representing the contents of the file or the provided default_value
 > | filename      | in        | const char* | The filename to read from
@@ -1157,7 +1158,7 @@ persistent_read
 >
 > 3) Default int Prototype:
 >
-> | Parameter     | Direction | Type        | description
+> | Parameter     | Direction | Type        | Description
 > |---------------|-----------|-------------|-------------
 > |               | return    | int         | Returns the contents of the file after integer conversion or the provided default_value
 > | filename      | in        | const char* | The filename to read from
@@ -1165,7 +1166,7 @@ persistent_read
 >
 > 4) Default float Prototype:
 >
-> | Parameter     | Direction | Type        | description
+> | Parameter     | Direction | Type        | Description
 > |---------------|-----------|-------------|-------------
 > |               | return    | float       | Returns the contents of the file after float conversion or the provided default_value
 > | filename      | in        | const char* | The filename to read from
@@ -1177,7 +1178,7 @@ persistent_write
 >
 > 1) String Prototype:
 >
-> | Parameter     | Direction | Type        | description
+> | Parameter     | Direction | Type        | Description
 > |---------------|-----------|-------------|-------------
 > |               | return    | bool        | Returns false if the data is not properly stored in the file
 > | filename      | in        | const char* | The filename to write to
@@ -1185,7 +1186,7 @@ persistent_write
 >
 > 2) Byte Array Prototype:
 >
-> | Parameter | Direction | Type           | description
+> | Parameter | Direction | Type           | Description
 > |-----------|-----------|----------------|-------------
 > |           | return    | bool           | Returns false if the data is not properly stored in the file
 > | filename  | in        | const char*    | The filename to write to
@@ -1253,7 +1254,7 @@ EPD_1in9_GPIOInit
 > Initialize GPIO pins.  
 > Should be called before `EPD_1in9_init`.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | void    |
 
@@ -1262,7 +1263,7 @@ EPD_1in9_init
 > This function also calls `EPD_1in9_Temperature`.  
 > Should be called after `EPD_1in9_GPIOInit`.
 >
-> | Parameter    | Direction | Type    | description
+> | Parameter    | Direction | Type    | Description
 > |--------------|-----------|---------|-------------
 > |              | return    | uint8_t | Returns any error result from the I2C
 
@@ -1272,7 +1273,7 @@ EPD_1in9_Set_Temp
 > call it before `EPD_1in9_init`. The stored temperature is used by
 > `EPD_1in9_Temperature` (and, indirectly, by `EPD_1in9_init`).
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 > | temp      | in        | unsigned char | Temperature in °C
@@ -1282,7 +1283,7 @@ EPD_1in9_Temperature
 > The stored temperature can be updated by calling `EPD_1in9_Set_Temp`.  
 > This function is called by `EPD_1in9_init`.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 
@@ -1290,7 +1291,7 @@ EPD_1in9_Clear_Screen
 > Performs a full clear of the screen.  
 > It is recommended to perform this action periodically.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 
@@ -1298,7 +1299,7 @@ EPD_1in9_Easy_Write_Full_Screen
 > Helper function to build up a full buffer from individual parameters
 > and write it to the display.
 >
-> | Parameter        | Direction | Type  | description
+> | Parameter        | Direction | Type  | Description
 > |------------------|-----------|-------|-------------
 > |                  | return    | void  |
 > | temp             | in        | float | Temperature to display
@@ -1312,7 +1313,7 @@ EPD_1in9_Easy_Write_Full_Screen
 EPD_1in9_sleep
 > Command the display to enter deep sleep and also assert the reset pin.
 >
-> | Parameter | Direction | Type          | description
+> | Parameter | Direction | Type          | Description
 > |-----------|-----------|---------------|-------------
 > |           | return    | void          |
 
