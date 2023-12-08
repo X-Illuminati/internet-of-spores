@@ -523,6 +523,118 @@ None
 
 #### WiFi Manager
 
+##### Description
+
+![WiFi Manager Component Overview](drawio/sensorsw_wifi_manager_overview.png)  
+The WiFi Manager component implements a configuration interface for the user by
+acting as a WiFi access point with a captive portal.  
+This component is provided as an external dependency developed by
+[@tzapu](https://github.com/tzapu).
+See https://github.com/tzapu/WiFiManager for more details.
+
+##### Dependencies
+
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| libstdc++             | class              | `String`, `<memory>`
+| ChipId                | function           | API for getting the Chip ID (serial number)
+| DNSServer             | class              | DNS Server used to implement captive portal
+| WebServer             | class              | Web Server used to provide configuration page via the captive portal
+| WiFi                  | class              | High-level WiFi configuration API
+| WiFiSoftAP            | class              | WiFi Software Access Point implementation
+| Wiring                | function           | `delay`, `millis` API
+
+##### Configuration
+
+WIFI_MANAGER_MAX_PARAMS
+> This parameter defines the initial memory allocated for parameters.
+> If memory is tight it may be useful to configure this before including the
+> `WiFiManager.h` header.
+
+##### Public API
+
+###### Types and Enums
+
+WiFiManagerParameter
+> Class to create custom parameters that can be added to the WiFiManager setup
+> web page.
+
+WiFiManager
+> Class to configure and interact with the WiFiManager.
+
+###### Functions
+
+> 🪧 Note: For brevity only used interfaces are shown here. For the complete API
+> see https://github.com/tzapu/WiFiManager/blob/master/README.md.
+
+WiFiManagerParameter::WiFiManagerParameter
+> Constructor for a custom parameter
+>
+> | Parameter    | Direction | Type        | Description
+> |--------------|-----------|-------------|-------------
+> | id           | in        | const char* | Unique ID used for HTTP queries and must not contain spaces nor other special characters
+> | placeholder  | in        | const char* | "hint" text that will be shown in the input form
+> | defaultValue | in        | const char* | Initial value to be placed in the input form
+> | length       | in        | int         | Maximum length for the form input
+> | custom       | in        | const char* | Custom HTML to be added into the input form
+
+WiFiManagerParameter::getValue
+> Function to return the value stored in the custom parameter.
+>
+> | Parameter | Direction | Type        | Description
+> |-----------|-----------|-------------|-------------
+> |           | return    | const char* | The value stored in the custom parameter (either the defaultValue or NULL, or the value entered by the user in the input form)
+
+WiFiManager::WiFiManager
+> Void constructor
+
+WiFiManager::~WiFiManager
+> Destructor
+
+WiFiManager::addParameter
+> Adds a custom parameter.
+>
+> | Parameter | Direction | Type                  | Description
+> |-----------|-----------|-----------------------|-------------
+> |           | return    | bool                  | Returns false on failure
+> | p         | in        | WiFiManagerParameter* | The parameter to add
+
+WiFiManager::setConfigPortalTimeout
+> Sets timeout before webserver loop ends and exits even if there has been no
+> setup. Useful for devices that failed to connect at some point and got stuck
+> in a webserver loop.
+>
+> | Parameter | Direction | Type          | Description
+> |-----------|-----------|---------------|-------------
+> |           | return    | void          |
+> | seconds   | in        | unsigned long | The timeout after which the webserver will return back to the host software automatically
+
+WiFiManager::setBreakAfterConfig
+> Configures WiFiManager to exit after the user submits the updated
+> configuration settings, even if connection is unsuccessful.
+>
+> | Parameter   | Direction | Type    | Description
+> |-------------|-----------|---------|-------------
+> |             | return    | void    |
+> | shouldBreak | in        | boolean | Indicates whether the portal should exit even if the connection to the access point is unsuccessful
+
+WiFiManager::setSaveConfigCallback
+> Sets a callback for when settings have been saved by the user.
+>
+> | Parameter | Direction | Type           | Description
+> |-----------|-----------|----------------|-------------
+> |           | return    | void           |
+> | func      | in        | void (*)(void) | The callback function to register
+
+WiFiManager::startConfigPortal
+> Manually starts the config portal without trying to connect first.
+>
+> | Parameter  | Direction | Type        | Description
+> |------------|-----------|-------------|-------------
+> |            | return    | boolean     | Indicates whether the connection to the saved access point was successful
+> | apName     | in        | char const* | The SSID for the soft AP (defaults to "ESP" + chip ID)
+> | apPassword | in        | char const* | Password for the soft AP (defaults to NULL)
+
 ### Sensors
 
 ##### Description
