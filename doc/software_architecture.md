@@ -430,6 +430,97 @@ None
 
 #### Update Parser
 
+##### Description
+
+![Update Parser Component Overview](drawio/sensorsw_update_parser_overview.png)  
+The Update Parser component retrieves firmware or configuration updates from the
+Node-RED server and applies them to the program flash or persistent storage
+filesystem, respectively.
+
+> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored as a
+> separate module.
+
+##### Dependencies
+
+| Component             | Interface Type     | Description
+|-----------------------|--------------------|-------------
+| libstdc++             | class              | `String` class
+| Persistent Storage    | function           | Write configuration parameter updates to SPIFFS
+| RTC Mem               | global, function   | Update configuration parameters in RTC memory, invalidate RTC memory on firmware update
+| MD5Builder            | class              | Calculate md5sum
+| Updater               | class, function    | Performs firmware update
+| WiFiClient            | class              | High-level Socket connection API
+| Wiring                | function           | `delay` API
+| Project Configuration | preprocessor macro | Configuration settings
+| Serial                | class              | Logging printf
+
+##### Configuration
+
+Configuration of this component is done through preprocessor defines set in
+[project_config.h](../project_config.h).
+
+| Configuration               | Type               | Description
+|-----------------------------|--------------------|-------------
+| EXTRA_DEBUG                 | bool               | Enables additional debug logging
+| DISABLE_FW_UPDATE           | bool               | Disables firmware update functionality
+| FIRMWARE_NAME               | const char*        | Prefix for the firmware file name that will be requested from the Node-RED server
+| MAX_ESP_SLEEP_TIME_MS       | unsigned long long | Clamps requested sleep time configuration
+| NUM_STORAGE_SLOTS           | size_t             | Maximum number of sensor readings that can be stored in RTC Memory
+| PERSISTENT_NODE_NAME        | const char*        | Filename where the node name is stored in SPIFFS
+| PERSISTENT_REPORT_HOST_NAME | const char*        | Filename where the Node-RED server hostname is stored in SPIFFS
+| PERSISTENT_REPORT_HOST_PORT | const char*        | Filename where the Node-RED server port number is stored in SPIFFS
+| PERSISTENT_CLOCK_CALIB      | const char*        | Filename where the clock calibration (bootup time and sleep drift correction) is stored in SPIFFS
+| PERSISTENT_TEMP_CALIB       | const char*        | Filename where the temperature calibration is stored in SPIFFS
+| PERSISTENT_HUMIDITY_CALIB   | const char*        | Filename where the humidity calibration is stored in SPIFFS
+| PERSISTENT_PRESSURE_CALIB   | const char*        | Filename where the pressure calibration is stored in SPIFFS
+| PERSISTENT_BATTERY_CALIB    | const char*        | Filename where the battery (VCC ADC) calibration is stored in SPIFFS
+| PERSISTENT_SLEEP_TIME_MS    | const char*        | Filename where the sleep time configuration is stored in SPIFFS
+| PERSISTENT_HIGH_WATER_SLOT  | const char*        | Filename where the high water slot (upload trigger) configuration is stored in SPIFFS
+| DEFAULT_TEMP_CALIB          | float              | Default temperature calibration if no value stored in SPIFFS
+| DEFAULT_HUMIDITY_CALIB      | float              | Default humidity calibration if no value stored in SPIFFS
+| DEFAULT_BATTERY_CALIB       | float              | Default battery calibration (VCC ADC) if no value stored in SPIFFS
+| DEFAULT_SLEEP_TIME_MS       | int                | Default sleep time if no value stored in SPIFFS
+| DEFAULT_HIGH_WATER_SLOT     | size_t             | Default high water slot (upload trigger) if no value stored in SPIFFS
+
+##### Public API
+
+###### Types and Enums
+
+None
+
+###### Functions
+
+update_config
+> Performs the configuration update procedure by requesting the configuration
+> files from the Node-RED server along with their size and MD5 checksum.
+> Updates the files in SPIFFS if the MD5 checksum passes.
+>
+> | Parameter | Direction | Type        | Description
+> |-----------|-----------|-------------|-------------
+> |           | return    | bool        | Returns false if there was an error during the update process.
+> | client    | in        | WiFiClient& | Client connection to the Node-RED server. Used to send and receive communication with the server.
+
+update_firmware
+> Performs the firmware update procedure by requesting the firmware file from
+> the Node-RED server along with its size and MD5 checksum.
+>
+> ⚠️ Caution: There is no security check performed on this firmware update. An
+> attacker could easily pretend to be the Node-RED server and signal the
+> presence of an update and then provide their own firmware binary which will be
+> flashed into the sensor node without any verification.
+>
+> | Parameter | Direction | Type        | Description
+> |-----------|-----------|-------------|-------------
+> |           | return    | bool        | Returns false if the update failed. Does not return if the update succeeded.
+> | client    | in        | WiFiClient& | Client connection to the Node-RED server. Used to send and receive communication with the server.
+
+##### Critical Sections
+
+None
+
+> 🪧 Note: One assumes that the underlying ESP.updateSketch SDK is written in a
+> thread-safe way, but I have not investigated this detail myself.
+
 #### WiFi Manager
 
 ### Sensors
