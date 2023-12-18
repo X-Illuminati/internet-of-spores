@@ -1,5 +1,4 @@
 # Sensor Software Architecture
-This outline is currently a work-in-progress.
 
 ## Table of Contents
 * [Block Diagram](#block-diagram)
@@ -19,6 +18,21 @@ This outline is currently a work-in-progress.
   - [Persistent Storage](#persistent-storage)
   - [E-Paper Display](#e-paper-display)
 * [Dynamic Behavior](#dynamic-behavior)
+  - [Interrupts](#interrupts)
+  - [Modes of Operation](#modes-of-operation)
+    + [Static Modes](#static-modes)
+      * [Development Mode](#development-mode)
+      * [Battery Mode](#battery-mode)
+      * [Tethered Mode](#tethered-mode)
+      * [VCC Cal Mode](#vcc-cal-mode)
+    + [Dynamic Modes](#dynamic-modes)
+      * [Configuration Mode](#configuration-mode)
+      * [Initialization](#initialization)
+      * [Normal Mode](#normal-mode)
+      * [Deep Sleep](#deep-sleep)
+      * [Connectivity Mode](#connectivity-mode)
+* [Cybersecurity](#cybersecurity)
+* [Error Handling](#error-handling)
 
 ---
 
@@ -299,7 +313,7 @@ to create a captive configuration portal. WiFi Manager provides results in the
 form of a callback function and Connection Manager implements this callback by
 updating the values in persistent storage.
 
-> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored by
+> ☝‍🎗 Note: this component exhibits high coupling and should be refactored by
 > splitting-out config-mode handling and update parser functionality.
 
 ##### Dependencies
@@ -411,7 +425,7 @@ enter_config_mode
 upload_readings
 > Collates and uploads readings to the report server.
 >
-> ☝️‍🎗️ Note: this function exhibits high coupling with the RTC Memory and should
+> ☝‍🎗 Note: this function exhibits high coupling with the RTC Memory and should
 > be refactored.
 >
 > | Parameter     | Direction | Type          | Description
@@ -437,7 +451,7 @@ The Update Parser component retrieves firmware or configuration updates from the
 Node-RED server and applies them to the program flash or persistent storage
 filesystem, respectively.
 
-> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored as a
+> ☝‍🎗 Note: this component exhibits high coupling and should be refactored as a
 > separate module.
 
 ##### Dependencies
@@ -1079,7 +1093,7 @@ It provides several helper functions for managing the sensor readings in the RTC
 User Memory and entering deep sleep; and is the source of truth for the uptime
 of the system.
 
-> ☝️‍🎗️ Note: this component exhibits high coupling and should be refactored -
+> ☝‍🎗 Note: this component exhibits high coupling and should be refactored -
 > ideally as a C++ class.
 
 ##### Dependencies
@@ -1530,43 +1544,196 @@ None
 
 ### Interrupts
 
+The interrupts provided by the ESP8266 are relatively limited and are managed by
+the closed-source firmware (ETS SYS).
+
+Summary of interrupts used:
+* Free running counter Timer 1
+  - Wiring: `delay` implementation
+  - Wiring: `micros` overflow detection
+  - TwoWire: Bus error timer
+  - Waveform: Software PWM implementation
+    + `LED_BUILTIN` blink during configuration mode
+* GPIO interrupts
+  - TwoWire: Software I2C implementation
+  - Pulse2: pin monitoring
+    + `PPD42_PIN_1_0` LPO time measurement
+    + `PPD42_PIN_2_5` LPO time measurement
+* UART interrupt
+  - Serial: UART0 Rx ISR
+  - Flasher Stub: UART0 Rx ISR for firmware update
+
+It seems likely that the internal (closed-source) firmware has interrupts for
+WiFi and possibly for the QSPI Flash (though, it looks like the chip probably
+only has SPI Slave interrupts).  
+The capture compare timer 0 also appears to be available to the HAL, but doesn't
+seem to be used for anything.
+
 ### Modes of Operation
 
-- Static Modes
-  - Development Mode
-  - Tethered Mode
-  - VCC Cal Mode
-- Dynamic Modes
-  - Configuration Mode (WiFi Manager)
-  - Init Mode
-  - Sleep Mode
-  - Normal Mode
-  - Connectivity Mode
+#### Static Modes
 
-### Configuration
+These are not dynamic modes of operation as such. They are statically configured
+at compile time and result in different firmware binaries that can be loaded.  
+However, they do impact the behavior of the Node-RED server as it will choose a
+corresponding firmware image to send when performing a firmware update.
 
-- Describe double-press reset
-- Describe WiFi Manager operation
+##### Development Mode
 
-### Initialization
+Development mode tunes the behavior of the sensor node for development and
+debugging purposes.  
+To enable development mode, set `DEVELOPMENT_BUILD` to 1 in
+[project_config.h](../project_config.h) and then recompile and upload the
+firmware.
 
-- Describe init mode (first time boot)
+In development mode, the following configuration changes will apply:
+* `EXTRA_DEBUG` will be enabled to turn on additional serial debug logging
+* `SLEEP_TIME_MS` is reduced so that sleep process and overall behavior can be observed more readily
+* `NUM_STORAGE_SLOTS` is reduced so that filling of the circular buffer will occur more quickly
+* `HIGH_WATER_SLOT` is reduced so that upload processing will occur more often
 
-### Sensor Operation
+The following values may also be set, but will likely need to be adjusted
+in [project_config.h](../project_config.h) based on the debugging task:
+* `DISABLE_FW_UPDATE` will prevent the update command from the Node-RED server being processed
+* `SIMULATE_GOOD_CONNECTION` will prevent an actual WiFi connection and upload from occurring
 
+##### Battery Mode
+
+Battery mode is the default/normal configuration for the sensor node firmware.
+It is ideal for battery-powered hardware configurations.  
+To enable battery mode, ensure `TETHERED_MODE` is set to 0 in
+[project_config.h](../project_config.h) and then recompile and upload the
+firmware.
+
+In battery mode, the `FIRMWARE_NAME` will be set to "iotsp-battery". This is the
+prefix that should be used for the firmware filename when storing the firmware
+binary on the Node-RED server. Based on this filename, the server will
+automatically distribute firmware updates to the sensor nodes when they connect.
+
+> 🪧 Note: in battery mode, the PPD42 sensor is disabled since it requires
+> continuous power for its heating element.
+
+##### Tethered Mode
+
+Tethered mode is an alternative firmware configuration for the sensor node.
+It is useful for hardware configurations where the sensor is permanently powered from a 5-volt or USB AC adapter.  
+To enable tethered mode, ensure `TETHERED_MODE` is set to 1 in
+[project_config.h](../project_config.h) and then recompile and upload the
+firmware.
+
+In tethered mode, several changes will be made to the behavior of the sensor:
+* the PPD42 sensor will be enabled
+* the WiFi modem will be left enabled during deep sleep
+* `HIGH_WATER_SLOT` will be set to 1 to enable upload of sensor readings on every boot
+
+> 🪧 Note: the EPD and PPD42 sensor cannot be used simultaneously.  
+> No reconfiguration is needed to support either of these, the software will
+> detect whether a PPD42 is present at startup and disable the EPD.
+
+In tethered mode, the `FIRMWARE_NAME` will be set to "iotsp-tethered". This is
+the prefix that should be used for the firmware filename when storing the firmware binary on the Node-RED server. Based on this filename, the server will
+automatically distribute firmware updates to the sensor nodes when they connect.
+
+##### VCC Cal Mode
+
+The VCC cal mode is used for calibration of the VCC ADC.  
+To enable VCC cal mode, ensure `VCC_CAL_MODE` is set to 1 in
+[project_config.h](../project_config.h) and then recompile and upload the
+firmware.
+
+This mode is sort of a combination of [development mode](#development-mode) and
+[tethered mode](#tethered-mode). The sensor will reboot at a faster than normal
+rate and take a measurement of the VCC voltage. Several readings will be taken
+and averaged. Other sensors will not be read. The averaged VCC reading will then
+be output on the debug serial port.
+
+The output VCC reading can be compared with a calibrated meter to determine if
+there is some offset in the ADC reading. This offset can be stored by booting
+into [configuration mode](#configuration-mode) and updating the calibration
+setting there.
+
+#### Dynamic Modes
+
+These modes represent the dynamic behavior of the software.  
+They mostly align with the system modes described in the
+[system architecture document](system_architecture.md#system-modes):  
+![System Mode State Diagram](drawio/sysarch_system_modes.png)
+
+Reprogramming mode is not discussed here since it is handled by the flasher stub
+and esptool. More details can be found [here](https://docs.espressif.com/projects/esptool/en/latest/esp8266/esptool/index.html).
+
+##### Configuration Mode
+
+Pressing the reset button while the firmware is awake in normal mode will
+trigger it to enter the [WiFi Manager](#wifi-manager) application. The sensor
+node usually spends most of its time asleep, so this will feel to the user like
+a "double press" of the reset button. The first press wakes the sensor and the
+second press enters configuration mode.
+
+Since configuration mode is almost entirely handled by the
+[WiFi Manager library](#external-dependencies), the behavior will not be further
+described here except to mention the basic transfer of control:
+1. [Main](#main) initially starts off by checking the reset reason
+2. If it was triggered by an external reset button press, main will immediately transfer control to the [connection manager](#connection-manager)
+3. Connection manager will then initialize and start [WiFi Manager](#wifi-manager)
+
+Further details can be found in the
+[system architecture document](system_architecture.md#configuration-mode) and in
+the [WiFi Manager Documentation](https://github.com/tzapu/WiFiManager).
+
+##### Initialization
+
+At bootup, several activities are performed:  
+1. ROM Firmware determines whether to boot from UART or SPI Flash
+2. ETS SYS initialization is performed
+3. Arduino framework initialization is performed
+4. Control handoff to [Main](#main)
+    + `preinit` API called
+    + `setup` API called
+      - Disable built-in LED
+      - Initialize serial port
+      - Initialize I2C and GPIO
+      - Load RTC memory
+      - Increment boot count
+      - Evaluate reset reason
+
+![Initialization Sequence Diagram](drawio/sensorsw_initialization_sequence_diagram.png)
+
+The behavior of RTC memory on initial boot and after firmware updates is handled
+specially here. The `load_rtc_memory` function will compare `RTC_MEM_CHECK`
+against `RTC_MEM_BOOT_COUNT` and `preinit_magic` to determine whether the RTC
+memory needs to be initialized.  
+When the sensor node is undergoing a cold boot, RTC memory will be empty and
+this check will fail. [RTC Mem](#rtc-mem) will then initialize the data
+structures as needed so that the check will pass on subsequent resets.  
+When the firmware has been updated, even though `RTC_MEM_CHECK` will have a
+value stored, the comparison against `preinit_magic` will no longer pass. Since
+the new firmware may have a different format for the RTC data structures, they
+will need to be re-initialized.
+
+##### Normal Mode
+TODO
 - Describe normal transitions between normal mode and sleep mode
 - Describe reset behavior
 
-### Sensor Connectivity
+##### Deep Sleep
+TODO
 
+##### Connectivity Mode
+TODO
 - Describe upload operation
 - Describe result processing
 - Describe OTA FW and calibration
 
 ---
 
-## Error Handling
+## Cybersecurity
+TODO
 
+---
+
+## Error Handling
+TODO
 - Server Connectivity
 - Sensor Upload
 - OTA Failures
