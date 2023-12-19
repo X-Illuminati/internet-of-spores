@@ -1712,9 +1712,18 @@ the new firmware may have a different format for the RTC data structures, they
 will need to be re-initialized.
 
 ##### Normal Mode
-TODO
-- Describe normal transitions between normal mode and sleep mode
-- Describe reset behavior
+
+Normal mode represents the normal runtime and business logic of the sensor node.
+Normal mode is entered after initialization when not entering configuration
+mode.
+
+Main activities of normal mode:
+1. Detect and sample available sensors
+2. Display sensor readings
+3. Check against `HIGH_WATER_SLOT` and switch to [Connectivity Mode](#connectivity-mode)
+4. Enter [Deep Sleep](#deep-sleep)
+
+![Normal Mode Sequence Diagram](drawio/sensorsw_normal_mode_sequence_diagram.png)
 
 ##### Deep Sleep
 TODO
