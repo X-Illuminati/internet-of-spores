@@ -61,6 +61,7 @@ low-level drivers.
 |---------------------|----------------|------
 | Arduino IDE         | 2.0.3          | https://www.arduino.cc/
 | ESP SDK             | 3.0.2          | https://github.com/esp8266/Arduino
+| * lwIP              | 2.1.2          | Part of ESP SDK - website: https://www.nongnu.org/lwip
 | WiFi Manager        | 0.16.0         | https://github.com/tzapu/WiFiManager
 | Lolin HP303B        | commit 4deb5f  | https://github.com/wemos/LOLIN_HP303B_Library
 
@@ -1756,10 +1757,38 @@ differentiate is limited.
 ![Deep Sleep Flow Chart](drawio/sensorsw_deep_sleep_flow_chart.png)
 
 ##### Connectivity Mode
-TODO
-- Describe upload operation
-- Describe result processing
-- Describe OTA FW and calibration
+
+Connectivity Mode is entered when the number of sensor readings collected
+exceeds the configurable "high water mark".  
+
+The behavior is detailed in the system architecture chapters related to
+[Upload Mode](system_architecture.md#upload-mode) and
+[Download Mode](system_architecture.md#download-mode).  
+![Sysarch Connection and Upload Flow Chart](drawio/sysarch_connection_flow_chart.png)
+
+The bulk of the activity described is mediated by the Arudino WiFi API. Some
+functionality is accessed by directly interfacing with the ESP SDK.  
+Internally, the ESP SDK implements a WiFiStation class and provides a TCP/IP
+stack based on [lwip](https://www.nongnu.org/lwip).
+
+The [Connection Manager](#connection-manager) implements the business logic
+described in the flow chart and pulls individual readings from the
+[RTC Mem](#rtc-mem). Note that there is no separate "json" component. The
+Connection Manager can construct the json strings through straightforward
+string concatenation. The responses coming back from the Node-RED server are
+simple strings and not formatted as json strings. Overall, a full json library
+implementation was deemed to be unnecessary. 
+
+The implementation of the described download mode is handled by
+[Update Parser](software_architecture.md#update-parser). The MD5 for the
+received data is validated using the MD5Builder class (part of the ESP SDK).  
+If there are firmware updates to apply, the ESP SDK Updater software is used to
+apply the update.  
+If there are configuration updates to apply, the
+[Persistent Storage](#persistent-storage) component applies these to the
+underlying SPIFFS.  
+![Sysarch Firmware Update Flow Chart](drawio/sysarch_firmware_update_flow_chart.png)  
+![Sysarch Firmware Configuration Flow Chart](drawio/sysarch_configuration_update_flow_chart.png)
 
 ---
 
