@@ -1793,7 +1793,51 @@ underlying SPIFFS.
 ---
 
 ## Cybersecurity
-TODO
+
+> ⚠️ Caution: Cybersecurity was not a primary design consideration for the
+> sensor node software.  
+> Using this system outside of a "hobbyist" environment is not recommended and
+> any serious use would require a thorough threat analysis and risk assessment
+> (TARA).  
+> It is worth reviewing the [Cybersecurity](system_architecture.md#upload-mode)
+> section of the system architecture as a starting point.
+
+The sensor nodes are expected to be deployed in an environment where they don't have access to the public internet. While the sensor nodes don't actively listen
+for incoming connections, there is no authentication of the server they connect
+to when uploading sensor readings. This puts the node in a precarious position
+where it must implicitly trust the server it is connecting to even though this
+blind connection is probably the least trustworthy part of the overall system.
+
+Likewise, the ESP8266 does not have even basic mechanisms for secure or measured
+boot, secure credential storage, or secure firmware updates.  
+It is, therefore, worth assuming that the firmware running on the sensor node is
+modified by an attacker. In such cases the attacker will be able to modify
+sensor readings, read the stored WiFi credentials, and make arbitrary
+connections within and through your network.
+
+> ⚠️ Caution:  
+> Don't leave sensor nodes outdoors where physical access is available to the
+> public who can trivially dump your WiFi credentials and gain access to your
+> internal network.  
+> **I call this "the evil gardener" attack.**
+
+There are 3 significant improvements that could be made for a sufficiently
+motivated administrator:
+1. Set up a separate WiFi network for the sensor nodes that only has access to
+   the Node-RED server.  
+   In this way, an attacker who manages to steal the WiFi credentials or install
+   their own firmware will not have significant access to your internal network
+   or the public internet.
+2. Set up SSL certificates for the Node-RED server.  
+   The ESP8266 can make SSL connections and might even have some basic ability
+   for certificate pinning. The latter would probably be necessary to be able to
+   have any significant trust in the authentication of the server;
+   unfortunately, it would also require some code modifications to add support.
+3. Prevent physical access to the sensor nodes or ensure there is a detectable
+   and regularly-audited tamper-detection mechanism.
+
+It might also be somewhat straightforward to port the code to the ESP32, which I
+believe has some additional support for secure boot or encrypted firmware.
 
 ---
 
