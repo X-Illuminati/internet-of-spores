@@ -1726,7 +1726,34 @@ Main activities of normal mode:
 ![Normal Mode Sequence Diagram](drawio/sensorsw_normal_mode_sequence_diagram.png)
 
 ##### Deep Sleep
-TODO
+
+The transition from normal mode to deep sleep is done primarily to save battery
+power.  
+In [tethered mode](#tethered-mode) it is also performed at the end of the sensor
+reading loop just to keep the behavior relatively consistent. The main
+difference is that, in battery mode, the `SLEEP_TIME_MS` represents a minimum
+time between sensor readings; in tethered mode it represents a target time
+between sensor readings and the sleep duration is adjusted to account for any
+time spent taking and uploading the readings from the current cycle. For
+example, if it takes 30 seconds to read the PPD42 sensor and another 3 seconds
+to upload the readings to the Node-RED server, the sensor will sleep for 27
+seconds so that sensor readings will be 1 minute apart on average (a typical
+value for `SLEEP_TIME_MS`).
+
+During deep sleep, the previously recorded sensor readings are stored in a
+ring-buffer maintained by [RTC Mem](#rtc-mem). This RTC SRAM is retained
+during deep sleep, but is limited in size. If power is lost, the RTC will be
+cleared.
+
+After the desired sleep time is reached, the RTC will wake the CPU and it will
+progress through the ROM boot sequence and experience normal software
+[initialization](#initialization). That is to say, it will not wake up at the
+point in the code where it went to sleep but will essentially treat it the same
+as a cold boot. Some difference in behavior between cold boot, warm reset, and
+RTC wake can be implemented by reading the `ResetInfo`, but the ability to
+differentiate is limited.
+
+![Deep Sleep Flow Chart](drawio/sensorsw_deep_sleep_flow_chart.png)
 
 ##### Connectivity Mode
 TODO
