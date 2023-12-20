@@ -1799,8 +1799,9 @@ underlying SPIFFS.
 > Using this system outside of a "hobbyist" environment is not recommended and
 > any serious use would require a thorough threat analysis and risk assessment
 > (TARA).  
-> It is worth reviewing the [Cybersecurity](system_architecture.md#upload-mode)
-> section of the system architecture as a starting point.
+> It is worth reviewing the
+> [Cybersecurity](system_architecture.md#cybersecurity) section of the system
+> architecture as a starting point.
 
 The sensor nodes are expected to be deployed in an environment where they don't have access to the public internet. While the sensor nodes don't actively listen
 for incoming connections, there is no authentication of the server they connect
@@ -1842,10 +1843,75 @@ believe has some additional support for secure boot or encrypted firmware.
 ---
 
 ## Error Handling
-TODO
-- Server Connectivity
-- Sensor Upload
-- OTA Failures
-- Persistent Storage Failures
-- Low Battery
-- Low Temperature
+
+### Server Connectivity Failure
+
+See [Server Connectivity Failure](system_architecture.md#server-connectivity-failure)
+in the system architecture.
+
+### Sensor Upload Failure
+
+See [Sensor Upload Failure](system_architecture.md#sensor-upload-failure) in the
+system architecture.
+
+### OTA Update Failures
+
+The transmitted firmware is preceeded by a file size and MD5 checksum. These are
+provided to the ESP Updater component to be validated during the download.
+During the update process there is also a tmeout to ensure the process does not
+get stuck waiting indefinitely for a packet that has been lost.  
+Unfortunately, none of this is particularly helpful. The full image can't be
+stored in RAM, so as soon as a full sector is received it will be written to
+flash. If the update process is interrupted or if there is corruption in the
+network transmission, the sensor node is likely to be bricked.
+
+In practice, I haven't seen this happen. The TCP connection has built-in
+checksum and retry mechanisms, and is overall pretty reliable.
+
+A potential future improvement would be to move away from `ESP.updateSketch` and
+implement a bespoke update mechanism. This could at least narrow the window for
+permanent failure and avoid failures from network transmission. A more
+comprehensive, failure-resistant update strategy would likely require
+modification of the bootloader.
+
+### Persistent Storage Failures
+
+The SPIFFS filesystem implementation only has basic metadata checks for the
+stored files. Additionally, no checksum or CRC is included with the data by the
+[Persistent Storage](#persistent-storage) implementation.
+
+Some corruption in the file system might be caught by conversion failure when
+reading the data. In such case, the default value for the file will generally
+be used.
+
+A potential future improvement would be to add some CRC check in the data or to
+add some plausibility checks to the code.
+
+### Low Battery Failure
+
+See [Low Battery Failure](system_architecture.md#low-battery-failure) in the
+system architecture.
+
+### Temperature Failure
+
+There is mostly no attempt to verify that the working temperature is in a valid
+range for the sensors.  The sensor node is expected to be used in an indoor
+environment (or at least a sheltered environment).  
+In general, this is not a concern for most of the parts. See the
+[hardware restrictions](sensor_hardware.md#operating-restrictions) for more
+details.
+
+The main exception is the Waveshare EPD and PPD42 particle sensor. These are
+only rated for operation down to 0 °C.  
+Nothing is currently done with regard to the PPD42.  
+For the EPD, a mitigation is put in place that, if the temperature is below
+0 °C, it will be left in reset. There is, however, no visual indication of this
+for the user. The display will simply continue to show the last update before
+the temperature dropped below the limit. In any case, this is still problematic
+as the allowable storage temperature for the EPD is also 0 °C.
+
+> ⚠️ Caution: The EPD should only be used indoors since it has an allowable
+> storage and operating temperature range of 0 °C - 50 °C.
+
+A potential improvement would be to add some alert to Node-RED when a sensor
+node with EPD or PPD42 are used outside their allowed temperature range.
