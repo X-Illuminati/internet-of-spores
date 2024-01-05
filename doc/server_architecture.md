@@ -173,7 +173,48 @@ docker script).
 
 ### Packaged Applications
 
+These 3rd-party applications come packaged for the OS (or container system) and
+have their own external detailed documentation. However, they don't generally
+have an architectural overview available as part of their public documentation,
+so there will be some discussion of these aspects in the next few chapters.
+
 #### Node-RED
+
+##### Description
+
+![Node-RED Overview](drawio/serversw_nodered_overview.png)  
+[Node-RED](https://nodered.org/) is a [Node.js](https://nodejs.org/) application
+that provides a flow-based, visual-programming environment for creating the
+glue-logic that connects the networked IOT sensors to the backend database.
+
+Public documentation for Node-RED, including installation instructions and API
+reference can be found on [their website](https://nodered.org/docs/).
+
+##### Dependencies
+
+See [External Dependencies](#external-dependencies) for notes about the
+dependencies on Node.js and the additional Node-RED plugins needed.  
+See the online
+[documentation](https://nodered.org/docs/user-guide/runtime/settings-file)
+for more details.
+
+##### Configuration
+
+Configuration of this component is provided via the settings.js file in its
+runtime directory.
+
+Additionally, the flows that will be executed are loaded from the same
+directory. The flows to work with the sensor nodes in this project are provided
+in [flows.json](../node-red/flows.json). More details about these flows are
+described [below](#node-red-flows).
+
+##### Public API
+
+The Node-RED server listens on TCP port 1880 (by default).  
+On this port, it will provide a standard web (HTTP) interface for access via a
+web browser. With this interface, it provides access to the flow editor and
+debug console.  
+![Node-RED Screenshot](screenshots/nodered.png)
 
 #### Influx DB
 
@@ -194,18 +235,50 @@ docker script).
 - Node-red SOH Failure
 
 ### Sensor Processing
-Describe incoming sensor readings, their storage in influxdb, their presentation in grafana.
+Describe incoming sensor readings, their storage in InfluxDB, their presentation in Grafana.
 
 ### OTA Update
 Describe Node-red FW Update process.
 Describe Node-red Calibration/configuration update process.
 
-### Node-red SOH
+### Node-red SOH Behavior
 Describe SOH monitoring for Node-red
 
 --------------------------------------------------------------------------------
 
 ## Cybersecurity
+
+> ⚠️ Caution: Cybersecurity was not a primary design consideration for the
+> system.  
+> Using this system outside of a "hobbyist" environment is not recommended and
+> any serious use would require a thorough threat analysis and risk assessment
+> (TARA).  
+> It is worth reviewing the
+> [Cybersecurity](system_architecture.md#cybersecurity) section of the system
+> architecture as a starting point.
+
+### Node-RED Security
+
+By default, the Node-RED flow editor is unsecured. Anyone with access to the network can modify its behavior and responses to the sensor nodes. Likewise, the
+debug console can be used to monitor the incoming sensor readings.
+
+> ⚠️ Caution: Only run Node-RED in a trusted local network environment.
+
+This page, [Securing Node-RED](https://nodered.org/docs/user-guide/runtime/securing-node-red), provides some information on how to improve the security of Node-RED and add user-authentication. However, it is still probably unwise to expose Node-RED to the public internet.
+
+The TCP connection on port 2880 between the sensor nodes and Node-RED is
+unauthenticated. The sensor nodes will connect to any server and believe that it
+is the correct destination.  
+Further, the sensor nodes will obey any response received from the Node-RED
+server -- including [firmware updates](#ota-update). This makes it relatively
+trivial for an attacker with access to the WiFi network (or who can spoof the
+network) to upload arbitrary firmware to the sensor nodes.
+
+It may be possible to set up SSL certificates for the Node-RED server.  
+The ESP8266 can make SSL connections and might even have some basic ability
+for certificate pinning. The latter would probably be necessary to be able to
+have any significant trust in the authentication of the server; unfortunately,
+it would also require some code modifications to add support.
 
 --------------------------------------------------------------------------------
 
@@ -215,3 +288,21 @@ Describe SOH monitoring for Node-red
 - Node-red SOH monitoring
 - Node-red debugging
 
+### Node-RED Server Failure
+
+The Node-RED server may freeze, crash, or get stuck in a busy-loop.
+This is surely resolved in newer versions, but in v0.20.7 it occurs about once
+per week.
+
+Impact:  
+The server will not be able to accept incoming connections.
+
+Mitigation:  
+The Node-RED flows include a periodic state-of-health message that is printed to
+the console. The provided [soh-monitor.sh](../node-red/soh-monitor.sh) script
+can monitor the systemd journal for these state-of-health messages and restart
+the Node-RED server if a timeout is exceeded.
+
+More details are provided above:
+* [Node-RED SOH Monitor](#node-red-soh-monitor)
+* [Node-RED SOH Behavior](#node-red-soh-behavior)
