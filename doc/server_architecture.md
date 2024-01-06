@@ -17,6 +17,7 @@ This outline is currently a work-in-progress.
 * [Cybersecurity](#cybersecurity)
   - [Node-RED Security](#node-red-security)
   - [InfluxDB Security](#influxdb-security)
+  - [Grafana Security](#grafana-security)
 * [Error Handling](#error-handling)
 
 --------------------------------------------------------------------------------
@@ -129,6 +130,9 @@ Since Grafana is written in [Go](https://go.dev/), it has dependencies on many
 additional Go Modules. These are provided alongside the application and,
 generally, don't require explicit installation.
 
+An option to install via docker appears to be available, but this option is
+untested by the author of this document.
+
 _InfluxDB_
 
 Since InfluxDB is written in [Go](https://go.dev/), it has dependencies on many
@@ -220,7 +224,6 @@ debug console.
 
 #### Influx DB
 
-
 ##### Description
 
 ![InfluxDB Overview](drawio/serversw_influxdb_overview.png)  
@@ -257,6 +260,43 @@ The InfluxDB server also listens on TCP port 8088 for interfacing with other
 InfluxDB controllers. This functionality is not used within this system.
 
 #### Grafana
+
+##### Description
+
+![Grafana Overview](drawio/serversw_grafana_overview.png)  
+[Grafana](https://grafana.com/) is an interactive analytics and chart
+visualization application which can be used to display the sensor data stored in
+the [InfluxDB database](#influxdb).  
+Public documentation for Grafana, including installation instructions can be
+found on [the grafana.com website](https://grafana.com/oss/grafana/).
+
+The use of Grafana in this system can be replaced with any suitable data
+visualizer frontend that has support for InfluxDB.
+
+##### Dependencies
+
+See [External Dependencies](#external-dependencies) for notes about the
+dependencies on system libraries and services. These will generally be resolved
+by the installer or your package manager.
+
+##### Configuration
+
+Configuration of this component is provided via the grafana.ini file in the
+associated config directory.  
+See the [configuration options](https://grafana.com/docs/grafana/latest/setup-grafana/configure-grafana/)
+for more details.
+
+Additionally, the users of Grafana can create and configure dashboards according
+to their needs. These are stored in a SQL database provided by a backend that is
+configurable.
+
+##### Public API
+
+The Grafana server listens on TCP port 3000 (by default).  
+On this port, it will provide a standard web (HTTP) interface for access via a
+web browser. With this interface, it provides access to the dashboards and data
+source configuration  
+![Grafana Screenshot](screenshots/grafana_dashboard.png)
 
 ### Node-RED Flows
 
@@ -330,6 +370,18 @@ the InfluxDB console and perform arbitrary administrative operations.
 
 The InfluxDB documentation provides some guidance for
 [managing security and authorization](https://docs.influxdata.com/influxdb/v2/admin/security/).
+
+### Grafana Security
+
+By default, the Grafana server does not require user authentication. Anyone with
+access to the local network can view the sensor readings.  
+Typically, users can also create their own dashboards to execute arbitrary
+queries to the InfluxDB database. The implications of this threat are unexplored
+by the author of this document.
+
+> ⚠️ Caution: Only run Grafana in a trusted local network environment.
+
+This page, [Configure security](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/), provides some information about securing a Grafana instance. However, it is probably unwise to expose Grafana to the public internet.
 
 --------------------------------------------------------------------------------
 
