@@ -15,6 +15,8 @@ This outline is currently a work-in-progress.
 * [Dynamic Behavior](#dynamic-behavior)
   - [Modes of Operation](#modes-of-operation)
 * [Cybersecurity](#cybersecurity)
+  - [Node-RED Security](#node-red-security)
+  - [InfluxDB Security](#influxdb-security)
 * [Error Handling](#error-handling)
 
 --------------------------------------------------------------------------------
@@ -188,20 +190,20 @@ that provides a flow-based, visual-programming environment for creating the
 glue-logic that connects the networked IOT sensors to the backend database.
 
 Public documentation for Node-RED, including installation instructions and API
-reference can be found on [their website](https://nodered.org/docs/).
+reference can be found on [the nodered.org website](https://nodered.org/docs/).
 
 ##### Dependencies
 
 See [External Dependencies](#external-dependencies) for notes about the
 dependencies on Node.js and the additional Node-RED plugins needed.  
-See the online
-[documentation](https://nodered.org/docs/user-guide/runtime/settings-file)
-for more details.
 
 ##### Configuration
 
 Configuration of this component is provided via the settings.js file in its
-runtime directory.
+runtime directory.  
+See the
+[documentation](https://nodered.org/docs/user-guide/runtime/settings-file)
+on the nodered.org site for more details.
 
 Additionally, the flows that will be executed are loaded from the same
 directory. The flows to work with the sensor nodes in this project are provided
@@ -217,6 +219,42 @@ debug console.
 ![Node-RED Screenshot](screenshots/nodered.png)
 
 #### Influx DB
+
+
+##### Description
+
+![InfluxDB Overview](drawio/serversw_influxdb_overview.png)  
+[InfluxDB](https://www.influxdata.com/) is a time series database used to store
+the sensor readings received from the sensor nodes.  
+Public documentation for InfluxDB, including installation instructions and API
+reference can be found on
+[the influxdata.com website](https://docs.influxdata.com/influxdb/v2/).
+
+The use of InfluxDB in this system can be replaced with a different database
+storage backend if the [Node-RED Flows](#node-red-flows) are updated
+accordingly.
+
+##### Dependencies
+
+InfluxDB is generally installed with all of the dependencies it needs.  
+A POSIX-compatible C library is assumed.
+
+##### Configuration
+
+Configuration of this component is provided via the influxdb.conf file in the
+associated config directory.  
+See the [InfluxDB configuration options](https://docs.influxdata.com/influxdb/v2/reference/config-options/)
+for more details.
+
+##### Public API
+
+The InfluxDB server listens on TCP port 8086 (by default).  
+On this port, it will provide a REST API for database queries.
+See the [API documentation](https://docs.influxdata.com/influxdb/v2/api-guide/)
+on the influxdata.com website for more details.
+
+The InfluxDB server also listens on TCP port 8088 for interfacing with other
+InfluxDB controllers. This functionality is not used within this system.
 
 #### Grafana
 
@@ -279,6 +317,19 @@ The ESP8266 can make SSL connections and might even have some basic ability
 for certificate pinning. The latter would probably be necessary to be able to
 have any significant trust in the authentication of the server; unfortunately,
 it would also require some code modifications to add support.
+
+### InfluxDB Security
+
+By default, the InfluxDB database is unsecured. Anyone with access to the
+network can perform queries that inject or modify stored data. Likewise, users
+with shell access to the host where the server is running can probably access
+the InfluxDB console and perform arbitrary administrative operations.
+
+> ⚠️ Caution: Only run InfluxDB in a trusted environment with appropriate
+> firewall configuration.
+
+The InfluxDB documentation provides some guidance for
+[managing security and authorization](https://docs.influxdata.com/influxdb/v2/admin/security/).
 
 --------------------------------------------------------------------------------
 
