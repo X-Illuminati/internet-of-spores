@@ -1,9 +1,8 @@
 # Server Software Architecture
-This outline is currently a work-in-progress.
 
 ## Table of Contents
 
-* [Block Diagram](#block-diagram)
+* [Overview and Block Diagram](#overview-and-block-diagram)
 * [External Dependencies](#external-dependencies)
 * [Component Description](#component-description)
   - [Packaged Applications](#packaged-applications)
@@ -22,7 +21,7 @@ This outline is currently a work-in-progress.
 
 --------------------------------------------------------------------------------
 
-## Block Diagram
+## Overview and Block Diagram
 
 ![Server Software Block Diagram](drawio/serversw_block_diagram.png)  
 The server software is the most loosely defined part of the system. It is mostly
@@ -152,7 +151,7 @@ Node.js interpreter and npm utility to be installed on the system.
 Likewise, it has dependencies on many additional Node.js Modules. These should
 be installed alongside the application automatically using the npm package
 manager. It is suggested to follow the installation instructions on the
-[website](https://nodered.org/docs/getting-started/local).  
+[nodered.org website](https://nodered.org/docs/getting-started/local).  
 An option to install via docker or snap appears to be available, but these
 options are untested by the author of this document.
 
@@ -222,7 +221,7 @@ web browser. With this interface, it provides access to the flow editor and
 debug console.  
 ![Node-RED Screenshot](screenshots/nodered.png)
 
-#### Influx DB
+#### InfluxDB
 
 ##### Description
 
@@ -288,7 +287,7 @@ for more details.
 
 Additionally, the users of Grafana can create and configure dashboards according
 to their needs. These are stored in a SQL database provided by a backend that is
-configurable.
+configurable (sqlite by default).
 
 ##### Public API
 
@@ -299,6 +298,74 @@ source configuration
 ![Grafana Screenshot](screenshots/grafana_dashboard.png)
 
 ### Node-RED Flows
+
+##### Description
+
+![Node-RED Flows Overview](drawio/serversw_flows_overview.png)  
+The [Node-RED Flows](../node-red/flows.json) provide the glue logic for the
+system. By running these flows in [Node-RED](#node-red), the server will listen
+for incoming connections on TCP port 2880 (by default) and process the request
+to perform one of 3 actions:
+1. Process sensor readings and store them in the configured InfluxDB database
+2. Transmit a firmware update file
+3. Transmit a configuration update file
+
+To store the sensor readings, the readings are processed (to calculate an
+absolute timestamp) and the InfluxDB API is used to transmit the data to
+[InfluxDB](#influxdb) on TCP port 8086.  
+The readings are transmitted as a json string for easy processing within
+Node-RED.  
+If the readings are stored successfully, an "OK" string is sent back to the
+sensor node; otherwise an "error" string is returned. If there are available
+firmware or configuration updates for the sensor node, ",config" or ",update"
+are appended to the response string.
+
+Normal POSIX directory and file operations are used to find relevant firmware
+and configuration update files.
+
+There is an additional flow for logging a heartbeat message, related to the
+[Node-RED SOH Monitor](#node-red-soh-monitor).
+
+##### Dependencies
+
+The flows depend on [Node-RED](#node-red) and the corresponding Node.js
+installation to execute.  
+Refer also to the "Additional Plugins" sub-section of
+[External Dependencies](#external-dependencies) for information about some
+additional Node-RED plugins that need to be installed manually before the flows
+will start.
+
+##### Configuration
+
+There are 3 main aspects of the flows that may need to be configured:
+1. The level of debug logging that is displayed
+2. The TCP port to listen on for incoming connections
+3. The details of the InfluxDB database
+
+1:  
+To enable additional debug logging, simply click the green button next to one of
+the debug nodes. There is no need to "deploy" the flows unless you want the
+change to the setting to be remembered permanently.  
+![Debug Level Modification Screenshot](screenshots/flows_enable_debug.png)
+
+> 🪧 Note: The debug messages from the debug nodes show up in the debug
+> side-panel and not in the console output or systemd journal.
+> To log messages to the console, the `console.log()` function must be used
+> explicitly from a javascript function node.
+
+2:  
+The TCP port to listen on can be configured by modifying the TCP node on the
+first page of flows.  
+![TCP Port Modification Screenshot](screenshots/flows_tcp_configuration.png)
+
+3:  
+The InfluxDB database details can be configured by modifying the influx batch
+node (labeled "Home") on the "handle sensor readings" page.  
+![InfluxDB Modification Screenshot](screenshots/flows_influxdb_configuration.png)
+
+##### Public API
+
+TODO: document sensor reading v2 API
 
 ### Node-RED SOH Monitor
 
