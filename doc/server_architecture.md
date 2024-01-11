@@ -365,7 +365,195 @@ node (labeled "Home") on the "handle sensor readings" page.
 
 ##### Public API
 
-TODO: document sensor reading v2 API
+The API for interacting with Node-RED Flows is by sending a json string via TCP
+port 2880. This is currently version 2 of the API.
+
+There are 2 basic packet types: measurements and commands.  
+For measurement, a type field identifies the type of measurement that is being
+transmitted. The final measurement packet has some additional fields.  
+Commands request the server to perform some function. The possible commands are:
+"get_config", "delete_config", and "update"
+
+###### Measurements
+
+Most measurement packets have this format:
+```json
+{
+  "version":2,
+  "node":String,         #name of the sensor node
+  "firmware":String,     #firmware name/identifier (preinit_magic)
+  "measurements":
+    [                    #array of sensor readings
+      {                  #sensor reading object
+        "type":String,   #name for the type of sensor reading
+                         #possible values types are:
+                         # "unknown",
+                         # "temperature",
+                         # "humidity",
+                         # "pressure",
+                         # "particles 1.0µm",
+                         # "particles 2.5µm",
+                         # "battery"
+        "value":Number
+      },
+      ...
+    ],
+  "time_offset":Number   #The age in ms of the measurement
+                         #Note: this should be expressed as a negative number
+}
+```
+
+The final measurement packet should include the "uptime" measurement to trigger
+the bulk transfer to InfluxDB. It also includes the sensor calibrations for
+debugging purposes.
+```json
+{
+  "version":2,
+  "node":String,         #name of the sensor node
+  "firmware":String,     #firmware name/identifier (preinit_magic)
+  "measurements":
+    [                    #array of sensor readings
+      {                  #sensor reading Object
+        "type":String,   #name for the type of sensor reading
+                         #possible strings for type are:
+                         # "unknown",
+                         # "temperature",
+                         # "humidity",
+                         # "pressure",
+                         # "particles 1.0µm",
+                         # "particles 2.5µm",
+                         # "battery"
+        "value":Number
+      },
+      ...
+      {
+        "type":"uptime",
+        "value":Number   #sensor node uptime in seconds
+      }
+    ],
+  "calibrations":
+    [                    #array of calibration vallues
+      {                  #calibration Object
+        "type":String,   #name for the type of calibration
+                         #possible strings for type are:
+                         # "temperature",
+                         # "humidity",
+                         # "pressure",
+                         # "battery"
+        "value":Number
+      },
+      ...
+    ],
+  "time_offset":Number   #The age in ms of the measurement
+                         #Note: this should be expressed as a negative number
+}
+```
+
+After receiving each measurement, the server will respond with a simple string composed of a comma separated list of response flags.  
+If the measurement was parsed properly, it will respond with "OK", otherwise it
+will respond with "error".  
+If there is a firmware update available, the server will include ",update" in
+its response. If there is a configuration file update available, the server will
+include ",config" in its response.  
+Finally, the server's response will end with a newline character `\n`.
+
+###### Commands
+
+**get_config**  
+The get_config command requests the server to send a configuration update to the
+sensor node.
+
+```json
+{
+  "version":2,
+  "node":String,          #name of the sensor node
+  "firmware":String,      #firmware name/identifier (preinit_magic)
+  "command":"get_config",
+  "arg":String            #the filename requested
+                          #possible strings for the filename arg are:
+                          # "node_name",
+                          # "report_host_name",
+                          # "report_host_port",
+                          # "clock_drift_calibration",
+                          # "temperature_calibration",
+                          # "humidity_calibration",
+                          # "pressure_calibration",
+                          # "battery_calibration",
+                          # "sleep_time_ms",
+                          # "high_water_slot"
+}
+```
+
+If the server cannot find the relevant config file, it will respond with a
+single newline character `\n`.
+
+If the server is able to find the relevant config file, it will respond with 3
+concatenated parameters:
+1. The size of the file data (formatted as an ASCII string) followed by a
+   newline character.
+2. The md5sum of the file data followed by a newline character.
+3. The byte data contents of the file.
+
+Note that the final parameter is not a string and not terminated with a newline
+character. In practice, the content of the config files will be ASCII strings,
+but this response format is more general and could support binary data if
+needed.
+
+**delete_config**  
+The delete_config command requests the server to delete a configuration update file and no longer inform the sensor node about it. This is used after the
+sensor node has applied the configuration update.
+
+```json
+{
+  "version":2,
+  "node":String,             #name of the sensor node
+  "firmware":String,         #firmware name/identifier (preinit_magic)
+  "command":"delete_config",
+  "arg":String               #the filename requested
+                             #possible strings for the filename arg are:
+                             # "node_name",
+                             # "report_host_name",
+                             # "report_host_port",
+                             # "clock_drift_calibration",
+                             # "temperature_calibration",
+                             # "humidity_calibration",
+                             # "pressure_calibration",
+                             # "battery_calibration",
+                             # "sleep_time_ms",
+                             # "high_water_slot"
+}
+```
+
+The server will respond with a single newline character `\n`.
+
+**update**  
+The update command requests the server to send the waiting firmware update.
+
+```json
+{
+  "version":2,
+  "node":String,      #name of the sensor node
+  "firmware":String,  #firmware name/identifier (preinit_magic)
+  "command":"update",
+  "arg":String        #the firmware name for the sensor node
+                      #typical strings for the firmware name arg are:
+                      # "iotsp-battery",
+                      # "iotsp-tethered"
+}
+```
+
+If the server cannot find the relevant firmware update file, it will respond
+with a the string, `0\n`.
+
+If the server is able to find the relevant firmware update file, it will respond
+with 3 concatenated parameters:
+1. The size of the update file data (formatted as an ASCII string) followed by a
+   newline character.
+2. The md5sum of the update file data followed by a newline character.
+3. The byte data contents of the firmware update file.
+
+Note that the final parameter is not a string and not terminated with a newline
+character. This will be binary file data directly transmitted.
 
 ### Node-RED SOH Monitor
 
