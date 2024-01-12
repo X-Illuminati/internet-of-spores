@@ -79,7 +79,7 @@ that are useful to the overall system:
 1. Management Logic for the sensor nodes (provided by [Node-RED](#node-red))
 2. Database for storing sensor readings (provided by [InfluxDB](#influxdb))
 3. Display of sensor readings (completely optional, but discussed here as
-   [Grafana](#graphana))
+   [Grafana](#grafana))
 
 Since the interface between these components is TCP/IP, they can be freely
 moved, upgraded, and, to some extent, replaced.
@@ -100,7 +100,8 @@ work correctly.
 | Grafana             | 6.5.2          | https://grafana.com/
 
 These are used essentially in their stock configuration with the exception of
-Node-RED. The provided Node-RED flows require a few community-supplied plugins.
+Node-RED. The provided [Node-RED Flows](#node-red-flows) require a few
+community-supplied plugins.
 
 __Package Dependencies__  
 On my system, Grafana has the following dependencies on additional packages:
@@ -157,10 +158,10 @@ options are untested by the author of this document.
 
 __Additional Plugins__
 
-The provided Node-RED flows require a few community-supplied plugins.
-Again, the specific version is probably not so important and the latest version
-should work.  
-These need to be installed through the Node-RED UI.
+The provided [Node-RED Flows](#node-red-flows) require a few community-supplied
+plugins. These need to be installed through the Node-RED UI.  
+Again, the specific version is probably not so important and the latest
+version should work.
 
 | Node-RED Plugin           | Tested Version | Link
 |---------------------------|----------------|------
@@ -365,14 +366,16 @@ node (labeled "Home") on the "handle sensor readings" page.
 
 ##### Public API
 
-The API for interacting with Node-RED Flows is by sending a json string via TCP
-port 2880. This is currently version 2 of the API.
+Interaction with the Node-RED Flows involves sending a json string via TCP port
+2880.
 
-There are 2 basic packet types: measurements and commands.  
+There are 2 basic packet types for this API: measurements and commands.  
 For measurement, a type field identifies the type of measurement that is being
 transmitted. The final measurement packet has some additional fields.  
 Commands request the server to perform some function. The possible commands are:
-"get_config", "delete_config", and "update"
+"get_config", "delete_config", and "update".
+
+This is currently version 2 of the API. Version 1 is undocumented.
 
 ###### Measurements
 
@@ -543,7 +546,7 @@ The update command requests the server to send the waiting firmware update.
 ```
 
 If the server cannot find the relevant firmware update file, it will respond
-with a the string, `0\n`.
+with the string, `0\n`.
 
 If the server is able to find the relevant firmware update file, it will respond
 with 3 concatenated parameters:
@@ -557,7 +560,65 @@ character. This will be binary file data directly transmitted.
 
 ### Node-RED SOH Monitor
 
+##### Description
 
+![Node-RED Flows Overview](drawio/serversw_soh_monitor_overview.png)  
+The [Node-RED SOH Monitor](../node-red/soh-monitor.sh) is a helper utility that
+can monitor the Systemd Journal for regular heartbeat messages coming from the
+[Node-RED Flows](#node-red-flows).  
+It is an entirely optional part of the system but can improve reliability. It is
+probably less necessary with newer versions of Node-RED.
+
+##### Dependencies
+
+The SOH monitor depends on [systemd](https://systemd.io/) for `systemctl` and
+`journalctl`.  
+It also uses relies on bash rather than a basic bourne shell for some scripting
+extensions.
+
+##### Configuration
+
+The main configuration interface is via command line parameters.
+These are optional:
+* If 1 parameter is supplied, it is: timeout
+* If 2 parameters are supplied: timeout, action count
+* If 3 parameters are supplied: timeout, action count, max errors
+
+The timeout parameter represents the time (in seconds) to wait before noticing a
+SOH failure. The script expects to see "SOH report" in the journald log for
+Node-RED within this time period.  
+Default value is 45 seconds.
+
+The action count parameter indicates how many SOH failures to wait for before
+taking action to restart the Node-RED server.  
+Default value is 3.
+
+The max errors parameter indicates when to give up and stop monitoring. If this
+many errors are accumulated in the lifetime of the process, it will exit and
+monitoring will stop.  
+Default value is 10000.
+
+The default values for these parameters can also be modified at the top of
+[the script](../node-red/soh-monitor.sh).  
+There is an additional parameter there, `RELOAD_TIME` which represents the
+amount of time to wait after restarting Node-RED before monitoring will resume.  
+It defaults to 10 seconds, which is adequate for a Raspberry PI 3 to restart the Node-RED server and flows.
+
+> 🪧 Note: The script expects Node-RED to be running under the "user" service
+> manager rather than the "system" service manager. This should probably be
+> made more configurable or allow some level of auto-detection.
+
+##### Public API
+
+Sending SIGINT to the monitor subprocess will cause it to print out the number
+of SOH failures seen so far.
+
+If you are running the script from an interactive shell, pressing CTRL-C will
+cause this SIGINT behavior. Pressing CTRL-C again within the timeout period will
+terminate the script.
+
+The script is normally expected to be invoked by systemd from the
+[unit file provided](../node-red/node-red-soh.service).
 
 --------------------------------------------------------------------------------
 
@@ -656,10 +717,11 @@ Impact:
 The server will not be able to accept incoming connections.
 
 Mitigation:  
-The Node-RED flows include a periodic state-of-health message that is printed to
-the console. The provided [soh-monitor.sh](../node-red/soh-monitor.sh) script
-can monitor the systemd journal for these state-of-health messages and restart
-the Node-RED server if a timeout is exceeded.
+The [Node-RED Flows](#node-red-flows) include a periodic state-of-health message
+that is printed to the console. The provided
+[soh-monitor.sh](../node-red/soh-monitor.sh) script can monitor the systemd
+journal for these state-of-health messages and restart the Node-RED server if a
+timeout is exceeded.
 
 More details are provided above:
 * [Node-RED SOH Monitor](#node-red-soh-monitor)
