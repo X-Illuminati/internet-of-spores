@@ -13,10 +13,13 @@
   - [Node-RED SOH Monitor](#node-red-soh-monitor)
 * [Dynamic Behavior](#dynamic-behavior)
   - [Modes of Operation](#modes-of-operation)
+  - [Process Request](#process-request)
+  - [Node-RED SOH Behavior](#node-red-soh-behavior)
 * [Cybersecurity](#cybersecurity)
   - [Node-RED Security](#node-red-security)
   - [InfluxDB Security](#influxdb-security)
   - [Grafana Security](#grafana-security)
+  - [Node-RED Flows Security](#node-red-flows-security)
 * [Error Handling](#error-handling)
 
 --------------------------------------------------------------------------------
@@ -435,7 +438,7 @@ debugging purposes.
       }
     ],
   "calibrations":
-    [                    #array of calibration vallues
+    [                    #array of calibration values
       {                  #calibration Object
         "type":String,   #name for the type of calibration
                          #possible strings for type are:
@@ -625,18 +628,32 @@ The script is normally expected to be invoked by systemd from the
 ## Dynamic Behavior
 
 ### Modes of Operation
-- Normal Mode
-- Node-red SOH Failure
 
-### Sensor Processing
-Describe incoming sensor readings, their storage in InfluxDB, their presentation in Grafana.
+![Server State Diagram](drawio/serversw_system_modes.png)
 
-### OTA Update
-Describe Node-red FW Update process.
-Describe Node-red Calibration/configuration update process.
+* At startup, systemd initializes the Node-RED Server, SOH Monitor, Grafana, and
+  InfluxDB.
+* While idle:
+  - The Node-RED flows will emit an SOH heartbeat every 30 seconds.
+  - The Node-RED flows wait for an incoming connection on port 2880.
+* If a connection is initiated, the request will be processed and a response
+  sent back.
+* If the SOH Monitor fails to see the heartbeat message after 135 seconds, it
+  will request systemd to restart the Node-RED server.
+* At shutdown, systemd will terminate the servers and SOH monitor in an orderly
+  fashion.
+
+### Process Request
+-Describe incoming sensor readings, their storage in InfluxDB, their presentation in Grafana.
+
+#### Measurement
+#### Firmware Update
+#### Configuration Update
+-Describe Node-red FW Update process.
+-Describe Node-red Calibration/configuration update process.
 
 ### Node-red SOH Behavior
-Describe SOH monitoring for Node-red
+-Describe SOH monitoring for Node-red
 
 --------------------------------------------------------------------------------
 
@@ -699,6 +716,28 @@ by the author of this document.
 
 This page, [Configure security](https://grafana.com/docs/grafana/latest/setup-grafana/configure-security/), provides some information about securing a Grafana instance. However, it is probably unwise to expose Grafana to the public internet.
 
+### Node-RED Flows Security
+
+The [Node-RED Flows](#node-red-flows) are listening for incoming connections
+from the sensor nodes on TCP port 2880. The standard Nodes-RED nodes provide
+the listening interface, the joining of fragmented packets, and the parsing of
+the received JSON request.
+
+This represents a fair amount of attack surface for buffer overflows, incorrect
+parsing, and the like. The software has not been evaluated by any security
+assessor or penetration tester.
+
+> ⚠️ Caution: Only run the Node-RED Flows in a trusted local network environment.
+
+It seems likely that an attacker could create a denial-of-service by flooding
+the server with connection requests or creating half-open connections.  
+This would be unlikely to be mitigated by the
+[Node-RED SOH Monitor](#node-red-soh-monitor) since the flows may still output
+their heartbeat message as normal.
+
+An appropriate firewall configuration or intrusion detection system may help
+mitigate this threat.
+
 --------------------------------------------------------------------------------
 
 ## Error Handling
@@ -710,8 +749,8 @@ This page, [Configure security](https://grafana.com/docs/grafana/latest/setup-gr
 ### Node-RED Server Failure
 
 The Node-RED server may freeze, crash, or get stuck in a busy-loop.
-This is surely resolved in newer versions, but in v0.20.7 it occurs about once
-per week.
+This is surely resolved in newer versions, but in older versions[which?] it
+occurs about once per week.
 
 Impact:  
 The server will not be able to accept incoming connections.
