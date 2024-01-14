@@ -9,8 +9,9 @@
     + [Node-RED](#node-red)
     + [InfluxDB](#influxdb)
     + [Grafana](#grafana)
-  - [Node-RED Flows](#node-red-flows)
-  - [Node-RED SOH Monitor](#node-red-soh-monitor)
+  - [Project Applications](#project-applications)
+    + [Node-RED Flows](#node-red-flows)
+    + [Node-RED SOH Monitor](#node-red-soh-monitor)
 * [Dynamic Behavior](#dynamic-behavior)
   - [Modes of Operation](#modes-of-operation)
   - [Process Request](#process-request)
@@ -22,6 +23,9 @@
   - [Grafana Security](#grafana-security)
   - [Node-RED Flows Security](#node-red-flows-security)
 * [Error Handling](#error-handling)
+  - [General Failures](#general-failures)
+  - [Node-RED Server Failure](#node-red-server-failure)
+  - [Node-RED Packet Handling](#node-red-packet-handling)
 
 --------------------------------------------------------------------------------
 
@@ -302,7 +306,9 @@ web browser. With this interface, it provides access to the dashboards and data
 source configuration  
 ![Grafana Screenshot](screenshots/grafana_dashboard.png)
 
-### Node-RED Flows
+### Project Applications
+
+#### Node-RED Flows
 
 ##### Description
 
@@ -562,7 +568,7 @@ with 3 concatenated parameters:
 Note that the final parameter is not a string and not terminated with a newline
 character. This will be binary file data directly transmitted.
 
-### Node-RED SOH Monitor
+#### Node-RED SOH Monitor
 
 ##### Description
 
@@ -779,10 +785,28 @@ mitigate this threat.
 --------------------------------------------------------------------------------
 
 ## Error Handling
-- Grafana Sensor Alert (monitoring)
-- Node-red packet parsing
-- Node-red SOH monitoring
-- Node-red debugging
+
+### General Failures
+
+There can be many causes for failure in the system due to the number of
+components and unreliable interfaces such as wireless LAN.
+
+The Grafana server can be configured to set health alerts if there are no
+sensor updates for some period of time. With this kind of monitoring, there is
+broad, end-to-end coverage for almost any type of failure.  
+![Grafana Alerts](screenshots/grafana_battery_alerts.png)  
+In this example, an alert is set if the battery voltage on any sensor node drops
+below a critical level or if the sensor has not reported in for some amount of time.  
+The downside to this type of monitoring is its lack of specificity. If the
+sensor fails to report-in, you only know that there is some problem, but not
+what the problem is or how to resolve it.
+
+Grafana alerts can trigger an email if a suitable backend is configured.
+
+Another alternative, is to add monitoring in the Node-RED flows. There are many
+nodes available for sending data or alerts to different services (for example,
+you could send data to an Amazon S3 bucket to be processed or send alerts to
+discord or an MQTT broker).
 
 ### Node-RED Server Failure
 
@@ -803,3 +827,20 @@ timeout is exceeded.
 More details are provided above:
 * [Node-RED SOH Monitor](#node-red-soh-monitor)
 * [Node-RED SOH Behavior](#node-red-soh-behavior)
+
+### Node-RED Packet Handling
+
+A lot of effort in the Node-RED flows is spent handling edge-cases with dropped
+or partially received packets. While the setup is fairly stable at this point,
+it is conceivable that changes may be needed in other environments or if
+Node-RED is updated to a new version.
+
+If this happens, the Node-RED flows can be debugged via the web interface on
+port 1880.  
+To enable additional debug logging, simply click the green button next to one of
+the debug nodes. There is no need to "deploy" the flows unless you want the
+change to the setting to be remembered permanently.  
+![Debug Level Modification Screenshot](screenshots/flows_enable_debug.png)
+
+More detail about the expected output from these debug nodes will be documented
+in the [Server Software Design Document](server_design_detail.md).
