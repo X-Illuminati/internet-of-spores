@@ -15,6 +15,7 @@
   - [Modes of Operation](#modes-of-operation)
   - [Process Request](#process-request)
   - [Node-RED SOH Behavior](#node-red-soh-behavior)
+  - [Visualization](#visualization)
 * [Cybersecurity](#cybersecurity)
   - [Node-RED Security](#node-red-security)
   - [InfluxDB Security](#influxdb-security)
@@ -644,16 +645,53 @@ The script is normally expected to be invoked by systemd from the
   fashion.
 
 ### Process Request
--Describe incoming sensor readings, their storage in InfluxDB, their presentation in Grafana.
 
 #### Measurement
-#### Firmware Update
-#### Configuration Update
--Describe Node-red FW Update process.
--Describe Node-red Calibration/configuration update process.
 
-### Node-red SOH Behavior
--Describe SOH monitoring for Node-red
+![Measurement Processing Sequence Diagram](drawio/serversw_measurement_request_sequence_diagram.png)  
+Measurements are batched together until the uptime measurement is received. Then
+the [Node-RED Flows](#node-red-flows) provide a bulk update to
+[InfluxDB](#influxdb).  
+The response to the sensor node can be "error" if some problem occurs with
+parsing or writing to InfluxDB (not shown). Additionally, the response can
+include flags indicating the presence of a waiting firmware or configuration
+update (see next section).
+
+#### Firmware Update
+
+![Firmware Update Processing Sequence Diagram](drawio/serversw_update_request_sequence_diagram.png)  
+Firmware updates files are looked up in the "firmware" dir by searching for a
+base filename provided by the sensor node. If found, the response will include
+the file length, md5sum, and data.
+
+#### Configuration Update
+
+![Configuration Update Processing Sequence Diagram](drawio/serversw_get_config_request_sequence_diagram.png)  
+Configuration files are looked up in the "sensor-cfg" dir by searching for the
+sensor node name and the filename requested by the sensor node. If found, the
+response will include the file length, md5sum, and data.
+
+After retrieving each configuration file and applying the update to its file
+system, the sensor node will request the server to delete the configuration
+file.  
+![Configuration Update Processing Sequence Diagram](drawio/serversw_delete_config_request_sequence_diagram.png)
+
+### Node-RED SOH Behavior
+
+![Node-RED SOH Monitoring Sequence Diagram](drawio/serversw_nodered_soh_sequence_diagram.png)  
+The [Node-RED Flows](#node-red-flows) periodically log a message to the console
+every 30 seconds.  
+Independently, the [Node-RED SOH Monitor](#node-red-soh-monitor) monitors the
+systemd journal for the SOH messages with a timeout of 45 seconds.  If the
+timeout occurs 3 times, it will invoke systemctl to restart the
+[Node-RED](#node-red) server.
+
+### Visualization
+
+![Grafana Visualization Sequence Diagram](drawio/serversw_grafana_sequence_diagram.png)  
+A user can connect to the [Grafana](#grafana) web server with a standard web
+browser to monitor and visualize the sensor data stored in
+[InfluxDB](#influxdb).
 
 --------------------------------------------------------------------------------
 
