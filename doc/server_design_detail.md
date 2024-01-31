@@ -70,7 +70,8 @@ the following tabs:
 The main flows listen on TCP port 2880 for incoming connections, collect
 together fragmented packets, parse the packet as json, filter out the header
 fields, and then pass the message on to the appropriate sub-flow based on the
-command field.  
+command field.
+
 The function nodes are relatively straightforward:
 * "detect framing" looks for a null terminator in order to set the msg.complete
   flag
@@ -83,7 +84,7 @@ The function nodes are relatively straightforward:
 * "process error" provides a TCP response of "error\0" for any error (except
   errors that it triggered with its own response)
 
-The switch statement works in the following way:
+The switch node works in the following way:
 * If command == "update", transfers msg to the
   [update firmware sub-flow](#update-firmware)
 * If command == "get_config" or "delete_config", transfers msg to the 
@@ -123,6 +124,11 @@ configured to modify the location of the respective firmware and sensor-cfg
 directories, though it is probably easier to create softlinks in your Node-RED
 runtime directory.
 
+**null-terminate**
+
+This function simply appends a "\0" character to the end of the response
+message.
+
 **process error**
 
 ![process error flow chart](drawio/serversw_detail_process_error_flow_chart.png)
@@ -144,11 +150,58 @@ sensor node to retransmit the measurement, so we send an "OK,old" response.
 
 ![Flow Screenshot](screenshots/flows_detail_update_firmware.png)
 
-(configuration options, flow charts, fault tolerance, notes, dependencies-influx,md5,readdir)
+> 🪧 Note: this flow depends on the additional plugin modules:
+> * [node-red-contrib-readdir](https://flows.nodered.org/node/node-red-contrib-readdir)
+> * [node-red-contrib-md5](https://flows.nodered.org/node/node-red-contrib-md5)
+
+When the msg is transferred to this sub-flow, the filename is extracted from the
+payload argument and used to find the matching firmware image in the "firmware"
+directory.  
+If the image fle is found, its md5 hash will be calculated and the update
+package (length, md5, data) transmitted in the response.
+
+**parse update**
+
+![parse update flow chart](drawio/serversw_detail_parse_update_flow_chart.png)
+
+This function searches the list of files provided by the "firmware_dir" node
+to find any that match the filename provided.  
+As an extra check, it will ignore any firmware file that already matches the
+firmware "fingerprint" reported by the sensor node as there is no point sending
+an update file if the sensor is already running that version of software.
+
+**transmit update**
+
+This function crafts a response octet-string by concatenating the metadata and
+content of the file:
+* file length
+* "\n"
+* md5sum
+* "\n"
+* file data
+
+> 🪧 Note: a final "\n" or "\0" is not included in this message as the file data
+> will be processed by the ESP SDK firmware update functionality which expects
+> a simple IO Stream with the file data only.  
+> Additional framing would disturb the md5 checksum calculation.
+
+**null-terminate**
+
+This function simply appends a "\0" character to the end of the response
+message.
+
+**process error**
+
+This function provides a TCP response of "0\n" for any error (except errors that
+it triggered with its own response). 
+
 
 #### Update Config
 
 ![Flow Screenshot](screenshots/flows_detail_update_config.png)
+
+
+(TODO: configuration options, flow charts, fault tolerance, notes, dependencies-influx,md5,readdir)
 
 #### State of Health
 
