@@ -157,7 +157,7 @@ sensor node to retransmit the measurement, so we send an "OK,old" response.
 When the msg is transferred to this sub-flow, the filename is extracted from the
 payload argument and used to find the matching firmware image in the "firmware"
 directory.  
-If the image fle is found, its md5 hash will be calculated and the update
+If the image file is found, its md5 hash will be calculated and the update
 package (length, md5, data) transmitted in the response.
 
 **parse update**
@@ -185,29 +185,80 @@ content of the file:
 > a simple IO Stream with the file data only.  
 > Additional framing would disturb the md5 checksum calculation.
 
-**null-terminate**
-
-This function simply appends a "\0" character to the end of the response
-message.
-
 **process error**
 
 This function provides a TCP response of "0\n" for any error (except errors that
 it triggered with its own response). 
 
+**null-terminate**
+
+This function simply appends a "\0" character to the end of the response
+message.
 
 #### Update Config
 
 ![Flow Screenshot](screenshots/flows_detail_update_config.png)
 
+> 🪧 Note: this flow depends on the additional plugin modules:
+> * [node-red-contrib-readdir](https://flows.nodered.org/node/node-red-contrib-readdir)
+> * [node-red-contrib-md5](https://flows.nodered.org/node/node-red-contrib-md5)
 
-(TODO: configuration options, flow charts, fault tolerance, notes, dependencies-influx,md5,readdir)
+When the msg is transferred to this sub-flow, the filename is extracted from the
+payload argument and used to find the matching configuration file in the
+"sensor-cfg" directory.  
+Depending on whether the command is "get_config" or "delete_config", the file
+will be returned to the sensor node or deleted, respectively.
+
+**parse get_config**
+
+![parse update flow chart](drawio/serversw_detail_parse_get_config_flow_chart.png)
+
+This function searches the list of files provided by the "firmware-cfg dir" node
+to find any that match the node name and filename provided. For example, the
+configuration update files might be in organized in subdirectories by node name
+(sensor-cfg/node_name/cfg_file), but other schemes are possible
+(sensor-cfg/node_name-cfg_file).
+
+**transmit update**
+
+This function crafts a response octet-string by concatenating the metadata and
+content of the file:
+* file length
+* "\n"
+* md5sum
+* "\n"
+* file data
+
+**send empty response**
+
+This function provides a TCP response of "\n" if no matching file was found.
+
+**abort upload**
+
+This function provides a TCP response of "0\n" for any error (except errors that
+it triggered with its own response). 
+
+**null-terminate**
+
+This function simply appends a "\0" character to the end of the response
+message.
 
 #### State of Health
 
 ![Flow Screenshot](screenshots/flows_detail_soh.png)
 
+This flow executes asynchronously every 30 seconds (starting 3 seconds after the
+flows are started).
+
+**SOH Log**
+
+This function performs a console.log of the string "@SOH report@" + the
+timestamp.
+
 ### Node-red SOH Monitor
+
+(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
+
 
 ---
 
