@@ -257,8 +257,42 @@ timestamp.
 
 ### Node-red SOH Monitor
 
+The SOH Monitor script is located in
+[soh-monitor.sh](../node-red/soh-monitor.sh).
+
+The main configuration interface is via command line parameters.
+These are optional:
+* If 1 parameter is supplied, it is: timeout
+* If 2 parameters are supplied: timeout, action count
+* If 3 parameters are supplied: timeout, action count, max errors
+
+The defaults for these (along with the additional RELOAD_TIME parameter) can be
+adjusted at the top of the script.
+
+This script depends on bash -- simpler bourne shells will probably fail in an
+unexpected way. Additionally, it depends on systemd utilities: systemctl and
+journalctl.
+
+> 🪧 Note: The script expects Node-RED to be running under the "user" service
+> manager rather than the "system" service manager. This should probably be
+> made more configurable or allow some level of auto-detection.
+
+There are 3 basic parts to the script:
+* [Signal Traps](#signal-traps)
+* [script_main](#script_main)
+* [monitor](#monitor)
+
+#### script_main
+
 (TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
 
+#### monitor
+
+(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
+
+#### Signal Traps
+
+(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
 
 ---
 
@@ -273,4 +307,24 @@ timestamp.
 
 ## Future Improvements
 
--find some way to make the tabs more modular so they can be included into an existing set of flows or so they can be expanded upon but still have an easy upgrade path
+**Node-RED Flows**
+
+It would be good to find some way to make the tabs more modular so they can be
+included into an existing set of flows or so they can be expanded upon but still
+have an easy upgrade path.  
+It seems like the import and export of "libraries" should make this possible.
+Likewise, the use of "subflows" might offer a modular solution or at least make
+the inclusion of the libraries more straightforward.
+
+**Node-RED SOH Monitor**
+
+It might be good to reduce the reliance on systemd in order to support other
+init systems.  The availability of systemd services could likely be
+auto-detected and, if not present, fallback on standard syslog monitoring and
+"service" helper utilities.
+
+Currently, the script hardcodes the `--user` parameter to systemctl and
+journalctl. This should be made configurable or allow for some sort of
+auto-detection mechanism.  
+It seems like systemctl has enough introspection capabilities to allow for
+auto-detection.
