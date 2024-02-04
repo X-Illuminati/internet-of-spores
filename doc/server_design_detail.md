@@ -284,7 +284,29 @@ There are 3 basic parts to the script:
 
 #### script_main
 
-(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
+![script_main flow chart](drawio/serversw_detail_soh_script_main_flow_chart.png)
+
+The `script_main` function parses the command line parameters, which allow overriding the default values of several parameters (as mentioned above).
+
+It then sets up a trap for the interrupt signal and gets the process ID of the
+Node-RED Server from systemd.
+
+After that it executes `journalctl` in follow mode, filtering on the node-red
+unit and outputting only the message content (cat mode). This output is piped
+into the `monitor` function.  
+The `monitor` function will only return if the maximum error count is exceeded,
+if the input file descriptor (from `journalctl`) is closed, or if it took action
+to restart the Node-RED service.  
+When it returns, the return value will be the updated error count.
+
+Assuming the max error count is not exceeded, `script_main` will wait for a few
+seconds to let Node-RED finish restarting and then it will loop to the beginning
+and get the new PID, start `journalctl` and pipe it into `monitor`, etc.
+
+Most parameters are configurable on the command line, except for `RELOAD_TIME`,
+which is the time that the script waits for the Node-RED service to restart.  
+This is merely an oversight. For now, if you wish to modify this parameter, you
+will just have to edit the [soh-monitor.sh](../node-red/soh-monitor.sh) script.
 
 #### monitor
 
