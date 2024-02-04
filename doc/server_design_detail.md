@@ -314,7 +314,28 @@ will just have to edit the [soh-monitor.sh](../node-red/soh-monitor.sh) script.
 
 #### Signal Traps
 
-(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
+The script traps SIGINT as a means of debugging.
+
+`sigint_trap` is set as the handler for SIGINT while `script_main` is running.  
+This trap will check whether you have sent an interrupt signal (via Ctrl-C)
+twice within TIMEOUT seconds. The first interrupt will be ignored, but the
+second interrupt within TIMEOUT seconds will cause the script to exit.  
+When running the script on the command line, this allows testing of the
+`sigint_monitor` behavior but also allows terminating the script easily by
+pressing Ctrl-C a second time.
+
+`sigint_monitor` is set as the handler for SIGINT while `monitor` is running.  
+This trap will print the current value for ERROR_COUNT to standard output. This
+can be helpful to periodically check whether any missed heartbeats are being
+noticed.
+
+Since `monitor` runs in a subshell, both handlers will trigger when running the
+script from the command line. When executing the script from systemd, the
+`sigint_trap` handler will be surpressed, but the `sigint_monitor` handler can
+be triggered by using `kill` to send the INT signal directly to the subshell.
+You can find the PID of the subshell by checking the `systemctl` status for the
+service:    
+![Subshell screenshot](screenshots/soh-monitor-subshell.png)
 
 ---
 
