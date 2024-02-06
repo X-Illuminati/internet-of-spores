@@ -1,5 +1,4 @@
 # Server Software Design
-This outline is currently a work-in-progress.
 
 ## Table of Contents
 
@@ -282,6 +281,8 @@ There are 3 basic parts to the script:
 * [script_main](#script_main)
 * [monitor](#monitor)
 
+![soh-monitor State Chart](drawio/serversw_detail_soh_script_state_chart.png)
+
 #### script_main
 
 ![script_main flow chart](drawio/serversw_detail_soh_script_main_flow_chart.png)
@@ -310,7 +311,31 @@ will just have to edit the [soh-monitor.sh](../node-red/soh-monitor.sh) script.
 
 #### monitor
 
-(TODO: configuration options, flow charts, fault tolerance, notes, dependencies)
+![monitor flow chart](drawio/serversw_detail_soh_monitor_flow_chart.png)
+
+The `monitor` function reads lines from its standard input with a timeout. The
+timeout is specified by the first argument to the function.  
+The lines are parsed into fields delimited by '@'. The fields are `linehead`,
+`sohmark`, and `sohtimestamp`. If `sohmark` matches "SOH report", then it is
+considered to be a valid heartbeat. If the matching SOH mark is not found within
+the timeout period, then the global `ERROR_COUNT` and a local `counter` will be
+incremented.  
+If the `counter` equals the action count (which is supplied as the second
+input argument to the function), Node-RED will be restarted by invoking
+`systemctl`. At this point the function will return.
+
+**Return Value**
+
+The function returns `ERROR_COUNT`.
+
+**Error Handling**
+
+If `ERROR_COUNT` exceeds the global `MAX_ERRORS`, the situation is deemed
+suspicious and the function will return (and `script_main` will also return).
+
+If the call to `read` fails with some other error code than timeout, the
+function will return as the most likely cause is a broken pipe with
+`journalctl`.
 
 #### Signal Traps
 
@@ -341,6 +366,7 @@ service:
 
 ## Debugging and Unit Testing
 
+TODO
 - Debugging
 - console.log
 - Fault tolerance
