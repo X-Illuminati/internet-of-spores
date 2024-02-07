@@ -12,7 +12,13 @@
     + [Update Config](#update-config)
     + [State of Health](#state-of-health)
   - [Node-RED SOH Monitor](#node-red-soh-monitor)
+    + [script_main](#script_main)
+    + [monitor](#monitor)
+    + [Signal Traps](#signal-traps)
 * [Debugging and Unit Testing](#debugging-and-unit-testing)
+  - [Debugging Node-RED](#debugging-node-red)
+  - [Debugging Node-RED SOH Monitor](#debugging-node-red-soh-monitor)
+* [Future Improvements](#future-improvements)
 
 ---
 
@@ -358,19 +364,90 @@ Since `monitor` runs in a subshell, both handlers will trigger when running the
 script from the command line. When executing the script from systemd, the
 `sigint_trap` handler will be surpressed, but the `sigint_monitor` handler can
 be triggered by using `kill` to send the INT signal directly to the subshell.
-You can find the PID of the subshell by checking the `systemctl` status for the
-service:    
-![Subshell screenshot](screenshots/soh-monitor-subshell.png)
 
 ---
 
 ## Debugging and Unit Testing
 
-TODO
-- Debugging
-- console.log
-- Fault tolerance
-- run soh monitor from the command line
+The Node-RED flows and SOH monitor script don't have any unit tests.
+😿
+
+### Debugging Node-RED
+
+There are several debug nodes throughout the Node-RED flows. Most of these are
+disabled to avoid spam, but they can be re-enabled by clicking on the green
+button next to them. You don't need to deploy the changes for this debug
+enable/disable flag to take effect.  
+![screenshot enable debug flag](screenshots/flows_enable_debug.png)
+
+By default the log output in Node-RED goes to the debug window on the side
+panel:  
+![screenshot debug window](screenshots/flows_debug_window.png)
+
+You can redirect it to the system console by changing the properties of the
+debug node (double click):  
+![screenshot debug node properties](screenshots/flows_debug_system_console.png)
+> 🪧 Note: changes to these properties will not take effect until you deploy the
+> flows.
+
+Likewise, in any of the function nodes, you can call `console.log()` to send a
+log message to the system console.
+
+To monitor the system console, use `journalctl` to "follow" the log output:
+```sh
+journalctl --user --unit node-red.service -f
+```
+
+### Debugging Node-RED SOH Monitor
+
+Check whether the Node-RED and Node-RED SOH service are running:
+```sh
+systemctl --user status node-red.service
+systemctl --user status node-red-soh.service
+```
+
+You should see that these services are active (running).  
+![Subshell screenshot](screenshots/soh-monitor-subshell.png)
+
+Additionally, the last few lines of the journal output will be printed, so you
+can check whether SOH report messages are being printed.q
+
+If you send a SIGINT to the subshell running the monitor function, the script
+will print out the number of heartbeat timeouts that it has caught so far. You
+can find the PID of the subshell by checking the `systemctl` status for the
+service as mentioned above.
+```sh
+kill -SIGINT <PID> #see example in screenshot above
+journalctl --user --unit node-red-soh.service --lines 10
+```
+
+If you want to inject a fault condition, you can kill or suspend the Node-RED
+server process:
+```sh
+systemctl --user status node-red.service    # get current PID
+kill <Node-RED PID>   # use PID from above
+journalctl --user --unit node-red-soh.service -f   # monitor response
+```
+
+Or you can briefly suspend the Node-RED server process to see the SOH failure
+and recovery:
+```sh
+kill -STOP <Node-RED PID>
+# wait a while to see SOH report failures in the soh-monitor journal
+kill -CONT <Node-RED PID>
+```
+
+Additionally, you can run the soh-monitor script from the command line. This
+will let you send Ctrl-C more easily to print the error count and monitor the
+status without needing to use `journalctl`.
+```sh
+# stop the soh-monitor if it is running
+systemctl --user stop node-red-soh.service
+# restart node-red since it was dependent on node-red-soh
+systemctl --user start node-red.service
+# run the soh monitor
+./soh-monitor.sh
+```
 
 ---
 
